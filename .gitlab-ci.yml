@@ -92,29 +92,3 @@ package:
     paths:
       - dist/
     expire_in: 1 day
-
-.deploy:
-  stage: deploy
-  dependencies:
-    - package
-  script:
-    - pipx run twine upload --verbose dist/*whl dist/*gz
-
-deploy_staging:
-  extends: .deploy
-  rules:
-    - if:
-        $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
-  variables:
-    TWINE_REPOSITORY: testpypi
-    TWINE_USERNAME: __token__
-    TWINE_PASSWORD: $TESTPYPI_TOKEN
-
-deploy_production:
-  extends: .deploy
-  only:
-    - tags
-  variables:
-    TWINE_REPOSITORY: pypi
-    TWINE_USERNAME: __token__
-    TWINE_PASSWORD: $PYPI_TOKEN
