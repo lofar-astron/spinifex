@@ -1,0 +1,120 @@
+stages:
+  - autoupdate
+  - check
+  - test
+  - build
+  - deploy
+
+variables:
+  # see https://docs.gitlab.com/ee/ci/caching/#cache-python-dependencies
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+    - .venv/
+
+image: python:3.9-buster
+before_script:
+  # want to set up a virtualenv to cache
+  - apt-get install -y --no-install-recommends git
+  - python -V
+  - python -m venv .venv
+  - source .venv/bin/activate
+  - python -m pip install -U pip pipx
+  - python -m pipx ensurepath
+  - python -m pip freeze
+
+pre-commit:
+  stage: check
+  variables:
+    PRE_COMMIT_HOME: "$CI_PROJECT_DIR/.cache/pre-commit"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+  script:
+    - python -m pip install pre-commit
+    - pre-commit run --hook-stage manual --all-files
+  cache:
+    key:
+      files:
+        - .pre-commit-config.yaml
+    paths:
+      - .cache/pre-commit
+
+pre-commit-autoupdate:
+  stage: autoupdate
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: always
+    - if:
+        $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      # manual jobs need allow_failure: https://gitlab.com/gitlab-org/gitlab/-/issues/233876
+      allow_failure: true
+  script:
+    - python -m pip install pre-commit
+    - .github/pre-commit-update.sh
+  cache:
+    key:
+      files:
+        - .pre-commit-config.yaml
+    paths:
+      - .cache/pre-commit
+
+lint:
+  stage: check
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+  script:
+    - pipx run nox -s pylint
+
+tests:
+  stage: test
+  image: $IMAGE
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+  script:
+    - python -V
+    - python -m pip install .[test]
+    - python -m pytest -ra --cov=spinifex
+  parallel:
+    matrix:
+      - IMAGE: ['python:3.9-buster', 'python:3.11-buster']
+
+package:
+  stage: build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+  script:
+    - pipx run build
+    - pipx run twine check dist/*
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 day
+
+.deploy:
+  stage: deploy
+  dependencies:
+    - package
+  script:
+    - pipx run twine upload --verbose dist/*whl dist/*gz
+
+deploy_staging:
+  extends: .deploy
+  rules:
+    - if:
+        $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+  variables:
+    TWINE_REPOSITORY: testpypi
+    TWINE_USERNAME: __token__
+    TWINE_PASSWORD: $TESTPYPI_TOKEN
+
+deploy_production:
+  extends: .deploy
+  only:
+    - tags
+  variables:
+    TWINE_REPOSITORY: pypi
+    TWINE_USERNAME: __token__
+    TWINE_PASSWORD: $PYPI_TOKEN
