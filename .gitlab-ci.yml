@@ -79,7 +79,7 @@ tests:
     - python -m pytest -ra --cov=spinifex
   parallel:
     matrix:
-      - IMAGE: ['python:3.9-buster', 'python:3.11-buster']
+      - IMAGE: ["python:3.9-buster", "python:3.11-buster"]
 
 package:
   stage: build
