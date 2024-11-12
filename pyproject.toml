@@ -1,7 +1,7 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling", "hatch-vcs","numpy"]
 build-backend = "hatchling.build"
-dependencies = ["numpy"]
+
 
 [project]
 name = "spinifex"
