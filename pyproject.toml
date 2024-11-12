@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 [project]
 name = "spinifex"
 authors = [
-  { name = "Maaijke Mevius, Alec Thomson", email = "mevius@astron.nl" },
+  { name = "Maaijke Mevius, Alec Thomson, Tammo Jan Dijkema", email = "mevius@astron.nl" },
 ]
 description = "Tool for calculating ionospheric Faraday rotation"
 readme = "README.md"
@@ -35,6 +35,7 @@ dependencies = ["numpy"]
 test = [
   "pytest >=6",
   "pytest-cov >=3",
+  "numpy-stubs",
 ]
 dev = [
   "pytest >=6",
