@@ -8,4 +8,6 @@ from __future__ import annotations
 
 from ._version import version as __version__
 
-__all__ = ["__version__"]
+from .spinifex import get_bla
+
+__all__ = ["__version__", "get_bla"]
