@@ -3,6 +3,6 @@
 from __future__ import annotations
 
 
-def get_bla(my_input):
+def get_bla(my_input: float) -> float:
     """Compute three times input"""
     return my_input * 3
