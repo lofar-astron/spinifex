@@ -29,7 +29,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dynamic = ["version"]
-dependencies = []
+dependencies = ["numpy"]
 
 [project.optional-dependencies]
 test = [
