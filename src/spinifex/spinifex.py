@@ -9,4 +9,5 @@ def get_bla(my_input: float) -> float:
 
 def get_blo(my_input: np.ndarray) -> np.ndarray:
     """Compute three times input"""
-    return my_input * 3 
+    return my_input * 3
+
