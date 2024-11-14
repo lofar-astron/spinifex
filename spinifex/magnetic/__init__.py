@@ -15,4 +15,4 @@ def get_magnetic_field(loc: EarthLocation) -> u.Quantity:
     lat_deg = loc.lat.to(u.deg).value
     height_m = loc.height.to(u.m).value
 
-    return u.Quantity((3, 5, 4) * u.tesla)
+    return u.Quantity((3 * lon_deg, 5 * lat_deg, 4 - height_m) * u.tesla)
