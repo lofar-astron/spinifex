@@ -4,9 +4,10 @@
 """Testing of magnetic"""
 from unittest import TestCase
 
-from spinifex.magnetic import get_magnetic_field
-from astropy.coordinates import EarthLocation
 import astropy.units as u
+from astropy.coordinates import EarthLocation
+
+from spinifex.magnetic import get_magnetic_field
 
 
 def is_convertible_to_unit(quantity: u.Quantity, unit: u.Unit) -> bool:
