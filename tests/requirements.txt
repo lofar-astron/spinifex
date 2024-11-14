@@ -1,0 +1,7 @@
+autopep8 >= 1.7.0 # MIT
+black >= 22.0.0 # MIT
+build >= 0.8.0 # MIT
+flake8 >= 5.0.0 # MIT
+pylint >= 2.15.0 # GPLv2
+pytest >= 7.0.0 # MIT
+pytest-cov >= 3.0.0 # MIT

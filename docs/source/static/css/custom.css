@@ -1,0 +1,14 @@
+.orange { color: #c65d09; }
+
+.green { color: #5dc609; }
+
+.yellow { color: #c6c609; }
+
+.bolditalic {
+  font-weight: bold;
+  font-style: italic;
+}
+
+.rst-content code, .rst-content tt, code {
+  white-space: break-spaces;
+}

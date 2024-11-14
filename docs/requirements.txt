@@ -1,0 +1,5 @@
+sphinx!=1.6.6,!=1.6.7,>=1.6.5 # BSD
+sphinx-rtd-theme>=0.4.3 #MIT
+sphinxcontrib-apidoc>=0.3.0 #BSD
+myst-parser>=2.0 # MIT
+docutils>=0.17 # BSD

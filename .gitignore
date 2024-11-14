@@ -1,0 +1,22 @@
+dist/*
+*.egg-info
+*.pyc
+.tox
+
+.coverage
+coverage.xml
+htmlcov/*
+build
+dist
+
+# Documentation
+docs/source/source_documentation
+!docs/source/source_documentation/index.rst
+docs/build
+
+# Setuptools SCM
+spinifex/_version.py
+
+# IDE configuration
+.vscode
+.idea
