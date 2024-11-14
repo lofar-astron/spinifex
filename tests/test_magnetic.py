@@ -5,6 +5,17 @@
 from unittest import TestCase
 
 from spinifex.magnetic import get_magnetic_field
+from astropy.coordinates import EarthLocation
+import astropy.units as u
+
+
+def is_convertible_to_unit(quantity: Quantity, unit: u.Unit) -> bool:
+    """Test if unit is convertible to a given unit"""
+    try:
+        _ = quantity.to(unit)
+        return True
+    except u.UnitsError:
+        return False
 
 
 class TestMagnetic(TestCase):
@@ -12,5 +23,8 @@ class TestMagnetic(TestCase):
 
     def test_get_magnetic_field(self):
         """Test that get_magnetic does not crash"""
-        get_magnetic_field()
-        self.assertEqual(2 + 2, 4)
+        above_dwingeloo = EarthLocation(
+            lon=6.367 * u.deg, lat=52.833 * u.deg, height=100 * u.km
+        )
+        field = get_magnetic_field(above_dwingeloo)
+        assert is_convertible_to_unit(field, u.tesla)

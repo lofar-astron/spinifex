@@ -1,7 +1,7 @@
 #  Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 #  SPDX-License-Identifier: Apache-2.0
 
-"""Testing of the Cool Module"""
+"""Testing of the main module"""
 from unittest import TestCase
 
 from spinifex import get_rm
