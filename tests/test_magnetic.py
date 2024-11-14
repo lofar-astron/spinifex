@@ -9,7 +9,7 @@ from astropy.coordinates import EarthLocation
 import astropy.units as u
 
 
-def is_convertible_to_unit(quantity: Quantity, unit: u.Unit) -> bool:
+def is_convertible_to_unit(quantity: u.Quantity, unit: u.Unit) -> bool:
     """Test if unit is convertible to a given unit"""
     try:
         _ = quantity.to(unit)
