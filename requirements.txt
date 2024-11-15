@@ -1,2 +1,4 @@
 importlib-metadata>=0.12, <5.0;python_version<"3.8"
 numpy
+astropy
+requests

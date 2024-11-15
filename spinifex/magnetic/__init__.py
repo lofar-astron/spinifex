@@ -1,0 +1,18 @@
+#  Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
+#  SPDX-License-Identifier: Apache-2.0
+
+""" Module for getting the Earth magnetic field """
+
+__all__ = ["get_magnetic_field"]
+
+from astropy.coordinates import EarthLocation
+import astropy.units as u
+
+
+def get_magnetic_field(loc: EarthLocation) -> u.Quantity:
+    """Get the magnetic field at a given EarthLocation"""
+    lon_deg = loc.lon.to(u.deg).value
+    lat_deg = loc.lat.to(u.deg).value
+    height_m = loc.height.to(u.m).value
+
+    return u.Quantity((3 * lon_deg, 5 * lat_deg, 4 - height_m) * u.tesla)
