@@ -1,7 +1,8 @@
 #  Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 #  SPDX-License-Identifier: Apache-2.0
+from __future__ import annotations
 
-import os
+from pathlib import Path
 
 from spinifex import __version__
 
@@ -12,22 +13,21 @@ from spinifex import __version__
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
-    "sphinxcontrib.apidoc",
     "sphinx_rtd_theme",
-    "myst_parser"
+    "myst_parser",
+    "sphinx_autodoc_typehints",
+    "autoapi.extension",
 ]
 
-# Assumes tox is used to call sphinx-build
-project_root_directory = os.getcwd()
+autoapi_type = "python"
+autoapi_dirs = ["../../spinifex"]
+autoapi_member_order = "groupwise"
+autoapi_keep_files = False
+autoapi_root = "autoapi"
+autoapi_add_toctree_entry = True
 
-apidoc_module_dir = "../../spinifex"
-apidoc_output_dir = "source_documentation"
-apidoc_excluded_paths = []
-apidoc_separate_modules = True
-apidoc_toc_file = False
-# This should include private methods but does not work
-# https://github.com/sphinx-contrib/apidoc/issues/14
-apidoc_extra_args = ["--private"]
+# Assumes tox is used to call sphinx-build
+project_root_directory = Path.cwd().as_posix()
 
 # The suffix of source filenames.
 source_suffix = [".rst"]
@@ -71,7 +71,7 @@ html_css_files = [
 ]
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "%sdoc" % project
+htmlhelp_basename = f"{project}doc"
 
 # Conf.py variables exported to sphinx rst files access using |NAME|
 variables_to_export = [
@@ -82,12 +82,12 @@ variables_to_export = [
 
 # Write to rst_epilog to export `variables_to_export` extract using `locals()`
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-rst_epilog
-frozen_locals = dict(locals())
-rst_epilog = "\n".join(
-    map(
-        lambda x: f".. |{x}| replace:: {frozen_locals[x]}",  # noqa: F821
-        variables_to_export,
-    )
-)
-# Pep is not able to determine that frozen_locals always exists so noqa
-del frozen_locals
+# frozen_locals = dict(locals())
+# rst_epilog = "\n".join(
+#     map(
+#         lambda x: f".. |{x}| replace:: {frozen_locals[x]}",
+#         variables_to_export,
+#     )
+# )
+# # Pep is not able to determine that frozen_locals always exists so noqa
+# del frozen_locals

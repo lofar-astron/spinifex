@@ -1,12 +1,14 @@
 #  Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
 #  SPDX-License-Identifier: Apache-2.0
 
-""" Module for getting the Earth magnetic field """
+"""Module for getting the Earth magnetic field"""
+
+from __future__ import annotations
 
 __all__ = ["get_magnetic_field"]
 
-from astropy.coordinates import EarthLocation
 import astropy.units as u
+from astropy.coordinates import EarthLocation
 
 
 def get_magnetic_field(loc: EarthLocation) -> u.Quantity:
