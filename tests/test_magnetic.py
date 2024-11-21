@@ -2,11 +2,13 @@
 #  SPDX-License-Identifier: Apache-2.0
 
 """Testing of magnetic"""
+
+from __future__ import annotations
+
 from unittest import TestCase
 
 import astropy.units as u
 from astropy.coordinates import EarthLocation
-
 from spinifex.magnetic import get_magnetic_field
 
 

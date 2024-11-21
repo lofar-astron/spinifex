@@ -34,16 +34,10 @@ trigger_prepare:
     strategy: depend
     include: .prepare.gitlab-ci.yml
 
-run_black:
+run_ruff:
   stage: lint
   script:
-    - tox -e black
-  allow_failure: true
-
-run_flake8:
-  stage: lint
-  script:
-    - tox -e pep8
+    - tox -e ruff
   allow_failure: true
 
 run_pylint:
@@ -59,8 +53,8 @@ run_pylint:
 
 sast:
   variables:
-    SAST_EXCLUDED_ANALYZERS: brakeman, flawfinder, kubesec, nodejs-scan, phpcs-security-audit,
-      pmd-apex, security-code-scan, sobelow, spotbugs
+    SAST_EXCLUDED_ANALYZERS:
+      brakeman, flawfinder, kubesec, nodejs-scan, phpcs-security-audit, pmd-apex, security-code-scan, sobelow, spotbugs
   stage: test
 
 dependency_scanning:
@@ -89,13 +83,13 @@ run_unit_tests:
     - tox -e py3${PY_VERSION}
   parallel:
     matrix: # use the matrix for testing
-      - PY_VERSION: [8, 9, 10, 11]
+      - PY_VERSION: [9, 10, 11, 12, 13]
 
 # Run code coverage on the base image thus also performing unit tests
 run_unit_tests_coverage:
   stage: test
   script:
-   - tox -e coverage
+    - tox -e coverage
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     reports:
@@ -133,7 +127,8 @@ docker_build:
   before_script: []
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -f docker/spinifex/Dockerfile . --build-arg BUILD_ENV=copy --tag $CI_REGISTRY_IMAGE/spinifex:$CI_COMMIT_REF_SLUG
+    - docker build -f docker/spinifex/Dockerfile . --build-arg BUILD_ENV=copy --tag
+      $CI_REGISTRY_IMAGE/spinifex:$CI_COMMIT_REF_SLUG
     # enable this push line once you have configured docker registry cleanup policy
     # - docker push $CI_REGISTRY_IMAGE/spinifex:$CI_COMMIT_REF_SLUG
 
@@ -221,5 +216,5 @@ release_job:
   script:
     - echo "running release_job"
   release:
-    tag_name: '$CI_COMMIT_TAG'
-    description: '$CI_COMMIT_TAG - $CI_COMMIT_TAG_MESSAGE'
+    tag_name: "$CI_COMMIT_TAG"
+    description: "$CI_COMMIT_TAG - $CI_COMMIT_TAG_MESSAGE"
