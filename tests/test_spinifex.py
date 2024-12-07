@@ -5,15 +5,10 @@
 
 from __future__ import annotations
 
-from unittest import TestCase
-
 # from spinifex import get_rm
 
 
-class TestSpinifex(TestCase):
-    """Test Case of the Cool Module"""
-
-    def test_get_rm(self):
-        """Test that get_rm does not crash"""
-        # get_rm()
-        assert 2 + 2 == 4
+def test_get_rm():
+    """Test that get_rm does not crash"""
+    # get_rm()
+    assert 2 + 2 == 4
