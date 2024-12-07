@@ -5,16 +5,15 @@
 
 from __future__ import annotations
 
-__all__ = ["get_magnetic_field"]
+from dataclasses import dataclass
+from typing import Callable
 
-import astropy.units as u
-from astropy.coordinates import EarthLocation
+from spinifex.magnetic.magnetic_models import get_ppigrf_magnetic_field
 
 
-def get_magnetic_field(loc: EarthLocation) -> u.Quantity:
-    """Get the magnetic field at a given EarthLocation"""
-    lon_deg = loc.lon.to(u.deg).value
-    lat_deg = loc.lat.to(u.deg).value
-    height_m = loc.height.to(u.m).value
+@dataclass
+class MagneticModels:
+    ppigrf: Callable
 
-    return u.Quantity((3 * lon_deg, 5 * lat_deg, 4 - height_m) * u.tesla)
+
+models = MagneticModels(ppigrf=get_ppigrf_magnetic_field)
