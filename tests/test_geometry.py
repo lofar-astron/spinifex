@@ -19,3 +19,4 @@ def test_geometry():
         loc=dwingeloo, times=times, source=source, height_array=heights
     )
     assert isinstance(ipp, get_ipp.IPP)
+    assert isinstance(ipp.airmass, np.ndarray)

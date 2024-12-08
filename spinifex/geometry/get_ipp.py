@@ -16,12 +16,16 @@ r_earth = 6364.62 * u.km
 
 
 class IPP(NamedTuple):
+    """ionospheric piercepoint"""
+
     loc: EarthLocation
     """location of the piercepoints, dimension: times x altitudes. All altitudes are assumed to be equal"""
     times: Time
     """array of times"""
     los: SkyCoord
     """Line of sight direction in ITRS coordinates"""
+    airmass: np.ndarray
+    """airmass factor to convert to slant values"""
 
 
 def get_ipp_from_skycoord(
@@ -72,9 +76,12 @@ def get_ipp_from_altaz(
         _description_
     """
     los_dir = altaz.transform_to(ITRS)
-    ipp = _get_ipp_simple(height_array=height_array, loc=loc, los_dir=los_dir)
+    ipp, airmass = _get_ipp_simple(height_array=height_array, loc=loc, los_dir=los_dir)
     return IPP(
-        loc=EarthLocation.from_geocentric(*ipp), times=altaz.obstime, los=los_dir
+        loc=EarthLocation.from_geocentric(*ipp),
+        times=altaz.obstime,
+        los=los_dir,
+        airmass=airmass,
     )
 
 
@@ -105,8 +112,16 @@ def _get_ipp_simple(
         + loc.z * ipp_vector.z.value
     )[np.newaxis]  # inproduct, add axis for altitudes
     alphas = -b_value + np.sqrt(b_value**2 - c_value[:, np.newaxis])
-    return [
+    ipp = [
         loc.x + alphas * los_dir.x,
         loc.y + alphas * los_dir.y,
         loc.z + alphas * los_dir.z,
     ]
+    inv_airmass = (
+        ipp[0] * ipp_vector.x.value
+        + ipp[1] * ipp_vector.y.value
+        + ipp[2] * ipp_vector.z.value
+    )  # inproduct
+    inv_airmass /= r_earth + height_array[:, np.newaxis]  # normalized
+    airmass = 1.0 / inv_airmass.value
+    return ipp, airmass

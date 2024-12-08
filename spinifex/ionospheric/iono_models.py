@@ -22,9 +22,9 @@ def get_density_ionex(loc: EarthLocation, times: Time, **kwargs) -> np.ndarray[f
 def get_density_ionex_single_layer(
     loc: EarthLocation, times: Time, height=350 * u.km, **kwargs
 ) -> np.ndarray[float]:
-    nT = loc.shape[1]  # we assume time is second axis
+    ntimes = loc.shape[1]  # we assume time is second axis
     index = np.argmin(np.abs(loc.height.to(u.km).value - height.to(u.km).value), axis=0)
-    single_layer_loc = loc[index, np.arange(nT)]
+    single_layer_loc = loc[index, np.arange(ntimes)]
     return _read_ionex_stuff(loc=single_layer_loc, times=times, **kwargs)
 
 

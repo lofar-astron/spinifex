@@ -25,20 +25,20 @@ class IonosphericModels:
     """Names space for different ionospheric models. An ionospheric model should be
     a callable get_density"""
 
-    IONEX: Callable
-    IONEX_IRI: Callable
+    ionex: Callable
+    ionex_iri: Callable
 
 
 models = IonosphericModels(
-    IONEX=get_density_ionex_single_layer,
-    IONEX_IRI=get_density_ionex_iri,
+    ionex=get_density_ionex_single_layer,
+    ionex_iri=get_density_ionex_iri,
 )
 
 
 def get_ionosphere(
     loc: EarthLocation,
     time: Time,
-    iono_model: Callable = models.IONEX,
+    iono_model: Callable = models.ionex,
 ) -> u.Quantity[u.m**-3]:
     """Prints a nice message"""
 

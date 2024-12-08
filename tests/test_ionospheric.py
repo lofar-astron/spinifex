@@ -28,9 +28,9 @@ def test_get_ionosphere():
     lon = np.array([[6.367, 6.5], [3.367, 7.5]]) * u.deg
     lat = np.array([[52.833, 60.0], [52.833, 60.0]]) * u.deg  # h x times
     above_dwingeloo = EarthLocation(lon=lon, lat=lat, height=height[:, np.newaxis])
-    tec = models.IONEX(loc=above_dwingeloo, times=times)
+    tec = models.ionex(loc=above_dwingeloo, times=times)
     assert tec.shape == (2,)
-    tec = models.IONEX(loc=above_dwingeloo[:, :1], times=times[:1])
+    tec = models.ionex(loc=above_dwingeloo[:, :1], times=times[:1])
     assert tec.shape == (1,)
-    tec = models.IONEX_IRI(loc=above_dwingeloo[:, :], times=times[:])
+    tec = models.ionex_iri(loc=above_dwingeloo[:, :], times=times[:])
     assert tec.shape == (2, 2)

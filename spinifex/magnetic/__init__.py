@@ -13,6 +13,8 @@ from spinifex.magnetic.magnetic_models import get_ppigrf_magnetic_field
 
 @dataclass
 class MagneticModels:
+    """models for Earth magnetic field"""
+
     ppigrf: Callable
 
 
