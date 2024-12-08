@@ -55,6 +55,7 @@ docs = [
     "sphinx-autoapi",
     "sphinx_autodoc_typehints",
 ]
+casa = ["python-casacore"]
 
 [project.urls]
 Homepage = "https://git.astron.nl/RD/spinifex"
