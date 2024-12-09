@@ -9,6 +9,7 @@ default:
 
 stages:
   - prepare
+  - pre-commit
   - lint
   # check if this needs to be a separate step
   # - build_extensions
@@ -34,17 +35,23 @@ trigger_prepare:
     strategy: depend
     include: .prepare.gitlab-ci.yml
 
+run_pre_commit:
+  stage: pre-commit
+  trigger:
+    include: .pre-commit-autofix.yaml
+
+
 run_ruff:
   stage: lint
   script:
     - tox -e ruff
-  allow_failure: true
+  allow_failure: false
 
 run_pylint:
   stage: lint
   script:
     - tox -e pylint
-  allow_failure: true
+  allow_failure: false
 
 # build_extensions:
 #   stage: build_extensions
