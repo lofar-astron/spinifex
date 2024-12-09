@@ -38,7 +38,7 @@ trigger_prepare:
 run_pre_commit:
   stage: pre-commit
   trigger:
-    include: .pre-commit-autofix.yaml
+    include: .pre-commit-autofix.yml
 
 
 run_ruff:
