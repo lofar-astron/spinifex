@@ -15,7 +15,7 @@ from spinifex.geometry.get_ipp import IPP
 def get_ppigrf_magnetic_field(ipp: IPP) -> u.Quantity:
     """Get the magnetic field at a given EarthLocation"""
     loc = ipp.loc
-    phi = np.arctan2(loc.x, loc.y)
+    phi = np.arctan2(loc.y, loc.x)
     theta = np.arctan2(loc.z, np.sqrt(loc.x**2 + loc.y**2))
     r = np.sqrt(loc.x**2 + loc.y**2 + loc.z**2)
     # possibly these conversions are easier in astropy
@@ -26,15 +26,14 @@ def get_ppigrf_magnetic_field(ipp: IPP) -> u.Quantity:
         phi=phi.to(u.deg).value,
         date=date.to_datetime(),
     )
-    costheta = np.cos(np.radians(b_theta))
-    sintheta = np.sin(np.radians(b_theta))
-    cosphi = np.cos(np.radians(b_phi))
-    sinphi = np.sin(np.radians(b_phi))
+    costheta = np.cos(theta)
+    sintheta = np.sin(theta)
+    cosphi = np.cos(phi)
+    sinphi = np.sin(phi)
     b_xyz = np.array([b_r * sinphi * costheta, b_r * cosphi * costheta, b_r * sintheta])
 
     # project to LOS
     los = ipp.los
-    b_par = (
-        los.x * b_xyz[0] + los.y * b_xyz[1] + los.z * b_xyz[2]
-    )  # magnitude along LOS
+    b_par = (los.x * b_xyz[0] + los.y * b_xyz[1] + los.z * b_xyz[2])[0]
+    # magnitude along LOS, ppigrf adds an extra axis for time, we remove it by taking the first element
     return u.Quantity(b_par * u.nanotesla)
