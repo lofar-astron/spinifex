@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import astropy.units as u
 import numpy as np
-from ppigrf import igrf_gc
+from astropy.coordinates import ITRS, AltAz
+from ppigrf import igrf
 
 from spinifex.geometry.get_ipp import IPP
 
@@ -15,25 +16,23 @@ from spinifex.geometry.get_ipp import IPP
 def get_ppigrf_magnetic_field(ipp: IPP) -> u.Quantity:
     """Get the magnetic field at a given EarthLocation"""
     loc = ipp.loc
-    phi = np.arctan2(loc.y, loc.x)
-    theta = np.arctan2(loc.z, np.sqrt(loc.x**2 + loc.y**2))
-    r = np.sqrt(loc.x**2 + loc.y**2 + loc.z**2)
-    # possibly these conversions are easier in astropy
     date = ipp.times[0]
-    b_r, b_theta, b_phi = igrf_gc(
-        r=r.to(u.km).value,
-        theta=theta.to(u.deg).value,
-        phi=phi.to(u.deg).value,
+    b_e, b_n, b_u = igrf(
+        lon=loc.lon.deg,
+        lat=loc.lat.deg,
+        h=loc.height.to(u.km).value,
         date=date.to_datetime(),
     )
-    costheta = np.cos(theta)
-    sintheta = np.sin(theta)
-    cosphi = np.cos(phi)
-    sinphi = np.sin(phi)
-    b_xyz = np.array([b_r * sinphi * costheta, b_r * cosphi * costheta, b_r * sintheta])
+    # ppigrf adds an extra axis for time, we remove it by taking the first element
+    b_magn = np.sqrt(b_e**2 + b_n**2 + b_u**2)[0]
+    b_az = np.arctan2(b_e, b_n)
+    b_el = np.arctan2(b_u, np.sqrt(b_n**2 + b_e**2))
+    b_altaz = AltAz(az=b_az[0] * u.rad, alt=b_el[0] * u.rad, location=loc)
+    b_itrs = b_altaz.transform_to(ITRS())
 
     # project to LOS
     los = ipp.los
-    b_par = (los.x * b_xyz[0] + los.y * b_xyz[1] + los.z * b_xyz[2])[0]
-    # magnitude along LOS, ppigrf adds an extra axis for time, we remove it by taking the first element
+    b_par = los.x * b_itrs.x + los.y * b_itrs.y + los.z * b_itrs.z
+    b_par = b_par * b_magn
+    # magnitude along LOS,
     return u.Quantity(b_par * u.nanotesla)
