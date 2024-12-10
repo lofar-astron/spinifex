@@ -38,13 +38,13 @@ run_ruff:
   stage: lint
   script:
     - tox -e ruff
-  allow_failure: true
+  allow_failure: false
 
 run_pylint:
   stage: lint
   script:
     - tox -e pylint
-  allow_failure: true
+  allow_failure: false
 
 # build_extensions:
 #   stage: build_extensions

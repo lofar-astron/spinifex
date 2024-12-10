@@ -11,11 +11,13 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.time import Time
+from numpy.typing import ArrayLike
 
 from spinifex.geometry.get_ipp import IPP, get_ipp_from_skycoord
 
 
 class MsMetaData(NamedTuple):
+    """Metadata from a Measurement Set"""
     times: Time
     location: EarthLocation
     name: str
@@ -23,7 +25,7 @@ class MsMetaData(NamedTuple):
 
 
 def get_ipp_from_ms(
-    ms: str, height_array: np.ndarray[float], timestep: int = 1
+    ms: str, height_array: ArrayLike, timestep: int = 1
 ) -> IPP:  # depends on casacore,
     # an ms has different stations, you optionally want to return an ipp object for every station
     msmetadata = get_metadata_from_ms(ms, timestep)

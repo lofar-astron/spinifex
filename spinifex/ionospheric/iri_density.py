@@ -6,11 +6,12 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
+from numpy.typing import ArrayLike
 from PyIRI import coeff_dir
 from PyIRI.main_library import IRI_density_1day
 
 
-def get_profile(loc: EarthLocation, times: Time) -> np.ndarray[float]:
+def get_profile(loc: EarthLocation, times: Time) -> ArrayLike:
     aalt = loc[:, 0].height.to(u.km).value
     hidx = np.argmin(
         np.abs(aalt - 350)

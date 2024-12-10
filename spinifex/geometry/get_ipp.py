@@ -11,9 +11,11 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import ITRS, AltAz, EarthLocation, SkyCoord
 from astropy.time import Time
+from numpy.typing import ArrayLike
 
 
 class IPP(NamedTuple):
+    """Ionospheric Piercepoints"""
     loc: EarthLocation
     """location of the piercepoints, dimension: times x altitudes. All altitudes are assumed to be equal"""
     times: Time
@@ -23,7 +25,7 @@ class IPP(NamedTuple):
 
 
 def get_ipp_from_skycoord(
-    loc: EarthLocation, times: Time, source: SkyCoord, height_array: np.ndarray[float]
+    loc: EarthLocation, times: Time, source: SkyCoord, height_array: ArrayLike
 ) -> IPP:
     """Get the ionospheric piercepoints as EarhtLocations for a given EarthLocation, time, SkyCoord"""
     # height_array = np.arange(100, 1000, 10) * u.km
@@ -33,7 +35,7 @@ def get_ipp_from_skycoord(
 
 
 def get_ipp_from_altaz(
-    loc: EarthLocation, altaz: AltAz, height_array: np.ndarray[float], times: Time
+    loc: EarthLocation, altaz: AltAz, height_array: ArrayLike, times: Time
 ) -> IPP:
     altaz_dir = altaz.transform_to(ITRS)
     ipp_vector = altaz_dir.cartesian[np.newaxis] * height_array[:, np.newaxis]
