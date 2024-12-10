@@ -3,8 +3,8 @@ from __future__ import annotations
 try:
     from casacore.tables import table
 except ImportError as e:
-    msg = "casacore is not installed! To operate on MeasurementSets, install spinifex[casa]."
-    raise ImportError(msg) from e
+    MSG = "casacore is not installed! To operate on MeasurementSets, install spinifex[casa]."
+    raise ImportError(MSG) from e
 
 from pathlib import Path
 
