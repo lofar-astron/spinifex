@@ -5,41 +5,42 @@ from __future__ import annotations
 from typing import NamedTuple
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 
 class Indices(NamedTuple):
     """Indices of the closest two points in a possibly wrapping selection and the inverse distance weights"""
 
-    idx1: np.ndarray[int]
+    idx1: ArrayLike
     """Index of the first closest point"""
-    idx2: np.ndarray[int]
+    idx2: ArrayLike
     """Index of the second closest point"""
-    w1: np.ndarray[float]
+    w1: ArrayLike
     """Weight of the first closest point"""
-    w2: np.ndarray[float]
+    w2: ArrayLike
     """Weight of the second closest point"""
 
 
 class SortedIndices(NamedTuple):
     """Indices of the closest two points in a possibly wrapping selection"""
 
-    indices: np.ndarray
+    indices: ArrayLike
     """Index of the first closest point"""
-    distance: np.ndarray
+    distance: ArrayLike
     """Index of the second closest point"""
 
 
 class Weights(NamedTuple):
     """Weights of the closest two points in a possibly wrapping selection"""
 
-    w1: np.ndarray
+    w1: ArrayLike
     """Weight of the first closest point"""
-    w2: np.ndarray
+    w2: ArrayLike
     """Weight of the second closest point"""
 
 
 def get_indices_axis(
-    goal: np.ndarray, selection: np.ndarray, wrap_unit: float = 0
+    goal: ArrayLike, selection: ArrayLike, wrap_unit: float = 0
 ) -> Indices:
     """get indices of the closest two points in a possibly wrapping selection for an array
     of goals"""
@@ -83,23 +84,23 @@ def get_indices_axis(
 
 
 def _get_weights(
-    goal: np.ndarray,
-    index1: np.ndarray,
-    index2: np.ndarray,
-    selection: np.ndarray,
+    goal: ArrayLike,
+    index1: ArrayLike,
+    index2: ArrayLike,
+    selection: ArrayLike,
     wrap_unit: float = 0,
 ) -> Weights:
     """Calculate weights based on distance of goal to selection
 
     Parameters
     ----------
-    goal : np.ndarray
+    goal : ArrayLike
         array of points to get weights for
-    index1 : np.ndarray
+    index1 : ArrayLike
         indices in selection for goals (index1, index2) per goal
-    index2 : np.ndarray
+    index2 : ArrayLike
         indices in selection for goals (index1, index2) per goal
-    selection : np.ndarray
+    selection : ArrayLike
         array to select from
     wrap_unit : float, optional
         if goal/selection is a wrapable (e.g. angle) set this unit (e.g. 360), by default 0
@@ -115,14 +116,14 @@ def _get_weights(
     return Weights(w1=1 - distance1 / sumdist, w2=1 - distance2 / sumdist)
 
 
-def get_indices(goal: float, selection: np.ndarray, wrap_unit: float = 0) -> Indices:
+def get_indices(goal: float, selection: ArrayLike, wrap_unit: float = 0) -> Indices:
     """find the indices of the closest two points in a possibly wrapping array selection
 
     Parameters
     ----------
     goal : float
         location of point
-    selection : np.ndarray
+    selection : ArrayLike
         array of points
     wrap_unit : float, optional
         if goal/selection is a wrapping entity (e.g. angles) set this to the wrap value (e.g. 360), by default 0
@@ -154,8 +155,8 @@ def get_indices(goal: float, selection: np.ndarray, wrap_unit: float = 0) -> Ind
 def get_sorted_indices(
     lon: float,
     lat: float,
-    avail_lon: np.ndarray,
-    avail_lat: np.ndarray,
+    avail_lon: ArrayLike,
+    avail_lat: ArrayLike,
     wrap_unit: float = 360.0,
 ) -> SortedIndices:
     """find distances of a lon/lat grid to a point and return sorted list of indices"""
@@ -167,24 +168,24 @@ def get_sorted_indices(
     return SortedIndices(indices=sorted_idx, distance=distance[sorted_idx])
 
 
-def get_interpol(data: np.ndarray, dist: np.ndarray):
+def get_interpol(data: ArrayLike, dist: ArrayLike) -> float:
     """get distance weighted sum of data"""
     w = 1.0 / dist
     w /= np.sum(w)
-    return np.sum(data * w)
+    return float(np.sum(data * w))
 
 
-def wrap_around_zero(data: np.ndarray, wrap_unit: float = 2 * np.pi):
+def wrap_around_zero(data: ArrayLike, wrap_unit: float = 2 * np.pi) -> ArrayLike:
     """Function to calculate the remainder of data such that this is centered around zero"""
     return np.remainder(data + 0.5 * wrap_unit, wrap_unit) - 0.5 * wrap_unit
 
 
-def _compute_index_and_weights(maparray: np.ndarray, mapvalues: np.ndarray) -> Indices:
+def _compute_index_and_weights(maparray: ArrayLike, mapvalues: ArrayLike) -> Indices:
     """helper function  to get indices and weights for interpolating tecmaps
 
 
     Args:
-        maparray (np.ndarray) : array to get indices in
+        maparray (ArrayLike) : array to get indices in
         mapvalues (Union[float,np.array]) :  values to get indices for
     Returns:
         Tuple[np.array, np.array, np.array]: idx1,idx2 and weights for idx2,
