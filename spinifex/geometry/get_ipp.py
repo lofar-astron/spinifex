@@ -26,6 +26,8 @@ class IPP(NamedTuple):
     """Line of sight direction in ITRS coordinates"""
     airmass: np.ndarray
     """airmass factor to convert to slant values"""
+    altaz: AltAz
+    """azimuths and elevations"""
 
 
 def get_ipp_from_skycoord(
@@ -82,6 +84,7 @@ def get_ipp_from_altaz(
         times=altaz.obstime,
         los=los_dir,
         airmass=airmass,
+        altaz=altaz,
     )
 
 
@@ -110,7 +113,7 @@ def _get_ipp_simple(
         loc.x * ipp_vector.x.value
         + loc.y * ipp_vector.y.value
         + loc.z * ipp_vector.z.value
-    )[np.newaxis]  # inproduct, add axis for altitudes
+    )
     alphas = -b_value + np.sqrt(b_value**2 - c_value[:, np.newaxis])
     ipp = [
         loc.x + alphas * los_dir.x,
