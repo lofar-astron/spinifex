@@ -5,12 +5,28 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Protocol
+
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import ITRS, AltAz
 from ppigrf import igrf
 
 from spinifex.geometry.get_ipp import IPP
+
+
+class MagneticFieldFunction(Protocol):
+    """Magnetic field callable"""
+
+    def __call__(self, IPP) -> u.Quantity: ...
+
+
+@dataclass
+class MagneticModels:
+    """Supported magnetic field models"""
+
+    ppigrf: MagneticFieldFunction
 
 
 def get_ppigrf_magnetic_field(ipp: IPP) -> u.Quantity:
@@ -36,3 +52,6 @@ def get_ppigrf_magnetic_field(ipp: IPP) -> u.Quantity:
     b_par = b_par * b_magn
     # magnitude along LOS,
     return u.Quantity(b_par * u.nanotesla)
+
+
+magnetic_models = MagneticModels(ppigrf=get_ppigrf_magnetic_field)

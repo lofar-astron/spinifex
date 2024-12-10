@@ -10,7 +10,7 @@ import numpy as np
 from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.time import Time
 from spinifex.geometry import get_ipp
-from spinifex.magnetic import models
+from spinifex.magnetic import magnetic_models
 
 
 def is_convertible_to_unit(quantity: u.Quantity, unit: u.Unit) -> bool:
@@ -33,5 +33,5 @@ def test_get_magnetic_field():
     ipp = get_ipp.get_ipp_from_skycoord(
         loc=dwingeloo, times=times, source=source, height_array=heights
     )
-    field = models.ppigrf(ipp)
+    field = magnetic_models.ppigrf(ipp)
     assert is_convertible_to_unit(field, u.tesla)

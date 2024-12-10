@@ -7,44 +7,47 @@ as described in Schaer and Gurtner (1998)"""
 from __future__ import annotations
 
 from pathlib import Path
-from typing import NamedTuple, TextIO
+from typing import Any, NamedTuple, TextIO
 
 import astropy.units as u
 import numpy as np
 from astropy.time import Time
+from numpy.typing import ArrayLike
+
+from spinifex.exceptions import IonexError
 
 
 class IonexData(NamedTuple):
     """Object containing all necessary information from Ionex data"""
 
-    lons: np.ndarray[float]
+    lons: ArrayLike
     """array with available longitude values (degrees)"""
-    lats: np.ndarray[float]
+    lats: ArrayLike
     """array with available latitude values (degrees)"""
     times: Time
     """available times"""
     dims: int
     """dimension of the heights (usually 1)"""
-    h: np.ndarray[float]
+    h: ArrayLike
     """available heights (km)"""
-    tec: np.ndarray[float]
+    tec: ArrayLike
     """array with tecvalues times x lons x lats (TECU)"""
-    rms: np.ndarray[float]
+    rms: ArrayLike
     """array with rms of tecvalues times x lons x lats (TECU, if available, zeros otherwise)"""
 
 
 class IonexHeader(NamedTuple):
     """Object containing header information from ionex file"""
 
-    lons: np.ndarray[float]
+    lons: ArrayLike
     """array with available longitude values (degrees)"""
-    lats: np.ndarray[float]
+    lats: ArrayLike
     """array with available latitude values (degrees)"""
     times: Time
     """available times"""
     dims: int
     """dimension of the heights (usually 1)"""
-    h: np.ndarray[float]
+    h: ArrayLike
     """available heights (km)"""
     mfactor: float
     """multiplication factor for tec values"""
@@ -70,11 +73,23 @@ def read_ionex(ionex_filename: Path) -> IonexData:
 
 def _read_ionex_header(filep: TextIO) -> IonexHeader:
     """Read header from ionex file. Put filepointer to the end of the header."""
+    # Declare variables with types
+    h1: float | None = None
+    h2: float | None = None
+    hstep: float | None = None
+    start_lon: float | None = None
+    end_lon: float | None = None
+    step_lon: float | None = None
+    start_lat: float | None = None
+    end_lat: float | None = None
+    step_lat: float | None = None
+    start_time: Time | None = None
+    ntimes: int | None = None
+    step_time: u.Quantity | None = None
+    mfactor: float | None = None
+    dimension: int | None = None
+
     filep.seek(0)
-    h1, h2, hstep = (None,) * 3
-    start_lon, end_lon, step_lon, start_lat, end_lat, step_lat = (None,) * 6
-    start_time, ntimes, step_time = (None,) * 3
-    mfactor, dimension = (None,) * 2
     for line in filep:
         if "END OF HEADER" in line:
             break
@@ -98,9 +113,39 @@ def _read_ionex_header(filep: TextIO) -> IonexHeader:
             start_lat, end_lat, step_lat = (float(i) for i in record.split())
         if "# OF MAPS IN FILE" in label:
             ntimes = int(record)
-    if h1 is None or start_lon is None or start_lat is None or start_time is None:
-        msg = f"Not a valid IONex file: {filep.name}"
-        raise OSError(msg)
+
+    # Check that all optional values are not None
+    # Need to do this one by one to get MyPy to understand that they are not None
+    # Should probably replace with higher level checks of the header values
+    bad_msg = f"Not a valid IONex file: {filep.name}"
+    if h1 is None:
+        raise IonexError(bad_msg)
+    if h2 is None:
+        raise IonexError(bad_msg)
+    if hstep is None:
+        raise IonexError(bad_msg)
+    if start_lon is None:
+        raise IonexError(bad_msg)
+    if end_lon is None:
+        raise IonexError(bad_msg)
+    if step_lon is None:
+        raise IonexError(bad_msg)
+    if start_lat is None:
+        raise IonexError(bad_msg)
+    if end_lat is None:
+        raise IonexError(bad_msg)
+    if step_lat is None:
+        raise IonexError(bad_msg)
+    if start_time is None:
+        raise IonexError(bad_msg)
+    if ntimes is None:
+        raise IonexError(bad_msg)
+    if step_time is None:
+        raise IonexError(bad_msg)
+    if mfactor is None:
+        raise IonexError(bad_msg)
+    if dimension is None:
+        raise IonexError(bad_msg)
 
     harray = np.arange(h1, h2 + 0.5 * hstep, hstep) if hstep > 0 else np.array([h1])
 
@@ -119,18 +164,18 @@ def _read_ionex_header(filep: TextIO) -> IonexHeader:
 
 
 def _fill_data_record(
-    data: np.ndarray,
+    data: ArrayLike,
     filep: TextIO,
     stop_label: str,
     timeidx: int,
     ionex_header: IonexHeader,
-):
+) -> None:
     """Helper function to parse a data block of a single map in ionex.
     Puts filepointer to the end of the map
 
     Parameters
     ----------
-    data : np.ndarray
+    data : ArrayLike
         pre allocated array to store the datablock
     filep : TextIO
         _description_
@@ -142,9 +187,11 @@ def _fill_data_record(
         header information
     """
     line = filep.readline()  # read EPOCH (not needed since we have the index)
-    tec = []
+    # TODO: Properly type tec
+    tec: list[Any] = []
     lonidx = 0
     latidx = 0
+    # TODO: Replace magic numbers with named constants
     for line in filep:
         label = line[60:-1]
         if stop_label in label:
@@ -159,8 +206,8 @@ def _fill_data_record(
             tec = []
             record = line[:60]
             lat, lon1, _, _, _ = (float(record[i : i + 6]) for i in range(2, 32, 6))
-            latidx = np.argmin(np.abs(ionex_header.lats - lat))
-            lonidx = np.argmin(np.abs(ionex_header.lons - lon1))
+            latidx = int(np.argmin(np.abs(ionex_header.lats - lat)))
+            lonidx = int(np.argmin(np.abs(ionex_header.lons - lon1)))
         else:
             record = line[:-1]
             tec += [float(record[i : i + 5]) for i in range(0, len(record), 5)]

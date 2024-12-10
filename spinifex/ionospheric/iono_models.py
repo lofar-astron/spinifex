@@ -12,7 +12,7 @@ from spinifex.ionospheric.ionex_manipulation import _read_ionex_stuff
 
 
 def _read_tomion_stuff() -> np.ndarray[float]:
-    return None  # ionex_data
+    raise NotImplementedError  # ionex_data
 
 
 def get_density_ionex(loc: EarthLocation, times: Time, **kwargs) -> np.ndarray[float]:
