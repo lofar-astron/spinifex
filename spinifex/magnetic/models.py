@@ -19,7 +19,7 @@ from spinifex.geometry.get_ipp import IPP
 class MagneticFieldFunction(Protocol):
     """Magnetic field callable"""
 
-    def __call__(self, IPP) -> u.Quantity: ...
+    def __call__(self, ipp: IPP) -> u.Quantity: ...
 
 
 @dataclass
