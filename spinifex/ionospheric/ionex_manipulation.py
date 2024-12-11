@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
+from numpy.typing import ArrayLike
 
 from spinifex.ionospheric.index_tools import (
     _compute_index_and_weights,
@@ -17,11 +17,11 @@ from spinifex.ionospheric.ionex_parser import IonexData, read_ionex
 
 def interpolate_ionex(
     ionex: IonexData,
-    lons: np.ndarray,
-    lats: np.ndarray,
+    lons: ArrayLike,
+    lats: ArrayLike,
     times: Time,
     apply_earth_rotation: float = 1,
-) -> np.ndarray:
+) -> ArrayLike:
     """Interpolate ionex data to a given lon/lat/height grid.
     lons, lats, times all should have the same length
     apply_earth_rotation:
@@ -34,9 +34,9 @@ def interpolate_ionex(
     ----------
     ionex : IonexData
         ionex object containing the information of the ionex file
-    lons : np.ndarray
+    lons : ArrayLike
         longitudes (deg) of all points to interpolate to
-    lats : np.ndarray
+    lats : ArrayLike
         lattitudes (deg) of all points to interpolate to
     times : Time
         times of all points to interpolate to
@@ -46,7 +46,7 @@ def interpolate_ionex(
 
     Returns
     -------
-    np.ndarray
+    ArrayLike
         array with interpolated tec values
     """
     timeindex = _compute_index_and_weights(ionex.times.mjd, times.mjd)
@@ -118,7 +118,9 @@ def interpolate_ionex(
     return tecdata
 
 
-def get_ionex_file(time: Time, server: str | None = None, prefix: str = "CODG") -> str:
+def get_ionex_file(
+    time: Time, server: str | None = None, prefix: str = "CODG"
+) -> Path | None:
     """Find ionex file locally or online.
 
     Parameters
@@ -144,8 +146,12 @@ def get_ionex_file(time: Time, server: str | None = None, prefix: str = "CODG") 
     return None
 
 
-def _read_ionex_stuff(loc: EarthLocation, times: Time, **kwargs) -> np.ndarray:
-    server = kwargs.get("server")
+def _read_ionex_stuff(
+    loc: EarthLocation, times: Time, server: str | None = None
+) -> ArrayLike:
     ionex_file = get_ionex_file(times[0], server=server)
+    if ionex_file is None:
+        msg = "No ionex file found!"
+        raise FileNotFoundError(msg)
     ionex = read_ionex(ionex_file)
     return interpolate_ionex(ionex, loc.lon.deg, loc.lat.deg, times)

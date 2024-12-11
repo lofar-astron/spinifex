@@ -8,7 +8,7 @@ from __future__ import annotations
 import astropy.units as u
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
-from spinifex.magnetic import models
+from spinifex.magnetic import magnetic_models
 
 
 def is_convertible_to_unit(quantity: u.Quantity, unit: u.Unit) -> bool:
@@ -26,5 +26,5 @@ def test_get_magnetic_field():
         lon=6.367 * u.deg, lat=52.833 * u.deg, height=100 * u.km
     )
     time = Time("2024-01-01T13:42")
-    field = models.ppigrf(above_dwingeloo, time)
+    field = magnetic_models.ppigrf(above_dwingeloo, time)
     assert is_convertible_to_unit(field, u.tesla)
