@@ -16,12 +16,14 @@ from ppigrf import igrf
 
 class MagneticFieldFunction(Protocol):
     """Magnetic field callable"""
+
     def __call__(self, loc: EarthLocation, date: Time) -> u.Quantity: ...
 
 
 @dataclass
 class MagneticModels:
     """Supported magnetic field models"""
+
     ppigrf: MagneticFieldFunction
 
 

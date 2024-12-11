@@ -40,7 +40,7 @@ repos:
         args: [--prose-wrap=always]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.5.2"
+    rev: "v0.8.2"
     hooks:
       - id: ruff
         args: ["--fix", "--show-fixes"]
@@ -85,4 +85,5 @@ repos:
       - id: check-dependabot
       - id: check-github-workflows
       - id: check-readthedocs
+
 exclude: "tests/data/"

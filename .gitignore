@@ -162,3 +162,4 @@ cython_debug/
 #.idea/
 scratch.ipynb
 spinifex/_version.py
+scratch_time.ipynb
