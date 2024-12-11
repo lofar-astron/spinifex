@@ -16,6 +16,7 @@ from numpy.typing import ArrayLike
 
 class IPP(NamedTuple):
     """Ionospheric Piercepoints"""
+
     loc: EarthLocation
     """location of the piercepoints, dimension: times x altitudes. All altitudes are assumed to be equal"""
     times: Time

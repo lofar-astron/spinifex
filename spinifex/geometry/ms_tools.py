@@ -18,6 +18,7 @@ from spinifex.geometry.get_ipp import IPP, get_ipp_from_skycoord
 
 class MsMetaData(NamedTuple):
     """Metadata from a Measurement Set"""
+
     times: Time
     location: EarthLocation
     name: str

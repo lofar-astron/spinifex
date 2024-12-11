@@ -17,6 +17,7 @@ from spinifex.ionospheric.ionex_manipulation import _read_ionex_stuff
 
 class ModelDesnsityFunction(Protocol):
     """Model density callable"""
+
     def __call__(self, loc: EarthLocation, times: Time) -> ArrayLike: ...
 
 
