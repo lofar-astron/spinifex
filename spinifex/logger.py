@@ -42,9 +42,10 @@ class TqdmToLogger(io.StringIO):
 def set_verbosity(verbosity: int) -> None:
     """Set the logger verbosity.
 
-    Args:
-        logger (logging.Logger): The logger
-        verbosity (int): Verbosity level
+    Parameters
+    ----------
+    verbosity : int
+        Verbosity level
     """
     if verbosity == 0:
         level = logging.WARNING
