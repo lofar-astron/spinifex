@@ -43,6 +43,24 @@ async def download_file(
     timeout_seconds: int = 30,
     chunk_size: int = 1000,
 ) -> None:
+    """Download a file from a given URL using asyncio.
+
+    Parameters
+    ----------
+    url : str
+        URL to download.
+    output_file : Path
+        Output file path.
+    timeout_seconds : int, optional
+        Seconds to wait for request timeout, by default 30
+    chunk_size : int, optional
+        Chunks of data to download, by default 1000
+
+    Raises
+    ------
+    IonexError
+        If the download times out.
+    """
     msg = f"Downloading from {url}"
     logger.info(msg)
     try:
@@ -66,15 +84,28 @@ async def download_or_copy_url(
 ) -> Path:
     """Download a file from a given URL.
 
-    If the URL is a file URL (i.e. starting with 'file://'), it will be copied to the output directory.
+    If the URL is a file URL (i.e. starting with `file://`), it will be copied to the output directory.
 
-    Args:
-        url (str): URL to download from
-        output_directory (Path | None, optional): Where to save the file. Defaults to None.
-        chunk_size (int, optional): Chunksize for requests. Defaults to 1000.
+    Parameters
+    ----------
+    url : str
+        URL to download.
+    output_directory : Path | None, optional
+        Output directory, by default None. If None, will default to `ionex_files` in the current working directory.
+    chunk_size : int, optional
+        Download chunks, by default 1000
+    timeout_seconds : int, optional
+        Request timeout in seconds, by default 30
 
-    Returns:
-        Path: Downloaded file
+    Returns
+    -------
+    Path
+        Output file path
+
+    Raises
+    ------
+    FileNotFoundError
+        If the .netrc file is not found when downloading from CDDIS.
     """
     if output_directory is None:
         output_directory = Path.cwd() / "ionex_files"
@@ -117,11 +148,15 @@ async def download_or_copy_url(
 def get_gps_week(time: Time) -> ArrayLike:
     """Get the GPS week from a time.
 
-    Args:
-        time (Time): Time(s) to get the GPS week from
+    Parameters
+    ----------
+    time : Time
+        Time(s) to get the GPS week from
 
-    Returns:
-        ArrayLike: GPS week(s)
+    Returns
+    -------
+    ArrayLike
+        GPS week(s)
     """
     return np.floor((time.gps * u.s).to(u.week).value).astype(int)
 
@@ -129,11 +164,15 @@ def get_gps_week(time: Time) -> ArrayLike:
 def get_unique_days(times: Time) -> Time:
     """Get the unique days from a list of times.
 
-    Args:
-        times (Time): Times to get the unique days from.
+    Parameters
+    ----------
+    times : Time
+        Times to get the unique days from.
 
-    Returns:
-        Time: Unique days
+    Returns
+    -------
+    Time
+        Unique days
     """
     return Time(np.unique(np.floor(times.mjd)), format="mjd")
 
@@ -141,12 +180,17 @@ def get_unique_days(times: Time) -> Time:
 def new_cddis_format(time: Time, url_stem: str | None = None) -> str:
     """Get the URL for a new IONEX file from CDDIS.
 
-    Args:
-        time (Time): Time to get the URL for.
-        url_stem (str | None, optional): URL stem. Defaults to None. Will default to CDDIS.
+    Parameters
+    ----------
+    time : Time
+        Time to get the URL for.
+    url_stem : str | None, optional
+        URL steam, by default None, will default to CDDIS.
 
-    Returns:
-        str: File URL
+    Returns
+    -------
+    str
+        File URL
     """
     # Name Format Since GPS Week 2238
     # WWWW/IGS0OPSTYP_YYYYDDDHHMM_01D_SMP_CNT.INX.gz
@@ -179,16 +223,24 @@ def old_cddis_format(
 ) -> str:
     """Get the URL for an old IONEX file from CDDIS.
 
-    Args:
-        time (Time): Time to get the URL for.
-        prefix (str, optional): Analysis centre prefexi. Defaults to "cod".
-        url_stem (str | None, optional): URL stem. Defaults to None. Will default to CDDIS.
+    Parameters
+    ----------
+    time : Time
+        Time to get the URL for.
+    prefix : str, optional
+        Analysis centre prefix, by default "cod"
+    url_stem : str | None, optional
+        URL steam, by default None, will default to CDDIS.
 
-    Raises:
-        IonexError: If the prefix is not supported.
+    Returns
+    -------
+    str
+        File URL
 
-    Returns:
-        str: File URL
+    Raises
+    ------
+    IonexError
+        If the prefix is not a supported analysis centre.
     """
     # Name Format Before GPS Week 2237
     # YYYY/DDD/AAAgDDD#.YYi.Z - Vertical total electron content (TEC) maps
@@ -222,18 +274,21 @@ async def download_from_cddis(
 ) -> list[Path]:
     """Download IONEX files from CDDIS.
 
-    Note: A .netrc file is required to download from CDDIS.
+    Parameters
+    ----------
+    times : Time
+        Times to download for.
+    prefix : str, optional
+        Analysis centre prefix, by default "cod"
+    url_stem : str | None, optional
+        URL steam, by default None, will default to CDDIS.
+    output_directory : Path | None, optional
+        Output directory path, by default None, will default to `ionex_files` in the current working directory.
 
-    Args:
-        times (Time): Times to download for.
-        prefix (str, optional): Analysis centre prefix. Defaults to "cod". Only used for old format.
-        url_stem (str | None, optional): URL stem. Defaults to None. Will default to CDDIS.
-
-    Raises:
-        FileNotFoundError: If the netrc file is not found.
-
-    Returns:
-        list[Path]: List of downloaded files.
+    Returns
+    -------
+    list[Path]
+        List of downloaded files
     """
     unique_days = get_unique_days(times)
 
@@ -257,18 +312,30 @@ def download_ionex(
 ) -> list[Path]:
     """Download IONEX files from a server.
 
-    Args:
-        server (str): Server to download from. Must be supported.
-        times (Time): Times to download for.
-        prefix (str, optional): Analysis centre prefix. Defaults to "cod".
-        url_stem (str | None, optional): URL stem. Defaults to None.
+    Parameters
+    ----------
+    server : str
+        Server to download from. Must be a supported server.
+    times : Time
+        Times to download for.
+    prefix : str, optional
+        Analysis centre prefix, by default "cod". Must be a supported analysis centre.
+    url_stem : str | None, optional
+        URL stem, by default None, will default to the server URL.
+    output_directory : Path | None, optional
+        Output directory path, by default None, will default to `ionex_files` in the current working directory.
 
-    Raises:
-        IonexError: If the server is not supported.
-        NotImplementedError: If the server is not implemented.
+    Returns
+    -------
+    list[Path]
+        List of downloaded files
 
-    Returns:
-        list[Path]: List of downloaded files.
+    Raises
+    ------
+    IonexError
+        If the server is not supported.
+    NotImplementedError
+        If the server is not implemented yet.
     """
 
     if server not in SERVERS:
