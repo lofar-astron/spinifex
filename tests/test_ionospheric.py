@@ -1,6 +1,6 @@
 #  Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 #  SPDX-License-Identifier: Apache-2.0
-
+# pylint: disable=duplicate-code
 """Testing of ionospheric"""
 
 from __future__ import annotations
@@ -9,8 +9,9 @@ from pathlib import Path
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import EarthLocation
+from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.time import Time
+from spinifex.geometry.get_ipp import get_ipp_from_skycoord
 from spinifex.ionospheric import ionospheric_models
 from spinifex.ionospheric.ionex_parser import read_ionex
 
@@ -23,14 +24,16 @@ def test_get_ionosphere():
 
     ionex = read_ionex(testdata)
     assert ionex.tec.shape == (25, 73, 71)
-    times = Time(ionex.times[:2] + 30 * u.min)
-    height = np.linspace(100, 1000, 2) * u.km
-    lon = np.array([[6.367, 6.5], [3.367, 7.5]]) * u.deg
-    lat = np.array([[52.833, 60.0], [52.833, 60.0]]) * u.deg  # h x times
-    above_dwingeloo = EarthLocation(lon=lon, lat=lat, height=height[:, np.newaxis])
-    tec = ionospheric_models.ionex(loc=above_dwingeloo, times=times)
-    assert tec.shape == (2,)
-    tec = ionospheric_models.ionex(loc=above_dwingeloo[:, :1], times=times[:1])
-    assert tec.shape == (1,)
-    tec = ionospheric_models.ionex_iri(loc=above_dwingeloo[:, :], times=times[:])
-    assert tec.shape == (2, 2)
+    source = SkyCoord.from_name("Cas A")
+    lon = 6.367 * u.deg
+    lat = 52.833 * u.deg
+    heights = np.arange(100, 2000, 100) * u.km
+    dwingeloo = EarthLocation(lon=lon, lat=lat, height=0 * u.km)
+    times = Time("2020-01-08T01:00:00") + np.arange(0, 10) * 15 * u.min
+    ipp = get_ipp_from_skycoord(
+        loc=dwingeloo, times=times, source=source, height_array=heights
+    )
+    tec = ionospheric_models.ionex(ipp)
+    assert tec.shape == ipp.loc.shape
+    tec = ionospheric_models.ionex_iri(ipp)
+    assert tec.shape == ipp.loc.shape

@@ -4,20 +4,34 @@ from __future__ import annotations
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import EarthLocation
-from astropy.time import Time
 from numpy.typing import ArrayLike
 from PyIRI import coeff_dir
 from PyIRI.main_library import IRI_density_1day
 
+from spinifex.geometry.get_ipp import IPP
 
-def get_profile(loc: EarthLocation, times: Time) -> ArrayLike:
-    aalt = loc[:, 0].height.to(u.km).value
+
+def get_profile(ipp: IPP) -> ArrayLike:
+    """Get the normalized electron density profile for all times an altitudes in ipp
+
+    Parameters
+    ----------
+    ipp : IPP
+        ionospheric piercepoints
+
+    Returns
+    -------
+    ArrayLike
+        normalied density profile per time
+    """
+    loc = ipp.loc
+    times = ipp.times
+    aalt = loc[:, 0].height.to(u.km).value  # iri input array of heights
     hidx = np.argmin(
         np.abs(aalt - 350)
     )  # use lon lat closest to altitude of 350 km for profile
-    alon = loc[hidx].lon.deg
-    alat = loc[hidx].lat.deg
+    alon = loc[hidx].lon.deg  # iri input array of longitudes
+    alat = loc[hidx].lat.deg  # iri input array of latitudes
     f107 = 100
     ccir_or_ursi = 0
     year, month, day, _, _, _ = times[0].ymdhms
@@ -40,4 +54,4 @@ def get_profile(loc: EarthLocation, times: Time) -> ArrayLike:
         )
         edp[:, itime] = edpi.squeeze()
     edp /= np.sum(edp, axis=0, keepdims=True)
-    return edp  # flatten times/locs and reshape to original?
+    return edp

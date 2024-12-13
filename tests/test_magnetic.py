@@ -1,13 +1,15 @@
 #  Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 #  SPDX-License-Identifier: Apache-2.0
-
+# pylint: disable=duplicate-code
 """Testing of magnetic"""
 
 from __future__ import annotations
 
 import astropy.units as u
-from astropy.coordinates import EarthLocation
+import numpy as np
+from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.time import Time
+from spinifex.geometry.get_ipp import get_ipp_from_skycoord
 from spinifex.magnetic import magnetic_models
 
 
@@ -22,9 +24,16 @@ def is_convertible_to_unit(quantity: u.Quantity, unit: u.Unit) -> bool:
 
 def test_get_magnetic_field():
     """Test that get_magnetic does not crash"""
-    above_dwingeloo = EarthLocation(
-        lon=6.367 * u.deg, lat=52.833 * u.deg, height=100 * u.km
+    source = SkyCoord.from_name("Cas A")
+    lon = 6.367 * u.deg
+    lat = 52.833 * u.deg
+    heights = np.arange(100, 2000, 100) * u.km
+    dwingeloo = EarthLocation(lon=lon, lat=lat, height=0 * u.km)
+    times = Time("2020-01-20T01:00:00") + np.arange(0, 10) * 15 * u.min
+    ipp = get_ipp_from_skycoord(
+        loc=dwingeloo, times=times, source=source, height_array=heights
     )
-    time = Time("2024-01-01T13:42")
-    field = magnetic_models.ppigrf(above_dwingeloo, time)
+    field = magnetic_models.ppigrf(ipp)
+    assert field.shape == heights.shape + times.shape
     assert is_convertible_to_unit(field, u.tesla)
+    assert np.isclose(field[0, 0].value, -5335, 0.5)
