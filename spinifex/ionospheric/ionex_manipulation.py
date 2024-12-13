@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from astropy.coordinates import EarthLocation
 from astropy.time import Time
 from numpy.typing import ArrayLike
 
+from spinifex.geometry.get_ipp import IPP
 from spinifex.ionospheric.index_tools import (
     _compute_index_and_weights,
     get_indices_axis,
@@ -146,12 +146,10 @@ def get_ionex_file(
     return None
 
 
-def _read_ionex_stuff(
-    loc: EarthLocation, times: Time, server: str | None = None
-) -> ArrayLike:
-    ionex_file = get_ionex_file(times[0], server=server)
+def _read_ionex_stuff(ipp: IPP, server: str | None = None) -> ArrayLike:
+    ionex_file = get_ionex_file(ipp.times[0], server=server)
     if ionex_file is None:
         msg = "No ionex file found!"
         raise FileNotFoundError(msg)
     ionex = read_ionex(ionex_file)
-    return interpolate_ionex(ionex, loc.lon.deg, loc.lat.deg, times)
+    return interpolate_ionex(ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times)

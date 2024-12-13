@@ -7,18 +7,17 @@ from typing import Protocol
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import EarthLocation
-from astropy.time import Time
 from numpy.typing import ArrayLike
 
 import spinifex.ionospheric.iri_density as iri
+from spinifex.geometry.get_ipp import IPP
 from spinifex.ionospheric.ionex_manipulation import _read_ionex_stuff
 
 
-class ModelDesnsityFunction(Protocol):
+class ModelDensityFunction(Protocol):
     """Model density callable"""
 
-    def __call__(self, loc: EarthLocation, times: Time) -> ArrayLike: ...
+    def __call__(self, ipp: IPP) -> ArrayLike: ...
 
 
 @dataclass
@@ -26,38 +25,62 @@ class IonosphericModels:
     """Names space for different ionospheric ionospheric_models. An ionospheric model should be
     a callable get_density"""
 
-    ionex: ModelDesnsityFunction
-    ionex_iri: ModelDesnsityFunction
+    ionex: ModelDensityFunction
+    ionex_iri: ModelDensityFunction
 
 
 def _read_tomion_stuff() -> ArrayLike:
-    return None  # ionex_data
+    raise NotImplementedError
 
 
-def get_density_ionex(loc: EarthLocation, times: Time) -> ArrayLike:
-    return _read_ionex_stuff(loc=loc, times=times)
+def get_density_ionex(ipp: IPP) -> ArrayLike:
+    return _read_ionex_stuff(ipp)
 
 
 def get_density_ionex_single_layer(
-    loc: EarthLocation,
-    times: Time,
-    height: u.Quantity = 350 * u.km,
+    ipp: IPP, height: u.Quantity = 350 * u.km, server: str | None = None
 ) -> ArrayLike:
-    n_times = loc.shape[1]  # we assume time is second axis
-    index = np.argmin(np.abs(loc.height.to(u.km).value - height.to(u.km).value), axis=0)
-    single_layer_loc = loc[index, np.arange(n_times)]
-    return _read_ionex_stuff(loc=single_layer_loc, times=times)
+    """gets the ionex files and interpolate values for a single altitude, thin screen assumption
+
+    Parameters
+    ----------
+    ipp : IPP
+        ionospheric piercepoints
+    height : u.Quantity, optional
+        altitude of the thin scrreen, by default 350*u.km
+    server :
+
+    Returns
+    -------
+    ArrayLike
+        interpolated vTEC values at ipp, zeros everywhere apart from the altitude
+        closest to the specified height
+    """
+    n_times = ipp.loc.shape[1]  # we assume time is second axis
+    index = np.argmin(
+        np.abs(ipp.loc.height.to(u.km).value - height.to(u.km).value), axis=0
+    )
+    single_layer_loc = ipp.loc[index, np.arange(n_times)]
+    ipp_single_layer = IPP(
+        loc=single_layer_loc,
+        times=ipp.times,
+        los=ipp.los,
+        airmass=ipp.airmass,
+        altaz=ipp.altaz,
+    )
+    result = np.zeros(ipp.loc.shape, dtype=float)
+    result[index] = _read_ionex_stuff(ipp_single_layer, server=server)[0]
+    return result
 
 
-def get_density_ionex_iri(loc: EarthLocation, times: Time) -> ArrayLike:
-    profile = iri.get_profile(loc, times)
-    tec = get_density_ionex_single_layer(
-        loc=loc, times=times
-    )  # get tec at single altitude
-    return tec[np.newaxis] * profile
+def get_density_ionex_iri(ipp: IPP, server: str | None = None) -> ArrayLike:
+    profile = iri.get_profile(ipp)
+    tec = get_density_ionex_single_layer(ipp, height=350 * u.km, server=server)
+    # get tec at single altitude
+    return np.sum(tec, keepdims=True, axis=0) * profile
 
 
-# def get_density_tomion(loc: EarthLocation, times: Time) -> ArrayLike:
+# def get_density_tomion(ipp: IPP) -> ArrayLike:
 #    return _read_tomion_stuff()
 
 ionospheric_models = IonosphericModels(
@@ -67,10 +90,9 @@ ionospheric_models = IonosphericModels(
 
 
 def get_ionosphere(
-    loc: EarthLocation,
-    time: Time,
-    iono_model: ModelDesnsityFunction = ionospheric_models.ionex,
+    ipp: IPP,
+    iono_model: ModelDensityFunction = ionospheric_models.ionex,
 ) -> u.Quantity[u.m**-3]:
     """Prints a nice message"""
 
-    return iono_model(loc=loc, times=time)
+    return iono_model(ipp)
