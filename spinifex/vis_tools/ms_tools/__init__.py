@@ -12,4 +12,4 @@ from pathlib import Path
 def get_columns_from_ms(ms_path: Path) -> list[str]:
     """Get the columns from a MeasurementSet"""
     with table(ms_path.as_posix()) as tab:
-        return tab.colnames()
+        return list(tab.colnames())
