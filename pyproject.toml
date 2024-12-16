@@ -41,6 +41,7 @@ dependencies = [
     "ppigrf",
     "PyIRI",
     "requests",
+    "unlzw3",
 ]
 
 [project.optional-dependencies]
