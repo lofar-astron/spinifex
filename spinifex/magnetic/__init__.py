@@ -5,6 +5,6 @@
 
 from __future__ import annotations
 
-from spinifex.magnetic.models import magnetic_models
+from spinifex.magnetic.models import MagneticFieldFunction, magnetic_models
 
-__all__ = ["magnetic_models"]
+__all__ = ["MagneticFieldFunction", "magnetic_models"]

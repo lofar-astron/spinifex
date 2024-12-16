@@ -1,10 +1,6 @@
-#  Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
-#  SPDX-License-Identifier: Apache-2.0
-
-"""Module for getting the Ionospheric Piercepoints"""
-
 from __future__ import annotations
 
+from pathlib import Path
 from typing import NamedTuple
 
 import astropy.units as u
@@ -13,7 +9,13 @@ from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.time import Time
 from numpy.typing import ArrayLike
 
-from spinifex.geometry.get_ipp import IPP, get_ipp_from_skycoord
+from spinifex.geometry import IPP, get_ipp_from_skycoord
+
+try:
+    from casacore.tables import table
+except ImportError as e:
+    MSG = "casacore is not installed! To operate on MeasurementSets, install spinifex[casa]."
+    raise ImportError(MSG) from e
 
 
 class MsMetaData(NamedTuple):
@@ -47,3 +49,9 @@ def get_metadata_from_ms(ms: str, timestep: int) -> MsMetaData:
         name=ms,
         source=SkyCoord.from_name("Cas A"),
     )
+
+
+def get_columns_from_ms(ms_path: Path) -> list[str]:
+    """Get the columns from a MeasurementSet"""
+    with table(ms_path.as_posix()) as tab:
+        return list(tab.colnames())

@@ -110,6 +110,11 @@ ignore_missing_imports = true
 module = "requests"
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = "casacore.*"
+ignore_missing_imports = true
+
+
 [tool.ruff]
 src = ["spinifex", "tests"]
 

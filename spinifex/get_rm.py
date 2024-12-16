@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import astropy.units as u
 import numpy as np
@@ -8,11 +8,11 @@ from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from astropy.time import Time
 from numpy.typing import ArrayLike
 
-from spinifex.geometry.get_ipp import IPP, get_ipp_from_altaz, get_ipp_from_skycoord
-from spinifex.ionospheric.models import ModelDensityFunction, ionospheric_models
-from spinifex.magnetic.models import MagneticFieldFunction, magnetic_models
+from spinifex.geometry import IPP, get_ipp_from_altaz, get_ipp_from_skycoord
+from spinifex.ionospheric import ModelDensityFunction, ionospheric_models
+from spinifex.magnetic import MagneticFieldFunction, magnetic_models
 
-default_height = np.array([450.0]) * u.km
+DEFAULT_IONO_HEIGHT = np.array([450.0]) * u.km
 
 
 class RM(NamedTuple):
@@ -38,7 +38,7 @@ def _get_rm(
     ipp: IPP,
     iono_model: ModelDensityFunction = ionospheric_models.ionex,
     magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
-    iono_kwargs: dict | None = None,
+    iono_kwargs: dict[str, Any] | None = None,
 ) -> RM:
     """Get the rotation measures for a given set of ionospheric piercepoints
 
@@ -61,8 +61,9 @@ def _get_rm(
     iono_kwargs = iono_kwargs or {}
     density_profile = iono_model(ipp=ipp, **iono_kwargs)
     magnetic_profile = magnetic_model(ipp=ipp)
+    b_field_to_rm = -2.62e-6  # TODO: What are the units of this constant?
     rm = np.sum(
-        -2.62e-6 * density_profile * magnetic_profile.to(u.nT).value * ipp.airmass,
+        b_field_to_rm * density_profile * magnetic_profile.to(u.nT).value * ipp.airmass,
         axis=0,
     )
     return RM(
@@ -79,10 +80,10 @@ def _get_rm(
 def get_rm_from_altaz(
     loc: EarthLocation,
     altaz: AltAz,
-    height_array: ArrayLike = default_height,
+    height_array: ArrayLike = DEFAULT_IONO_HEIGHT,
     iono_model: ModelDensityFunction = ionospheric_models.ionex,
     magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
-    iono_kwargs: dict | None = None,
+    iono_kwargs: dict[str, Any] | None = None,
 ) -> RM:
     """get rotation measures for user defined altaz coordinates
 
@@ -118,11 +119,11 @@ def get_rm_from_skycoord(
     loc: EarthLocation,
     times: Time,
     source: SkyCoord,
-    height_array=default_height,
-    iono_model=ionospheric_models.ionex,
-    magnetic_model=magnetic_models.ppigrf,
-    iono_kwargs: dict | None = None,
-):
+    height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
+    iono_model: ModelDensityFunction = ionospheric_models.ionex,
+    magnetic_model: ModelDensityFunction = magnetic_models.ppigrf,
+    iono_kwargs: dict[str, Any] | None = None,
+) -> RM:
     """get rotation measures for user defined times and source coordinate
 
     Parameters
