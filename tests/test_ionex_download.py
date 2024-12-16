@@ -1,6 +1,7 @@
 # pylint: disable=redefined-outer-name
 from __future__ import annotations
 
+import astropy.units as u
 import numpy as np
 import pytest
 from astropy.time import Time
@@ -33,11 +34,16 @@ def test_gps_week(times):
 def test_old_cddis_format(times):
     time = times[0]
     prefix = "cod"
-    url = ionex_download.old_cddis_format(time, prefix=prefix)
-    assert (
-        url
-        == "https://cddis.nasa.gov/archive/gnss/products/ionex/1999/001/codg0010.99i.Z"
-    )
+
+    # time resolution is not used!
+    for time_resolution in (None, 30 * u.min, 2 * u.hour):
+        url = ionex_download.old_cddis_format(
+            time, prefix=prefix, time_resolution=time_resolution
+        )
+        assert (
+            url
+            == "https://cddis.nasa.gov/archive/gnss/products/ionex/1999/001/codg0010.99i.Z"
+        )
     prefix = "bad"
     with pytest.raises(IonexError):
         url = ionex_download.old_cddis_format(time, prefix=prefix)
@@ -53,15 +59,41 @@ def test_old_cddis_format(times):
     url = ionex_download.old_cddis_format(time, url_stem=url_stem)
     assert url == "my_stem/1999/001/codg0010.99i.Z"
 
+    url = ionex_download.old_cddis_format(time, prefix="cod", solution="rapid")
+    assert (
+        url
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/1999/001/corg0010.99i.Z"
+    )
+
 
 def test_new_cddis_format(times):
     time = times[-1]
     url = ionex_download.new_cddis_format(time)
     assert (
         url
-        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/001/IGS0OPSFIN_20240010000_01D_02H_GIM.INX.gz"
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/001/COD0OPSFIN_20240010000_01D_02H_GIM.INX.gz"
     )
 
     url_stem = "my_stem"
     url = ionex_download.new_cddis_format(time, url_stem=url_stem)
-    assert url == "my_stem/2024/001/IGS0OPSFIN_20240010000_01D_02H_GIM.INX.gz"
+    assert url == "my_stem/2024/001/COD0OPSFIN_20240010000_01D_02H_GIM.INX.gz"
+
+    time_resolution = 2 * u.hour
+    url = ionex_download.new_cddis_format(time, time_resolution=time_resolution)
+    assert (
+        url
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/001/COD0OPSFIN_20240010000_01D_02H_GIM.INX.gz"
+    )
+
+    time_resolution = 30 * u.min
+    url = ionex_download.new_cddis_format(time, time_resolution=time_resolution)
+    assert (
+        url
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/001/COD0OPSFIN_20240010000_01D_30M_GIM.INX.gz"
+    )
+
+    url = ionex_download.new_cddis_format(time, solution="rapid")
+    assert (
+        url
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/001/COD0OPSRAP_20240010000_01D_02H_GIM.INX.gz"
+    )
