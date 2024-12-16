@@ -1,10 +1,9 @@
 #  Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
 #  SPDX-License-Identifier: Apache-2.0
 
-"""Spinifex tools for correcting interferometric visibilities"""
+"""Spinifex tools for correcting image data"""
 
 from __future__ import annotations
 
-from spinifex.vis_tools import ms_tools
-
-__all__ = ["ms_tools"]
+MSG = "Image correction is not yet implemented"
+raise NotImplementedError(MSG)

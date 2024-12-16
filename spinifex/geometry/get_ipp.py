@@ -90,7 +90,7 @@ def get_ipp_from_altaz(
 
 def _get_ipp_simple(
     height_array: u.Quantity, loc: EarthLocation, los_dir: SkyCoord
-) -> tuple:
+) -> tuple[list[u.Quantity], ArrayLike]:
     """helper function to calculate ionospheric piercepoints using a simple spherical earth model
     |loc + alphas * los_dir| = R_earth + height_array, solve for alphas using abc formula
     Parameters
