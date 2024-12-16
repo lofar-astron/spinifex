@@ -17,7 +17,7 @@ from spinifex.ionospheric.ionex_manipulation import _read_ionex_stuff
 class ModelDensityFunction(Protocol):
     """Model density callable"""
 
-    def __call__(self, ipp: IPP) -> ArrayLike: ...
+    def __call__(self, ipp: IPP, iono_kwargs: dict | None = None) -> ArrayLike: ...
 
 
 @dataclass
@@ -38,7 +38,7 @@ def get_density_ionex(ipp: IPP) -> ArrayLike:
 
 
 def get_density_ionex_single_layer(
-    ipp: IPP, height: u.Quantity = 350 * u.km, server: str | None = None
+    ipp: IPP, height: u.Quantity = 350 * u.km, iono_kwargs: dict | None = None
 ) -> ArrayLike:
     """gets the ionex files and interpolate values for a single altitude, thin screen assumption
 
@@ -48,7 +48,7 @@ def get_density_ionex_single_layer(
         ionospheric piercepoints
     height : u.Quantity, optional
         altitude of the thin scrreen, by default 350*u.km
-    server :
+    iono_kwargs: dict, optional
 
     Returns
     -------
@@ -56,6 +56,7 @@ def get_density_ionex_single_layer(
         interpolated vTEC values at ipp, zeros everywhere apart from the altitude
         closest to the specified height
     """
+    iono_kwargs = iono_kwargs or {}
     n_times = ipp.loc.shape[1]  # we assume time is second axis
     index = np.argmin(
         np.abs(ipp.loc.height.to(u.km).value - height.to(u.km).value), axis=0
@@ -69,13 +70,16 @@ def get_density_ionex_single_layer(
         altaz=ipp.altaz,
     )
     result = np.zeros(ipp.loc.shape, dtype=float)
-    result[index] = _read_ionex_stuff(ipp_single_layer, server=server)[0]
+    result[index] = _read_ionex_stuff(ipp_single_layer, iono_kwargs=iono_kwargs)[0]
     return result
 
 
-def get_density_ionex_iri(ipp: IPP, server: str | None = None) -> ArrayLike:
+def get_density_ionex_iri(ipp: IPP, iono_kwargs: dict | None = None) -> ArrayLike:
+    iono_kwargs = iono_kwargs or {}
     profile = iri.get_profile(ipp)
-    tec = get_density_ionex_single_layer(ipp, height=350 * u.km, server=server)
+    tec = get_density_ionex_single_layer(
+        ipp, height=350 * u.km, iono_kwargs=iono_kwargs
+    )
     # get tec at single altitude
     return np.sum(tec, keepdims=True, axis=0) * profile
 

@@ -1,3 +1,4 @@
+# pylint: disable=duplicate-code
 """Module of ionex manipulation tools"""
 
 from __future__ import annotations
@@ -5,6 +6,7 @@ from __future__ import annotations
 from importlib import resources
 from pathlib import Path
 
+import astropy.units as u
 import numpy as np
 from astropy.time import Time
 from numpy.typing import ArrayLike
@@ -14,7 +16,11 @@ from spinifex.ionospheric.index_tools import (
     _compute_index_and_weights,
     get_indices_axis,
 )
-from spinifex.ionospheric.ionex_download import SortedIonexPaths, download_ionex
+from spinifex.ionospheric.ionex_download import (
+    SOLUTION,
+    SortedIonexPaths,
+    download_ionex,
+)
 from spinifex.ionospheric.ionex_parser import IonexData, read_ionex
 
 
@@ -122,7 +128,13 @@ def interpolate_ionex(
 
 
 def get_ionex_file(
-    times: Time, server: str | None = None, prefix: str = "CODG"
+    times: Time,
+    server: str | None = None,
+    prefix: str = "cod",
+    url_stem: str | None = None,
+    time_resolution: u.Quantity = 2 * u.hour,
+    solution: SOLUTION = "final",
+    output_directory: Path | None = None,
 ) -> Path | None:
     """Find ionex file locally or online.
 
@@ -147,44 +159,60 @@ def get_ionex_file(
         yy = yy - 2000 if yy > 2000 else yy - 1990
         with resources.as_file(resources.files("spinifex.data.tests")) as test_data:
             return SortedIonexPaths(
-                ionex_list=[test_data / f"{prefix}{doy:03d}0.{yy:02d}I.gz"],
+                ionex_list=[test_data / f"{prefix.upper()}G{doy:03d}0.{yy:02d}I.gz"],
                 unique_days=times[0],
             )
     else:
-        return download_ionex(times=times, server=server, prefix=prefix)
+        return download_ionex(
+            times=times,
+            server=server,
+            prefix=prefix,
+            url_stem=url_stem,
+            time_resolution=time_resolution,
+            solution=solution,
+            output_directory=output_directory,
+        )
 
 
 def _group_by_day(ipp: IPP, unique_days: Time) -> list[IPP]:
     if not unique_days.shape:
         return ipp
     ipps = []
+    indices = []
+
     for day in unique_days.mjd:
-        indices = np.floor(ipp.times.mjd) == day
+        indices.append(np.floor(ipp.times.mjd) == day)
+
         ipps.append(
             IPP(
-                times=ipp.times[indices],
-                loc=ipp.loc[indices],
-                los=ipp.los[indices],
-                airmass=ipp.airmass[indices],
-                altaz=ipp.altaz[indices],
+                times=ipp.times[indices[-1]],
+                loc=ipp.loc[indices[-1]],
+                los=ipp.los[indices[-1]],
+                airmass=ipp.airmass[:, indices[-1]],
+                altaz=ipp.altaz[indices[-1]],
             )
         )
-    return ipps
+    return ipps, indices
 
 
-def _read_ionex_stuff(ipp: IPP, server: str | None = None) -> ArrayLike:
-    sorted_ionex_paths = get_ionex_file(ipp.times, server=server)
+def _read_ionex_stuff(ipp: IPP, iono_kwargs: dict | None = None) -> ArrayLike:
+    # TODO: apply_earth_rotation
+    iono_kwargs = iono_kwargs or {}
+    sorted_ionex_paths = get_ionex_file(ipp.times, **iono_kwargs)
     if not sorted_ionex_paths.unique_days.shape:
         ionex = read_ionex(sorted_ionex_paths.ionex_list[0])
         return interpolate_ionex(ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times)
-    day_groups = _group_by_day(ipp, sorted_ionex_paths.unique_days)
-    tec = []
-    for u_ipp, ionex_file in zip(day_groups, sorted_ionex_paths.ionex_list):
+    day_groups, group_indices = _group_by_day(ipp, sorted_ionex_paths.unique_days)
+    tec = np.zeros(ipp.loc.shape, dtype=float)
+    for u_ipp, indices, ionex_file in zip(
+        day_groups, group_indices, sorted_ionex_paths.ionex_list
+    ):
         if ionex_file is None:
             msg = "No ionex file found!"
             raise FileNotFoundError(msg)
         ionex = read_ionex(ionex_file)
-        tec.append(
-            interpolate_ionex(ionex, u_ipp.loc.lon.deg, u_ipp.loc.lat.deg, u_ipp.times)
+        tec[indices] = interpolate_ionex(
+            ionex, u_ipp.loc.lon.deg, u_ipp.loc.lat.deg, u_ipp.times
         )
-    return np.concatenate(tec)  # wrong if order has changed
+
+    return tec

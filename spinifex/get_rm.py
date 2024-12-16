@@ -58,6 +58,9 @@ def _get_rm(
     RM
         rotation measures object
     """
+
+    # TO DO: the order of axes in the profile outputs is reversed with respect to ipp.loc,
+    # make it times x altitudes everywhere
     iono_kwargs = iono_kwargs or {}
     density_profile = iono_model(ipp=ipp, **iono_kwargs)
     magnetic_profile = magnetic_model(ipp=ipp)
