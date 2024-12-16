@@ -36,3 +36,10 @@ def test_get_ionosphere():
     assert tec.shape == ipp.loc.shape
     tec = ionospheric_models.ionex_iri(ipp)
     assert tec.shape == ipp.loc.shape
+
+
+def test_read_zcompressed():
+    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
+        testdata = datapath / "casg0010.99i.Z"
+    ionex = read_ionex(testdata)
+    assert ionex.tec.shape == (12, 73, 71)
