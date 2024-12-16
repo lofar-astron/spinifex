@@ -6,6 +6,7 @@ as described in Schaer and Gurtner (1998)"""
 
 from __future__ import annotations
 
+import gzip
 from pathlib import Path
 from typing import Any, NamedTuple, TextIO
 
@@ -67,8 +68,11 @@ def read_ionex(ionex_filename: Path) -> IonexData:
         ionex object with data and grid
 
     """
-    with Path.open(ionex_filename, encoding="utf-8") as myf:
-        return _read_ionex_data(myf)
+    if ionex_filename.suffix == ".gz":
+        with gzip.open(ionex_filename, "rt", encoding="utf-8") as file_buffer:
+            return _read_ionex_data(file_buffer)
+    with ionex_filename.open(encoding="utf-8") as file_buffer:
+        return _read_ionex_data(file_buffer)
 
 
 def _read_ionex_header(filep: TextIO) -> IonexHeader:

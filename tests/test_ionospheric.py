@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from importlib import resources
 
 import astropy.units as u
 import numpy as np
@@ -18,9 +18,8 @@ from spinifex.ionospheric.ionex_parser import read_ionex
 
 def test_get_ionosphere():
     """Test that get_ionosphere does not crash"""
-    datapath = Path(__file__).parent / "data"
-
-    testdata = datapath / "CODG0080.20I"
+    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
+        testdata = datapath / "CODG0080.20I.gz"
 
     ionex = read_ionex(testdata)
     assert ionex.tec.shape == (25, 73, 71)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from importlib import resources
 from pathlib import Path
 
 from astropy.time import Time
@@ -141,8 +142,8 @@ def get_ionex_file(
     yy = time.ymdhms[0]
     yy = yy - 2000 if yy > 2000 else yy - 1990
     if server is None:
-        datapath = Path(__file__).parent.parent.parent / "tests" / "data"
-        return datapath / f"{prefix}{doy:03d}0.{yy:02d}I"
+        with resources.as_file(resources.files("spinifex.data.tests")) as test_data:
+            return test_data / f"{prefix}{doy:03d}0.{yy:02d}I.gz"
     return None
 
 
