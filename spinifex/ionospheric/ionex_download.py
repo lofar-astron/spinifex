@@ -4,6 +4,7 @@ import asyncio
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urlparse
 
 import astropy.units as u
@@ -12,7 +13,7 @@ import requests
 from astropy.time import Time
 from numpy.typing import ArrayLike
 
-from spinifex.exceptions import IonexError
+from spinifex.exceptions import IonexError, TimeResolutionError
 from spinifex.logger import logger
 
 # We need to support downloading from the following sources:
@@ -35,6 +36,8 @@ SERVERS = {
     "igsiono": "",
 }
 NAME_SWITCH_WEEK = 2238  # GPS Week where the naming convention changed
+
+SOLUTION = Literal["final", "rapid"]
 
 
 async def download_file(
@@ -177,7 +180,13 @@ def get_unique_days(times: Time) -> Time:
     return Time(np.unique(np.floor(times.mjd)), format="mjd")
 
 
-def new_cddis_format(time: Time, url_stem: str | None = None) -> str:
+def new_cddis_format(
+    time: Time,
+    prefix: str = "cod",
+    url_stem: str | None = None,
+    time_resolution: u.Quantity = 2 * u.hour,
+    solution: SOLUTION = "final",
+) -> str:
     """Get the URL for a new IONEX file from CDDIS.
 
     Parameters
@@ -208,8 +217,33 @@ def new_cddis_format(time: Time, url_stem: str | None = None) -> str:
     # .gz	gzip compressed file
     assert time.isscalar, "Only one time is supported"
     dtime: datetime = time.to_datetime()
+    prefix = prefix.upper()
+
+    # Parse time resolution
+    if not time_resolution.value.is_integer():
+        error = f"Time resolution must be an integer. Got {time_resolution}"
+        raise TimeResolutionError(error)
+    if time_resolution.to(u.min).value % 15 != 0:
+        msg = f"Time resolution on CDDIS is multiples 15 minutes. Please check the time resolution ({time_resolution})."
+        logger.warning(msg)
+    if time_resolution < 1 * u.hour:
+        time_resolution = time_resolution.to(u.min)
+    else:
+        time_resolution = time_resolution.to(u.hour)
+    time_res_str = (
+        f"{int(time_resolution.value):02d}{str(time_resolution.unit)[0].upper()}"
+    )
+
+    if solution == "final":
+        solution_str = "FIN"
+    elif solution == "rapid":
+        solution_str = "RAP"
+    else:
+        msg = f"Solution {solution} is not supported. Supported solutions are ['final', 'rapid']"  # type: ignore[unreachable]
+        raise IonexError(msg)
+
     # WWWW/IGS0OPSTYP_YYYYDDDHHMM_01D_SMP_CNT.INX.gz
-    file_name = f"IGS0OPSFIN_{dtime.year:03d}{dtime.day:03d}0000_01D_02H_GIM.INX.gz"
+    file_name = f"{prefix}0OPS{solution_str}_{dtime.year:03d}{dtime.day:03d}0000_01D_{time_res_str}_GIM.INX.gz"
     directory = f"{dtime.year:04d}/{dtime.day:03d}"
 
     if url_stem is None:
@@ -219,7 +253,11 @@ def new_cddis_format(time: Time, url_stem: str | None = None) -> str:
 
 
 def old_cddis_format(
-    time: Time, prefix: str = "cod", url_stem: str | None = None
+    time: Time,
+    prefix: str = "cod",
+    url_stem: str | None = None,
+    time_resolution: u.Quantity = 2 * u.hour,
+    solution: SOLUTION = "final",
 ) -> str:
     """Get the URL for an old IONEX file from CDDIS.
 
@@ -251,15 +289,24 @@ def old_cddis_format(
     # #	file number for the day, typically 0
     # YY	2-digit year
     # .Z	Unix compressed file
+    _ = time_resolution  # Unused
     assert time.isscalar, "Only one time is supported"
     if prefix not in CENTER_NAMES:
         msg = f"prefix {prefix} is not supported. Supported prefixes are {CENTER_NAMES}"
         raise IonexError(msg)
 
+    if solution == "final":
+        prefix_str = prefix
+    elif solution == "rapid":
+        prefix_str = prefix[:-1] + "r"
+    else:
+        msg = f"Solution {solution} is not supported. Supported solutions are ['final', 'rapid']"  # type: ignore[unreachable]
+        raise IonexError(msg)
+
     dtime: datetime = time.to_datetime()
     # YYYY/DDD/AAAgDDD#.YYi.Z
     yy = f"{dtime.year:02d}"[-2:]
-    file_name = f"{prefix}g{dtime.day:03d}0.{yy}i.Z"
+    file_name = f"{prefix_str}g{dtime.day:03d}0.{yy}i.Z"
     directory_name = f"{dtime.year:04d}/{dtime.day:03d}"
     if url_stem is None:
         url_stem = SERVERS.get("cddis")
@@ -270,6 +317,8 @@ async def download_from_cddis(
     times: Time,
     prefix: str = "cod",
     url_stem: str | None = None,
+    time_resolution: u.Quantity = 2 * u.hour,
+    solution: SOLUTION = "final",
     output_directory: Path | None = None,
 ) -> list[Path]:
     """Download IONEX files from CDDIS.
@@ -295,9 +344,16 @@ async def download_from_cddis(
     coros = []
     for day in unique_days:
         if get_gps_week(day) >= NAME_SWITCH_WEEK:
-            url = new_cddis_format(day, url_stem=url_stem)
+            formatter = new_cddis_format
         else:
-            url = old_cddis_format(day, prefix=prefix, url_stem=url_stem)
+            formatter = old_cddis_format
+        url = formatter(
+            day,
+            prefix=prefix,
+            url_stem=url_stem,
+            time_resolution=time_resolution,
+            solution=solution,
+        )
         coros.append(download_or_copy_url(url, output_directory=output_directory))
 
     return await asyncio.gather(*coros)
@@ -308,6 +364,8 @@ def download_ionex(
     times: Time,
     prefix: str = "cod",
     url_stem: str | None = None,
+    time_resolution: u.Quantity = 2 * u.hour,
+    solution: SOLUTION = "final",
     output_directory: Path | None = None,
 ) -> list[Path]:
     """Download IONEX files from a server.
@@ -348,6 +406,8 @@ def download_ionex(
                 times,
                 prefix=prefix,
                 url_stem=url_stem,
+                time_resolution=time_resolution,
+                solution=solution,
                 output_directory=output_directory,
             )
         )
