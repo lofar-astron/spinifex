@@ -4,6 +4,7 @@ import asyncio
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import NamedTuple
 from urllib.parse import urlparse
 
 import astropy.units as u
@@ -35,6 +36,13 @@ SERVERS = {
     "igsiono": "",
 }
 NAME_SWITCH_WEEK = 2238  # GPS Week where the naming convention changed
+
+
+class SortedIonexPaths(NamedTuple):
+    """lists of sorted ionex paths and days"""
+
+    unique_days: Time
+    ionex_list: list[Path]
 
 
 async def download_file(
@@ -174,7 +182,7 @@ def get_unique_days(times: Time) -> Time:
     Time
         Unique days
     """
-    return Time(np.unique(np.floor(times.mjd)), format="mjd")
+    return Time(np.sort(np.unique(np.floor(times.mjd))), format="mjd")
 
 
 def new_cddis_format(time: Time, url_stem: str | None = None) -> str:
@@ -257,10 +265,11 @@ def old_cddis_format(
         raise IonexError(msg)
 
     dtime: datetime = time.to_datetime()
+    doy = time.datetime.timetuple().tm_yday
     # YYYY/DDD/AAAgDDD#.YYi.Z
     yy = f"{dtime.year:02d}"[-2:]
-    file_name = f"{prefix}g{dtime.day:03d}0.{yy}i.Z"
-    directory_name = f"{dtime.year:04d}/{dtime.day:03d}"
+    file_name = f"{prefix}g{doy:03d}0.{yy}i.Z"
+    directory_name = f"{dtime.year:04d}/{doy:03d}"
     if url_stem is None:
         url_stem = SERVERS.get("cddis")
     return f"{url_stem}/{directory_name}/{file_name}"
@@ -271,7 +280,7 @@ async def download_from_cddis(
     prefix: str = "cod",
     url_stem: str | None = None,
     output_directory: Path | None = None,
-) -> list[Path]:
+) -> SortedIonexPaths:
     """Download IONEX files from CDDIS.
 
     Parameters
@@ -287,8 +296,8 @@ async def download_from_cddis(
 
     Returns
     -------
-    list[Path]
-        List of downloaded files
+    SortedIonexPaths
+        List of downloaded files and corresponding unique days
     """
     unique_days = get_unique_days(times)
 
@@ -300,7 +309,8 @@ async def download_from_cddis(
             url = old_cddis_format(day, prefix=prefix, url_stem=url_stem)
         coros.append(download_or_copy_url(url, output_directory=output_directory))
 
-    return await asyncio.gather(*coros)
+    file_list = await asyncio.gather(*coros)
+    return SortedIonexPaths(ionex_list=file_list, unique_days=unique_days)
 
 
 def download_ionex(
@@ -309,7 +319,7 @@ def download_ionex(
     prefix: str = "cod",
     url_stem: str | None = None,
     output_directory: Path | None = None,
-) -> list[Path]:
+) -> SortedIonexPaths:
     """Download IONEX files from a server.
 
     Parameters
@@ -327,8 +337,8 @@ def download_ionex(
 
     Returns
     -------
-    list[Path]
-        List of downloaded files
+    SortedIonexPaths
+        List of downloaded files and corresponding unique days
 
     Raises
     ------
