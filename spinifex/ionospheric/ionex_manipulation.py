@@ -5,6 +5,7 @@ from __future__ import annotations
 from importlib import resources
 from pathlib import Path
 
+import numpy as np
 from astropy.time import Time
 from numpy.typing import ArrayLike
 
@@ -13,6 +14,7 @@ from spinifex.ionospheric.index_tools import (
     _compute_index_and_weights,
     get_indices_axis,
 )
+from spinifex.ionospheric.ionex_download import SortedIonexPaths, download_ionex
 from spinifex.ionospheric.ionex_parser import IonexData, read_ionex
 
 
@@ -120,13 +122,13 @@ def interpolate_ionex(
 
 
 def get_ionex_file(
-    time: Time, server: str | None = None, prefix: str = "CODG"
+    times: Time, server: str | None = None, prefix: str = "CODG"
 ) -> Path | None:
     """Find ionex file locally or online.
 
     Parameters
     ----------
-    time : Time
+    times : Time
         time for which to retrieve
     server : str, optional
         URL of a server to query. If not specified, local files will be searched.
@@ -138,19 +140,51 @@ def get_ionex_file(
     str
         _description_
     """
-    doy = time.datetime.timetuple().tm_yday
-    yy = time.ymdhms[0]
-    yy = yy - 2000 if yy > 2000 else yy - 1990
+
     if server is None:
+        doy = times[0].datetime.timetuple().tm_yday
+        yy = times[0].ymdhms[0]
+        yy = yy - 2000 if yy > 2000 else yy - 1990
         with resources.as_file(resources.files("spinifex.data.tests")) as test_data:
-            return test_data / f"{prefix}{doy:03d}0.{yy:02d}I.gz"
-    return None
+            return SortedIonexPaths(
+                ionex_list=[test_data / f"{prefix}{doy:03d}0.{yy:02d}I.gz"],
+                unique_days=times[0],
+            )
+    else:
+        return download_ionex(times=times, server=server, prefix=prefix)
+
+
+def _group_by_day(ipp: IPP, unique_days: Time) -> list[IPP]:
+    if not unique_days.shape:
+        return ipp
+    ipps = []
+    for day in unique_days.mjd:
+        indices = np.floor(ipp.times.mjd) == day
+        ipps.append(
+            IPP(
+                times=ipp.times[indices],
+                loc=ipp.loc[indices],
+                los=ipp.los[indices],
+                airmass=ipp.airmass[indices],
+                altaz=ipp.altaz[indices],
+            )
+        )
+    return ipps
 
 
 def _read_ionex_stuff(ipp: IPP, server: str | None = None) -> ArrayLike:
-    ionex_file = get_ionex_file(ipp.times[0], server=server)
-    if ionex_file is None:
-        msg = "No ionex file found!"
-        raise FileNotFoundError(msg)
-    ionex = read_ionex(ionex_file)
-    return interpolate_ionex(ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times)
+    sorted_ionex_paths = get_ionex_file(ipp.times, server=server)
+    if not sorted_ionex_paths.unique_days.shape:
+        ionex = read_ionex(sorted_ionex_paths.ionex_list[0])
+        return interpolate_ionex(ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times)
+    day_groups = _group_by_day(ipp, sorted_ionex_paths.unique_days)
+    tec = []
+    for u_ipp, ionex_file in zip(day_groups, sorted_ionex_paths.ionex_list):
+        if ionex_file is None:
+            msg = "No ionex file found!"
+            raise FileNotFoundError(msg)
+        ionex = read_ionex(ionex_file)
+        tec.append(
+            interpolate_ionex(ionex, u_ipp.loc.lon.deg, u_ipp.loc.lat.deg, u_ipp.times)
+        )
+    return np.concatenate(tec)  # wrong if order has changed

@@ -43,3 +43,7 @@ def test_read_zcompressed():
         testdata = datapath / "casg0010.99i.Z"
     ionex = read_ionex(testdata)
     assert ionex.tec.shape == (12, 73, 71)
+
+
+def test_ionosphere_ionex():
+    pass
