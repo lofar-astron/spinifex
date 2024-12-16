@@ -7,6 +7,7 @@ as described in Schaer and Gurtner (1998)"""
 from __future__ import annotations
 
 import gzip
+import io
 from pathlib import Path
 from typing import Any, NamedTuple, TextIO
 
@@ -14,6 +15,7 @@ import astropy.units as u
 import numpy as np
 from astropy.time import Time
 from numpy.typing import ArrayLike
+from unlzw3 import unlzw
 
 from spinifex.exceptions import IonexError
 
@@ -71,6 +73,12 @@ def read_ionex(ionex_filename: Path) -> IonexData:
     if ionex_filename.suffix == ".gz":
         with gzip.open(ionex_filename, "rt", encoding="utf-8") as file_buffer:
             return _read_ionex_data(file_buffer)
+
+    if ionex_filename.suffix == ".Z":
+        data = unlzw(ionex_filename.read_bytes()).decode("utf-8")
+        with io.StringIO(data) as file_buffer:
+            return _read_ionex_data(file_buffer)
+
     with ionex_filename.open(encoding="utf-8") as file_buffer:
         return _read_ionex_data(file_buffer)
 
@@ -100,7 +108,9 @@ def _read_ionex_header(filep: TextIO) -> IonexHeader:
         label = line[60:-1]
         record = line[:60]
         if "EPOCH OF FIRST MAP" in label:
-            yy, mm, day, hr, minute, second = (int(i) for i in record.strip().split())
+            yy, mm, day, hr, minute, second = (
+                int(float(i)) for i in record.strip().split()
+            )
             epoch = Time(f"{yy}-{mm}-{day}T{hr%24}:{minute}:{second}")
             start_time = epoch
         if "INTERVAL" in label:
@@ -121,7 +131,7 @@ def _read_ionex_header(filep: TextIO) -> IonexHeader:
     # Check that all optional values are not None
     # Need to do this one by one to get MyPy to understand that they are not None
     # Should probably replace with higher level checks of the header values
-    bad_msg = f"Not a valid IONex file: {filep.name}"
+    bad_msg = "Could not parse ionex header"
     if h1 is None:
         raise IonexError(bad_msg)
     if h2 is None:
