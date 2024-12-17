@@ -18,6 +18,7 @@ from numpy.typing import ArrayLike
 from unlzw3 import unlzw
 
 from spinifex.exceptions import IonexError
+from spinifex.times import get_unique_days
 
 
 class IonexData(NamedTuple):
@@ -268,3 +269,28 @@ def _read_ionex_data(filep: TextIO) -> IonexData:
         tec=tecarray,
         rms=rmsarray,
     )
+
+
+def unique_days_from_ionex(ionex_files: list[Path]) -> Time:
+    """Get unique days from a list of ionex files.
+
+    Parameters
+    ----------
+    ionex_files : list[Path]
+        list of ionex files
+
+    Returns
+    -------
+    Time
+        unique days
+    """
+    time_list: list[ArrayLike] = []
+    for ionex_file in ionex_files:
+        ionex_data = read_ionex(ionex_file)
+        time_list.append(ionex_data.times.jd)
+
+    times = Time(
+        np.concatenate(time_list),
+        format="jd",
+    )
+    return get_unique_days(times)
