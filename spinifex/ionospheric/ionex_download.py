@@ -8,13 +8,12 @@ from typing import Literal, NamedTuple
 from urllib.parse import urlparse
 
 import astropy.units as u
-import numpy as np
 import requests
 from astropy.time import Time
-from numpy.typing import ArrayLike
 
 from spinifex.exceptions import IonexError, TimeResolutionError
 from spinifex.logger import logger
+from spinifex.times import get_gps_week, get_unique_days
 
 # We need to support downloading from the following sources:
 # "cddis.nasa.gov": cddis_nasa_gov,
@@ -163,38 +162,6 @@ async def download_or_copy_url(
     )
 
     return output_file
-
-
-def get_gps_week(time: Time) -> ArrayLike:
-    """Get the GPS week from a time.
-
-    Parameters
-    ----------
-    time : Time
-        Time(s) to get the GPS week from
-
-    Returns
-    -------
-    ArrayLike
-        GPS week(s)
-    """
-    return np.floor((time.gps * u.s).to(u.week).value).astype(int)
-
-
-def get_unique_days(times: Time) -> Time:
-    """Get the unique days from a list of times.
-
-    Parameters
-    ----------
-    times : Time
-        Times to get the unique days from.
-
-    Returns
-    -------
-    Time
-        Unique days
-    """
-    return Time(np.sort(np.unique(np.floor(times.mjd))), format="mjd")
 
 
 def new_cddis_format(

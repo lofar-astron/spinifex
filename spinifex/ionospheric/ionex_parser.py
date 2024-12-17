@@ -18,6 +18,8 @@ from numpy.typing import ArrayLike
 from unlzw3 import unlzw
 
 from spinifex.exceptions import IonexError
+from spinifex.logger import logger
+from spinifex.times import get_unique_days
 
 
 class IonexData(NamedTuple):
@@ -272,3 +274,57 @@ def _read_ionex_data(filep: TextIO) -> IonexData:
         tec=tecarray,
         rms=rmsarray,
     )
+
+
+def unique_days_from_ionex(ionex_data: IonexData | list[IonexData]) -> Time:
+    """Get unique days from a ionex object or list of ionex objects.
+
+    Parameters
+    ----------
+    ionex_data : IonexData | list[IonexData]
+        ionex object or list of ionex objects
+
+    Returns
+    -------
+    Time
+        unique days
+    """
+    # Get first MJD of each ionex object
+    # This avoids issues with midnight crossing
+    if isinstance(ionex_data, IonexData):
+        time_jd_array = ionex_data.times.sort().mjd[0]
+    else:
+        time_list: list[ArrayLike] = []
+        for ionex in ionex_data:
+            ionex_time = ionex.times.sort().mjd[0]
+            time_list.append(ionex_time)
+        time_jd_array = np.array(time_list)
+
+    logger.critical(time_jd_array)
+    times = Time(
+        time_jd_array,
+        format="mjd",
+    )
+    return get_unique_days(times)
+
+
+def unique_days_from_ionex_files(ionex_files: list[Path] | Path) -> Time:
+    """Get unique days from a list of ionex files.
+
+    Parameters
+    ----------
+    ionex_files : list[Path]
+        list of ionex files
+
+    Returns
+    -------
+    Time
+        unique days
+    """
+
+    if isinstance(ionex_files, Path):
+        ionex_data = read_ionex(ionex_files)
+        return unique_days_from_ionex(ionex_data)
+
+    ionex_data_list = [read_ionex(ionex_file) for ionex_file in ionex_files]
+    return unique_days_from_ionex(ionex_data_list)
