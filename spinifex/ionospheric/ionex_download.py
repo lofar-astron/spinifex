@@ -30,11 +30,21 @@ CENTER_NAMES = {
     "jpl",
     "upc",
 }
+DEFAULT_TIME_RESOLUTIONS: dict[str, u.Quantity] = {
+    "cod": 1 * u.hour,
+    "esa": 2 * u.hour,
+    "igs": 2 * u.hour,
+    "jpl": 2 * u.hour,
+    "upc": 2 * u.hour,
+}
 SERVERS = {
     "cddis": "https://cddis.nasa.gov/archive/gnss/products/ionex",
     "chapman": "",
     "igsiono": "",
 }
+assert (
+    set(DEFAULT_TIME_RESOLUTIONS.keys()) == CENTER_NAMES
+), "Time resolutions must be defined for all analysis centres"
 NAME_SWITCH_WEEK = 2238  # GPS Week where the naming convention changed
 
 SOLUTION = Literal["final", "rapid"]
@@ -190,8 +200,8 @@ def get_unique_days(times: Time) -> Time:
 def new_cddis_format(
     time: Time,
     prefix: str = "cod",
+    time_resolution: u.Quantity | None = None,
     url_stem: str | None = None,
-    time_resolution: u.Quantity = 2 * u.hour,
     solution: SOLUTION = "final",
 ) -> str:
     """Get the URL for a new IONEX file from CDDIS.
@@ -200,8 +210,14 @@ def new_cddis_format(
     ----------
     time : Time
         Time to get the URL for.
+    prefix : str, optional
+        Analysis centre prefix, by default "cod". Must be a supported analysis centre.
+    time_resolution : u.Quantity | None, optional
+        Time resolution, by default None, will default to the server time resolution.
     url_stem : str | None, optional
         URL steam, by default None, will default to CDDIS.
+    solution : SOLUTION, optional
+        Solution type, by default "final", must be "final" or "rapid".
 
     Returns
     -------
@@ -223,11 +239,19 @@ def new_cddis_format(
     # ROT (rate of TEC index maps)
     # .gz	gzip compressed file
     assert time.isscalar, "Only one time is supported"
+    if prefix not in CENTER_NAMES:
+        msg = f"prefix {prefix} is not supported. Supported prefixes are {CENTER_NAMES}"
+        raise IonexError(msg)
+
     dtime: datetime = time.to_datetime()
     doy = time.datetime.timetuple().tm_yday
     prefix = prefix.upper()
 
     # Parse time resolution
+    if time_resolution is None:
+        time_resolution = DEFAULT_TIME_RESOLUTIONS.get(prefix, 2 * u.hour)
+        msg = f"Using default time resolution {time_resolution} for {prefix}"
+        logger.info(msg)
     if not time_resolution.value.is_integer():
         error = f"Time resolution must be an integer. Got {time_resolution}"
         raise TimeResolutionError(error)
@@ -263,8 +287,8 @@ def new_cddis_format(
 def old_cddis_format(
     time: Time,
     prefix: str = "cod",
+    time_resolution: u.Quantity | None = None,
     url_stem: str | None = None,
-    time_resolution: u.Quantity = 2 * u.hour,
     solution: SOLUTION = "final",
 ) -> str:
     """Get the URL for an old IONEX file from CDDIS.
@@ -275,8 +299,12 @@ def old_cddis_format(
         Time to get the URL for.
     prefix : str, optional
         Analysis centre prefix, by default "cod"
+    time_resolution : u.Quantity | None, optional
+        Time resolution, by default None, will default to the server time resolution.
     url_stem : str | None, optional
         URL steam, by default None, will default to CDDIS.
+    solution : SOLUTION, optional
+        Solution type, by default "final", must be "final" or "rapid".
 
     Returns
     -------
@@ -297,7 +325,10 @@ def old_cddis_format(
     # #	file number for the day, typically 0
     # YY	2-digit year
     # .Z	Unix compressed file
-    _ = time_resolution  # Unused
+    if time_resolution is not None:
+        msg = f"Time resolution is not used by the old CDDIS format (got `{time_resolution}`). Ignoring."
+        logger.warning(msg)
+
     assert time.isscalar, "Only one time is supported"
     if prefix not in CENTER_NAMES:
         msg = f"prefix {prefix} is not supported. Supported prefixes are {CENTER_NAMES}"
@@ -325,8 +356,8 @@ def old_cddis_format(
 async def download_from_cddis(
     times: Time,
     prefix: str = "cod",
+    time_resolution: u.Quantity | None = None,
     url_stem: str | None = None,
-    time_resolution: u.Quantity = 2 * u.hour,
     solution: SOLUTION = "final",
     output_directory: Path | None = None,
 ) -> SortedIonexPaths:
@@ -338,8 +369,12 @@ async def download_from_cddis(
         Times to download for.
     prefix : str, optional
         Analysis centre prefix, by default "cod"
+    time_resolution : u.Quantity | None, optional
+        Time resolution, by default None, will default to the server time resolution.
     url_stem : str | None, optional
         URL steam, by default None, will default to CDDIS.
+    solution : SOLUTION, optional
+        Solution type, by default "final", must be "final" or "rapid".
     output_directory : Path | None, optional
         Output directory path, by default None, will default to `ionex_files` in the current working directory.
 
@@ -348,7 +383,7 @@ async def download_from_cddis(
     SortedIonexPaths
         List of downloaded files and corresponding unique days
     """
-    unique_days = get_unique_days(times)
+    unique_days: Time = get_unique_days(times)
 
     coros = []
     for day in unique_days:
@@ -374,7 +409,7 @@ def download_ionex(
     times: Time,
     prefix: str = "cod",
     url_stem: str | None = None,
-    time_resolution: u.Quantity = 2 * u.hour,
+    time_resolution: u.Quantity | None = None,
     solution: SOLUTION = "final",
     output_directory: Path | None = None,
 ) -> SortedIonexPaths:
@@ -390,6 +425,10 @@ def download_ionex(
         Analysis centre prefix, by default "cod". Must be a supported analysis centre.
     url_stem : str | None, optional
         URL stem, by default None, will default to the server URL.
+    time_resolution : u.Quantity | None, optional
+        Time resolution, by default None, will default to the server time resolution.
+    solution : SOLUTION, optional
+        Solution type, by default "final", must be "final" or "rapid".
     output_directory : Path | None, optional
         Output directory path, by default None, will default to `ionex_files` in the current working directory.
 

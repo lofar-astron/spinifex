@@ -5,7 +5,7 @@ import astropy.units as u
 import numpy as np
 import pytest
 from astropy.time import Time
-from spinifex.exceptions import IonexError
+from spinifex.exceptions import IonexError, TimeResolutionError
 from spinifex.ionospheric import ionex_download
 
 
@@ -97,3 +97,15 @@ def test_new_cddis_format(times):
         url
         == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/032/COD0OPSRAP_20240320000_01D_02H_GIM.INX.gz"
     )
+
+    url = ionex_download.new_cddis_format(time, prefix="esa")
+    assert (
+        url
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/032/ESA0OPSFIN_20240320000_01D_02H_GIM.INX.gz"
+    )
+
+    with pytest.raises(IonexError):
+        url = ionex_download.new_cddis_format(time, prefix="bad")
+
+    with pytest.raises(TimeResolutionError):
+        url = ionex_download.new_cddis_format(time, time_resolution=1.5 * u.min)
