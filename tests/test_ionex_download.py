@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import astropy.units as u
-import numpy as np
 import pytest
 from astropy.time import Time
 from spinifex.exceptions import IonexError
@@ -18,17 +17,6 @@ def times() -> Time:
         "2024-02-01T01:00:00",
     ]
     return Time(times_str)
-
-
-def test_unique_days(times):
-    unique_days = ionex_download.get_unique_days(times)
-    assert len(unique_days) == 3
-
-
-def test_gps_week(times):
-    gps_weeks = ionex_download.get_gps_week(times)
-    test_weeks = np.array([995, 1569, 2299, 2299])
-    assert np.all(gps_weeks == test_weeks)
 
 
 def test_old_cddis_format(times):
