@@ -14,7 +14,7 @@ from astropy.coordinates import ITRS, AltAz
 from ppigrf import igrf
 
 from spinifex.geometry.get_ipp import IPP
-from spinifex.ionospheric.ionex_download import get_unique_days
+from spinifex.times import get_unique_days
 
 
 class MagneticFieldFunction(Protocol):

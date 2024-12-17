@@ -9,7 +9,7 @@ from PyIRI import coeff_dir
 from PyIRI.main_library import IRI_density_1day
 
 from spinifex.geometry.get_ipp import IPP
-from spinifex.ionospheric.ionex_download import get_unique_days
+from spinifex.times import get_unique_days
 
 
 def get_profile(ipp: IPP) -> ArrayLike:
