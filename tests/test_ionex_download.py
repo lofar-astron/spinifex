@@ -5,7 +5,7 @@ import astropy.units as u
 import numpy as np
 import pytest
 from astropy.time import Time
-from spinifex.exceptions import IonexError
+from spinifex.exceptions import IonexError, TimeResolutionError
 from spinifex.ionospheric import ionex_download
 
 
@@ -71,12 +71,12 @@ def test_new_cddis_format(times):
     url = ionex_download.new_cddis_format(time)
     assert (
         url
-        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/032/COD0OPSFIN_20240320000_01D_02H_GIM.INX.gz"
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/032/COD0OPSFIN_20240320000_01D_01H_GIM.INX.gz"
     )
 
     url_stem = "my_stem"
     url = ionex_download.new_cddis_format(time, url_stem=url_stem)
-    assert url == "my_stem/2024/032/COD0OPSFIN_20240320000_01D_02H_GIM.INX.gz"
+    assert url == "my_stem/2024/032/COD0OPSFIN_20240320000_01D_01H_GIM.INX.gz"
 
     time_resolution = 2 * u.hour
     url = ionex_download.new_cddis_format(time, time_resolution=time_resolution)
@@ -95,5 +95,17 @@ def test_new_cddis_format(times):
     url = ionex_download.new_cddis_format(time, solution="rapid")
     assert (
         url
-        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/032/COD0OPSRAP_20240320000_01D_02H_GIM.INX.gz"
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/032/COD0OPSRAP_20240320000_01D_01H_GIM.INX.gz"
     )
+
+    url = ionex_download.new_cddis_format(time, prefix="esa")
+    assert (
+        url
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/032/ESA0OPSFIN_20240320000_01D_02H_GIM.INX.gz"
+    )
+
+    with pytest.raises(IonexError):
+        url = ionex_download.new_cddis_format(time, prefix="bad")
+
+    with pytest.raises(TimeResolutionError):
+        url = ionex_download.new_cddis_format(time, time_resolution=1.5 * u.min)
