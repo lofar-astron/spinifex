@@ -284,6 +284,7 @@ def unique_days_from_ionex(ionex_files: list[Path]) -> Time:
     Time
         unique days
     """
+    # TODO: Maybe read files asynchronously if speed is an issue
     time_list: list[ArrayLike] = []
     for ionex_file in ionex_files:
         ionex_data = read_ionex(ionex_file)
