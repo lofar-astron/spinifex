@@ -18,6 +18,7 @@ from numpy.typing import ArrayLike
 from unlzw3 import unlzw
 
 from spinifex.exceptions import IonexError
+from spinifex.logger import logger
 from spinifex.times import get_unique_days
 
 
@@ -271,7 +272,37 @@ def _read_ionex_data(filep: TextIO) -> IonexData:
     )
 
 
-def unique_days_from_ionex(ionex_files: list[Path] | Path) -> Time:
+def unique_days_from_ionex(ionex_data: IonexData | list[IonexData]) -> Time:
+    """Get unique days from a ionex object or list of ionex objects.
+
+    Parameters
+    ----------
+    ionex_data : IonexData | list[IonexData]
+        ionex object or list of ionex objects
+
+    Returns
+    -------
+    Time
+        unique days
+    """
+    if isinstance(ionex_data, IonexData):
+        time_jd_array = ionex_data.times.sort().mjd[0]
+    else:
+        time_list: list[ArrayLike] = []
+        for ionex in ionex_data:
+            ionex_time = ionex.times.sort().mjd[0]
+            time_list.append(ionex_time)
+        time_jd_array = np.array(time_list)
+
+    logger.critical(time_jd_array)
+    times = Time(
+        time_jd_array,
+        format="mjd",
+    )
+    return get_unique_days(times)
+
+
+def unique_days_from_ionex_files(ionex_files: list[Path] | Path) -> Time:
     """Get unique days from a list of ionex files.
 
     Parameters
@@ -286,21 +317,8 @@ def unique_days_from_ionex(ionex_files: list[Path] | Path) -> Time:
     """
 
     if isinstance(ionex_files, Path):
-        # Get the first time to avoid midnights
-        time_jd_array = read_ionex(ionex_files).times.sort().jd[0]
+        ionex_data = read_ionex(ionex_files)
+        return unique_days_from_ionex(ionex_data)
 
-    else:
-        # TODO: Maybe read files asynchronously if speed is an issue
-        time_list: list[ArrayLike] = []
-        for ionex_file in ionex_files:
-            ionex_data = read_ionex(ionex_file)
-            # Get the first time to avoid midnights
-            ionex_time = ionex_data.times.sort()[0]
-            time_list.append(ionex_time.jd)
-        time_jd_array = np.array(time_list)
-
-    times = Time(
-        time_jd_array,
-        format="jd",
-    )
-    return get_unique_days(times)
+    ionex_data_list = [read_ionex(ionex_file) for ionex_file in ionex_files]
+    return unique_days_from_ionex(ionex_data_list)
