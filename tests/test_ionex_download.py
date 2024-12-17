@@ -12,8 +12,8 @@ from spinifex.ionospheric import ionex_download
 @pytest.fixture
 def times() -> Time:
     times_str = [
-        "1999-01-01T00:00:00.00",
-        "2010-01-01T00:00:00",
+        "1999-02-01T00:00:00.00",
+        "2010-02-01T00:00:00",
         "2024-02-01T00:00:00",
         "2024-02-01T01:00:00",
     ]
@@ -27,7 +27,7 @@ def test_unique_days(times):
 
 def test_gps_week(times):
     gps_weeks = ionex_download.get_gps_week(times)
-    test_weeks = np.array([990, 1564, 2299, 2299])
+    test_weeks = np.array([995, 1569, 2299, 2299])
     assert np.all(gps_weeks == test_weeks)
 
 
@@ -42,7 +42,7 @@ def test_old_cddis_format(times):
         )
         assert (
             url
-            == "https://cddis.nasa.gov/archive/gnss/products/ionex/1999/001/codg0010.99i.Z"
+            == "https://cddis.nasa.gov/archive/gnss/products/ionex/1999/032/codg0320.99i.Z"
         )
     prefix = "bad"
     with pytest.raises(IonexError):
@@ -52,17 +52,17 @@ def test_old_cddis_format(times):
     url = ionex_download.old_cddis_format(time, prefix=prefix)
     assert (
         url
-        == "https://cddis.nasa.gov/archive/gnss/products/ionex/1999/001/esag0010.99i.Z"
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/1999/032/esag0320.99i.Z"
     )
 
     url_stem = "my_stem"
     url = ionex_download.old_cddis_format(time, url_stem=url_stem)
-    assert url == "my_stem/1999/001/codg0010.99i.Z"
+    assert url == "my_stem/1999/032/codg0320.99i.Z"
 
     url = ionex_download.old_cddis_format(time, prefix="cod", solution="rapid")
     assert (
         url
-        == "https://cddis.nasa.gov/archive/gnss/products/ionex/1999/001/corg0010.99i.Z"
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/1999/032/corg0320.99i.Z"
     )
 
 
@@ -71,29 +71,29 @@ def test_new_cddis_format(times):
     url = ionex_download.new_cddis_format(time)
     assert (
         url
-        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/001/COD0OPSFIN_20240010000_01D_02H_GIM.INX.gz"
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/032/COD0OPSFIN_20240320000_01D_02H_GIM.INX.gz"
     )
 
     url_stem = "my_stem"
     url = ionex_download.new_cddis_format(time, url_stem=url_stem)
-    assert url == "my_stem/2024/001/COD0OPSFIN_20240010000_01D_02H_GIM.INX.gz"
+    assert url == "my_stem/2024/032/COD0OPSFIN_20240320000_01D_02H_GIM.INX.gz"
 
     time_resolution = 2 * u.hour
     url = ionex_download.new_cddis_format(time, time_resolution=time_resolution)
     assert (
         url
-        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/001/COD0OPSFIN_20240010000_01D_02H_GIM.INX.gz"
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/032/COD0OPSFIN_20240320000_01D_02H_GIM.INX.gz"
     )
 
     time_resolution = 30 * u.min
     url = ionex_download.new_cddis_format(time, time_resolution=time_resolution)
     assert (
         url
-        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/001/COD0OPSFIN_20240010000_01D_30M_GIM.INX.gz"
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/032/COD0OPSFIN_20240320000_01D_30M_GIM.INX.gz"
     )
 
     url = ionex_download.new_cddis_format(time, solution="rapid")
     assert (
         url
-        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/001/COD0OPSRAP_20240010000_01D_02H_GIM.INX.gz"
+        == "https://cddis.nasa.gov/archive/gnss/products/ionex/2024/032/COD0OPSRAP_20240320000_01D_02H_GIM.INX.gz"
     )

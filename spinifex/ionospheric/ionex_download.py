@@ -4,7 +4,7 @@ import asyncio
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
+from typing import Literal, NamedTuple
 from urllib.parse import urlparse
 
 import astropy.units as u
@@ -38,6 +38,13 @@ SERVERS = {
 NAME_SWITCH_WEEK = 2238  # GPS Week where the naming convention changed
 
 SOLUTION = Literal["final", "rapid"]
+
+
+class SortedIonexPaths(NamedTuple):
+    """lists of sorted ionex paths and days"""
+
+    unique_days: Time
+    ionex_list: list[Path]
 
 
 async def download_file(
@@ -177,7 +184,7 @@ def get_unique_days(times: Time) -> Time:
     Time
         Unique days
     """
-    return Time(np.unique(np.floor(times.mjd)), format="mjd")
+    return Time(np.sort(np.unique(np.floor(times.mjd))), format="mjd")
 
 
 def new_cddis_format(
@@ -217,6 +224,7 @@ def new_cddis_format(
     # .gz	gzip compressed file
     assert time.isscalar, "Only one time is supported"
     dtime: datetime = time.to_datetime()
+    doy = time.datetime.timetuple().tm_yday
     prefix = prefix.upper()
 
     # Parse time resolution
@@ -243,8 +251,8 @@ def new_cddis_format(
         raise IonexError(msg)
 
     # WWWW/IGS0OPSTYP_YYYYDDDHHMM_01D_SMP_CNT.INX.gz
-    file_name = f"{prefix}0OPS{solution_str}_{dtime.year:03d}{dtime.day:03d}0000_01D_{time_res_str}_GIM.INX.gz"
-    directory = f"{dtime.year:04d}/{dtime.day:03d}"
+    file_name = f"{prefix}0OPS{solution_str}_{dtime.year:03d}{doy:03d}0000_01D_{time_res_str}_GIM.INX.gz"
+    directory = f"{dtime.year:04d}/{doy:03d}"
 
     if url_stem is None:
         url_stem = SERVERS.get("cddis")
@@ -304,10 +312,11 @@ def old_cddis_format(
         raise IonexError(msg)
 
     dtime: datetime = time.to_datetime()
+    doy = time.datetime.timetuple().tm_yday
     # YYYY/DDD/AAAgDDD#.YYi.Z
     yy = f"{dtime.year:02d}"[-2:]
-    file_name = f"{prefix_str}g{dtime.day:03d}0.{yy}i.Z"
-    directory_name = f"{dtime.year:04d}/{dtime.day:03d}"
+    file_name = f"{prefix_str}g{doy:03d}0.{yy}i.Z"
+    directory_name = f"{dtime.year:04d}/{doy:03d}"
     if url_stem is None:
         url_stem = SERVERS.get("cddis")
     return f"{url_stem}/{directory_name}/{file_name}"
@@ -320,7 +329,7 @@ async def download_from_cddis(
     time_resolution: u.Quantity = 2 * u.hour,
     solution: SOLUTION = "final",
     output_directory: Path | None = None,
-) -> list[Path]:
+) -> SortedIonexPaths:
     """Download IONEX files from CDDIS.
 
     Parameters
@@ -336,8 +345,8 @@ async def download_from_cddis(
 
     Returns
     -------
-    list[Path]
-        List of downloaded files
+    SortedIonexPaths
+        List of downloaded files and corresponding unique days
     """
     unique_days = get_unique_days(times)
 
@@ -356,7 +365,8 @@ async def download_from_cddis(
         )
         coros.append(download_or_copy_url(url, output_directory=output_directory))
 
-    return await asyncio.gather(*coros)
+    file_list = await asyncio.gather(*coros)
+    return SortedIonexPaths(ionex_list=file_list, unique_days=unique_days)
 
 
 def download_ionex(
@@ -367,7 +377,7 @@ def download_ionex(
     time_resolution: u.Quantity = 2 * u.hour,
     solution: SOLUTION = "final",
     output_directory: Path | None = None,
-) -> list[Path]:
+) -> SortedIonexPaths:
     """Download IONEX files from a server.
 
     Parameters
@@ -385,8 +395,8 @@ def download_ionex(
 
     Returns
     -------
-    list[Path]
-        List of downloaded files
+    SortedIonexPaths
+        List of downloaded files and corresponding unique days
 
     Raises
     ------
