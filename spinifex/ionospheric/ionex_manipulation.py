@@ -132,7 +132,7 @@ def get_ionex_file(
     server: str | None = None,
     prefix: str = "cod",
     url_stem: str | None = None,
-    time_resolution: u.Quantity = 2 * u.hour,
+    time_resolution: u.Quantity | None = None,
     solution: SOLUTION = "final",
     output_directory: Path | None = None,
 ) -> Path | None:
