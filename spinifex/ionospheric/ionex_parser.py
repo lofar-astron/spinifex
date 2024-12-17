@@ -285,6 +285,8 @@ def unique_days_from_ionex(ionex_data: IonexData | list[IonexData]) -> Time:
     Time
         unique days
     """
+    # Get first MJD of each ionex object
+    # This avoids issues with midnight crossing
     if isinstance(ionex_data, IonexData):
         time_jd_array = ionex_data.times.sort().mjd[0]
     else:
