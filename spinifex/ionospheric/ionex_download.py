@@ -243,10 +243,6 @@ def new_cddis_format(
         msg = f"prefix {prefix} is not supported. Supported prefixes are {CENTER_NAMES}"
         raise IonexError(msg)
 
-    dtime: datetime = time.to_datetime()
-    doy = time.datetime.timetuple().tm_yday
-    prefix = prefix.upper()
-
     # Parse time resolution
     if time_resolution is None:
         time_resolution = DEFAULT_TIME_RESOLUTIONS.get(prefix, 2 * u.hour)
@@ -274,8 +270,12 @@ def new_cddis_format(
         msg = f"Solution {solution} is not supported. Supported solutions are ['final', 'rapid']"  # type: ignore[unreachable]
         raise IonexError(msg)
 
+    dtime: datetime = time.to_datetime()
+    doy = time.datetime.timetuple().tm_yday
+    prefix_formatted = prefix.upper()
+
     # WWWW/IGS0OPSTYP_YYYYDDDHHMM_01D_SMP_CNT.INX.gz
-    file_name = f"{prefix}0OPS{solution_str}_{dtime.year:03d}{doy:03d}0000_01D_{time_res_str}_GIM.INX.gz"
+    file_name = f"{prefix_formatted}0OPS{solution_str}_{dtime.year:03d}{doy:03d}0000_01D_{time_res_str}_GIM.INX.gz"
     directory = f"{dtime.year:04d}/{doy:03d}"
 
     if url_stem is None:
