@@ -271,7 +271,7 @@ def _read_ionex_data(filep: TextIO) -> IonexData:
     )
 
 
-def unique_days_from_ionex(ionex_files: list[Path]) -> Time:
+def unique_days_from_ionex(ionex_files: list[Path] | Path) -> Time:
     """Get unique days from a list of ionex files.
 
     Parameters
@@ -284,14 +284,23 @@ def unique_days_from_ionex(ionex_files: list[Path]) -> Time:
     Time
         unique days
     """
-    # TODO: Maybe read files asynchronously if speed is an issue
-    time_list: list[ArrayLike] = []
-    for ionex_file in ionex_files:
-        ionex_data = read_ionex(ionex_file)
-        time_list.append(ionex_data.times.jd)
+
+    if isinstance(ionex_files, Path):
+        # Get the first time to avoid midnights
+        time_jd_array = read_ionex(ionex_files).times.sort().jd[0]
+
+    else:
+        # TODO: Maybe read files asynchronously if speed is an issue
+        time_list: list[ArrayLike] = []
+        for ionex_file in ionex_files:
+            ionex_data = read_ionex(ionex_file)
+            # Get the first time to avoid midnights
+            ionex_time = ionex_data.times.sort()[0]
+            time_list.append(ionex_time.jd)
+        time_jd_array = np.array(time_list)
 
     times = Time(
-        np.concatenate(time_list),
+        time_jd_array,
         format="jd",
     )
     return get_unique_days(times)
