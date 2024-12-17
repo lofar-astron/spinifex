@@ -245,7 +245,10 @@ def new_cddis_format(
 
     # Parse time resolution
     if time_resolution is None:
-        time_resolution = DEFAULT_TIME_RESOLUTIONS.get(prefix, 2 * u.hour)
+        time_resolution = DEFAULT_TIME_RESOLUTIONS.get(prefix)
+        if time_resolution is None:
+            msg = f"Time resolution not defined for {prefix}"
+            raise TimeResolutionError(msg)
         msg = f"Using default time resolution {time_resolution} for {prefix}"
         logger.info(msg)
     if not time_resolution.value.is_integer():
