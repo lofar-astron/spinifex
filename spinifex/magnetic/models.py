@@ -32,7 +32,7 @@ class MagneticModels:
 def get_ppigrf_magnetic_field(ipp: IPP) -> u.Quantity:
     """Get the magnetic field at a given EarthLocation"""
     loc = ipp.loc
-    date = ipp.times[0]
+    date = ipp.times[0]  # change to getunique days
     b_e, b_n, b_u = igrf(
         lon=loc.lon.deg,
         lat=loc.lat.deg,
@@ -47,7 +47,7 @@ def get_ppigrf_magnetic_field(ipp: IPP) -> u.Quantity:
     b_itrs = b_altaz.transform_to(ITRS())
 
     # project to LOS
-    los = ipp.los
+    los = ipp.los[:, np.newaxis]
     b_par = los.x * b_itrs.x + los.y * b_itrs.y + los.z * b_itrs.z
     b_par = b_par * b_magn
     # magnitude along LOS,

@@ -32,6 +32,19 @@ def ipp() -> IPP:
     )
 
 
+@pytest.fixture
+def ipp2() -> IPP:
+    source = SkyCoord.from_name("Cas A")
+    lon = 6.367 * u.deg
+    lat = 52.833 * u.deg
+    heights = np.arange(100, 2000, 100) * u.km
+    dwingeloo = EarthLocation(lon=lon, lat=lat, height=0 * u.km)
+    times = Time("2020-01-08T01:00:00") + np.arange(0, 10) * 3.5 * u.hr
+    return get_ipp_from_skycoord(
+        loc=dwingeloo, times=times, source=source, height_array=heights
+    )
+
+
 def test_get_ionosphere(ipp):
     """Test that get_ionosphere does not crash"""
     with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
@@ -60,4 +73,14 @@ def test_ionosphere_ionex(ipp):
         iono_kwargs["prefix"] = "esa"
         iono_kwargs["server"] = "cddis"
         tec = ionospheric_models.ionex(ipp, iono_kwargs=iono_kwargs)
-    assert tec.shape == ipp.loc.shape
+        assert tec.shape == ipp.loc.shape
+
+
+def test_ionosphere_ionex_multiple_days(ipp2):
+    iono_kwargs: dict[str, Any] = {}
+    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
+        iono_kwargs["output_directory"] = datapath
+        iono_kwargs["prefix"] = "esa"
+        iono_kwargs["server"] = "cddis"
+        tec = ionospheric_models.ionex(ipp2, iono_kwargs=iono_kwargs)
+        assert tec.shape == ipp2.loc.shape

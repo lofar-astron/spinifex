@@ -62,12 +62,12 @@ def _get_rm(
     # TO DO: the order of axes in the profile outputs is reversed with respect to ipp.loc,
     # make it times x altitudes everywhere
     iono_kwargs = iono_kwargs or {}
-    density_profile = iono_model(ipp=ipp, **iono_kwargs)
+    density_profile = iono_model(ipp=ipp, iono_kwargs=iono_kwargs)
     magnetic_profile = magnetic_model(ipp=ipp)
     b_field_to_rm = -2.62e-6  # TODO: What are the units of this constant?
     rm = np.sum(
         b_field_to_rm * density_profile * magnetic_profile.to(u.nT).value * ipp.airmass,
-        axis=0,
+        axis=1,
     )
     return RM(
         rm=rm,

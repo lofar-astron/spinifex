@@ -182,13 +182,12 @@ def _group_by_day(ipp: IPP, unique_days: Time) -> list[IPP]:
 
     for day in unique_days.mjd:
         indices.append(np.floor(ipp.times.mjd) == day)
-
         ipps.append(
             IPP(
                 times=ipp.times[indices[-1]],
                 loc=ipp.loc[indices[-1]],
                 los=ipp.los[indices[-1]],
-                airmass=ipp.airmass[:, indices[-1]],
+                airmass=ipp.airmass[indices[-1]],
                 altaz=ipp.altaz[indices[-1]],
             )
         )
@@ -196,7 +195,7 @@ def _group_by_day(ipp: IPP, unique_days: Time) -> list[IPP]:
 
 
 def _read_ionex_stuff(ipp: IPP, iono_kwargs: dict | None = None) -> ArrayLike:
-    # TODO: apply_earth_rotation
+    # TODO: apply_earth_rotation as option
     iono_kwargs = iono_kwargs or {}
     sorted_ionex_paths = get_ionex_file(ipp.times, **iono_kwargs)
     if not sorted_ionex_paths.unique_days.shape:

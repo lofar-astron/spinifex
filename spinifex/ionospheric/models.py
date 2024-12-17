@@ -57,20 +57,22 @@ def get_density_ionex_single_layer(
         closest to the specified height
     """
     iono_kwargs = iono_kwargs or {}
-    n_times = ipp.loc.shape[1]  # we assume time is second axis
+    n_times = ipp.times.shape[0]  # we assume time is first axis
     index = np.argmin(
-        np.abs(ipp.loc.height.to(u.km).value - height.to(u.km).value), axis=0
+        np.abs(ipp.loc.height.to(u.km).value - height.to(u.km).value), axis=1
     )
-    single_layer_loc = ipp.loc[index, np.arange(n_times)]
+    single_layer_loc = ipp.loc[np.arange(n_times), index]
     ipp_single_layer = IPP(
         loc=single_layer_loc,
         times=ipp.times,
         los=ipp.los,
-        airmass=ipp.airmass,
+        airmass=ipp.airmass[:, index],
         altaz=ipp.altaz,
     )
     result = np.zeros(ipp.loc.shape, dtype=float)
-    result[index] = _read_ionex_stuff(ipp_single_layer, iono_kwargs=iono_kwargs)[0]
+    result[np.arange(n_times), index] = _read_ionex_stuff(
+        ipp_single_layer, iono_kwargs=iono_kwargs
+    )
     return result
 
 
@@ -81,7 +83,7 @@ def get_density_ionex_iri(ipp: IPP, iono_kwargs: dict | None = None) -> ArrayLik
         ipp, height=350 * u.km, iono_kwargs=iono_kwargs
     )
     # get tec at single altitude
-    return np.sum(tec, keepdims=True, axis=0) * profile
+    return np.sum(tec, keepdims=True, axis=1) * profile
 
 
 # def get_density_tomion(ipp: IPP) -> ArrayLike:

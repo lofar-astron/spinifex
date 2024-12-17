@@ -34,6 +34,6 @@ def test_get_magnetic_field():
         loc=dwingeloo, times=times, source=source, height_array=heights
     )
     field = magnetic_models.ppigrf(ipp)
-    assert field.shape == heights.shape + times.shape
+    assert field.shape == times.shape + heights.shape
     assert is_convertible_to_unit(field, u.tesla)
     assert np.isclose(field[0, 0].value, -5335, 0.5)
