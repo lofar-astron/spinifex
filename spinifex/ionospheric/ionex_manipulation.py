@@ -135,7 +135,7 @@ def get_ionex_file(
     time_resolution: u.Quantity | None = None,
     solution: SOLUTION = "final",
     output_directory: Path | None = None,
-) -> Path | None:
+) -> SortedIonexPaths:
     """Find ionex file locally or online.
 
     Parameters
@@ -149,10 +149,11 @@ def get_ionex_file(
 
     Returns
     -------
-    str
-        _description_
-    """
+    SortedIonexPaths :
+        ionex files and unique days
 
+    """
+    # TODO: convert to the new tool in ionex_parser to get the unique days of ionex data
     if server is None:
         doy = times[0].datetime.timetuple().tm_yday
         yy = times[0].ymdhms[0]
@@ -195,6 +196,25 @@ def _group_by_day(ipp: IPP, unique_days: Time) -> list[IPP]:
 
 
 def _read_ionex_stuff(ipp: IPP, iono_kwargs: dict | None = None) -> ArrayLike:
+    """read ionex files and interpolate values to ipp locations/times
+
+    Parameters
+    ----------
+    ipp : IPP
+        ionospheric piercepoints
+    iono_kwargs : dict | None, optional
+        optional arguments for the ionospheric model, by default None
+
+    Returns
+    -------
+    ArrayLike
+        array with tec values for every entry in ipp
+
+    Raises
+    ------
+    FileNotFoundError
+        if ionex file cannot be downloaded
+    """
     # TODO: apply_earth_rotation as option
     iono_kwargs = iono_kwargs or {}
     sorted_ionex_paths = get_ionex_file(ipp.times, **iono_kwargs)

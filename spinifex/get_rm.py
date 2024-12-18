@@ -59,8 +59,6 @@ def _get_rm(
         rotation measures object
     """
 
-    # TO DO: the order of axes in the profile outputs is reversed with respect to ipp.loc,
-    # make it times x altitudes everywhere
     iono_kwargs = iono_kwargs or {}
     density_profile = iono_model(ipp=ipp, iono_kwargs=iono_kwargs)
     magnetic_profile = magnetic_model(ipp=ipp)
@@ -74,7 +72,7 @@ def _get_rm(
         times=ipp.times,
         b_parallel=magnetic_profile,
         electron_density=density_profile,
-        height=ipp.loc[:, 0].height.to(u.km).value,
+        height=ipp.loc.height.to(u.km).value,
         azimuth=ipp.altaz.az.deg,
         elevation=ipp.altaz.alt.deg,
     )
