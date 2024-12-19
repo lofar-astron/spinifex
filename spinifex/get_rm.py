@@ -122,7 +122,7 @@ def get_rm_from_skycoord(
     source: SkyCoord,
     height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
     iono_model: ModelDensityFunction = ionospheric_models.ionex,
-    magnetic_model: ModelDensityFunction = magnetic_models.ppigrf,
+    magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
     iono_kwargs: dict[str, Any] | None = None,
 ) -> RM:
     """get rotation measures for user defined times and source coordinate
