@@ -4,7 +4,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 from astropy.time import Time
-from spinifex.times import get_gps_week, get_unique_days, get_unique_days_index
+from spinifex.times import (
+    get_consecutive_days,
+    get_gps_week,
+    get_indexlist_unique_days,
+    get_unique_days,
+    get_unique_days_index,
+)
 
 
 @pytest.fixture
@@ -34,3 +40,20 @@ def test_unique_days_index(times):
     unique_days_index = get_unique_days_index(times)
     test_index = np.array([0, 1, 1, 2, 2])
     assert np.all(unique_days_index == test_index)
+
+
+def test_get_indexlist_unique_days(times):
+    unique_days = get_unique_days(times)
+    test_index = np.zeros((3, 5), dtype=bool)
+    test_index[0, 0] = True
+    test_index[1, (1, 2)] = True
+    test_index[2, 3:] = True
+    indexlist_unique_days = get_indexlist_unique_days(unique_days, times)
+    assert np.all(indexlist_unique_days == test_index)
+
+
+def test_consecutive_days(times):
+    unique_days = get_unique_days(times)
+    consecutive_days_index = get_consecutive_days(unique_days)
+    test_index = np.array([0, 1, 2])
+    assert np.all(consecutive_days_index == test_index)
