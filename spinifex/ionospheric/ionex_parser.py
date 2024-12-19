@@ -226,7 +226,11 @@ def _fill_data_record(
             lonidx = int(np.argmin(np.abs(ionex_header.lons - lon1)))
         else:
             record = line[:-1]
-            tec += [float(record[i : i + 5]) for i in range(0, len(record), 5)]
+            tec += [
+                float(record[i : i + 5])
+                for i in range(0, len(record), 5)
+                if record[i : i + 5].strip()
+            ]
 
 
 def _read_ionex_data(filep: TextIO) -> IonexData:

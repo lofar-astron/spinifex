@@ -58,20 +58,21 @@ def _get_rm(
     RM
         rotation measures object
     """
+
     iono_kwargs = iono_kwargs or {}
-    density_profile = iono_model(ipp=ipp, **iono_kwargs)
+    density_profile = iono_model(ipp=ipp, iono_kwargs=iono_kwargs)
     magnetic_profile = magnetic_model(ipp=ipp)
     b_field_to_rm = -2.62e-6  # TODO: What are the units of this constant?
     rm = np.sum(
         b_field_to_rm * density_profile * magnetic_profile.to(u.nT).value * ipp.airmass,
-        axis=0,
+        axis=1,
     )
     return RM(
         rm=rm,
         times=ipp.times,
         b_parallel=magnetic_profile,
         electron_density=density_profile,
-        height=ipp.loc[:, 0].height.to(u.km).value,
+        height=ipp.loc.height.to(u.km).value,
         azimuth=ipp.altaz.az.deg,
         elevation=ipp.altaz.alt.deg,
     )
@@ -121,7 +122,7 @@ def get_rm_from_skycoord(
     source: SkyCoord,
     height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
     iono_model: ModelDensityFunction = ionospheric_models.ionex,
-    magnetic_model: ModelDensityFunction = magnetic_models.ppigrf,
+    magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
     iono_kwargs: dict[str, Any] | None = None,
 ) -> RM:
     """get rotation measures for user defined times and source coordinate

@@ -14,6 +14,7 @@ from astropy.coordinates import ITRS, AltAz
 from ppigrf import igrf
 
 from spinifex.geometry.get_ipp import IPP
+from spinifex.times import get_unique_days
 
 
 class MagneticFieldFunction(Protocol):
@@ -31,26 +32,29 @@ class MagneticModels:
 
 def get_ppigrf_magnetic_field(ipp: IPP) -> u.Quantity:
     """Get the magnetic field at a given EarthLocation"""
-    loc = ipp.loc
-    date = ipp.times[0]
-    b_e, b_n, b_u = igrf(
-        lon=loc.lon.deg,
-        lat=loc.lat.deg,
-        h=loc.height.to(u.km).value,
-        date=date.to_datetime(),
-    )
-    # ppigrf adds an extra axis for time, we remove it by taking the first element
-    b_magn = np.sqrt(b_e**2 + b_n**2 + b_u**2)[0]
-    b_az = np.arctan2(b_e, b_n)
-    b_el = np.arctan2(b_u, np.sqrt(b_n**2 + b_e**2))
-    b_altaz = AltAz(az=b_az[0] * u.rad, alt=b_el[0] * u.rad, location=loc)
-    b_itrs = b_altaz.transform_to(ITRS())
+    unique_days = get_unique_days(ipp.times)
+    b_par = np.zeros(ipp.loc.shape, dtype=float)
+    for u_day in unique_days:
+        indices = np.floor(ipp.times.mjd) == np.floor(u_day.mjd)
+        loc = ipp.loc[indices]
+        b_e, b_n, b_u = igrf(
+            lon=loc.lon.deg,
+            lat=loc.lat.deg,
+            h=loc.height.to(u.km).value,
+            date=u_day.to_datetime(),
+        )
+        # ppigrf adds an extra axis for time, we remove it by taking the first element
+        b_magn = np.sqrt(b_e**2 + b_n**2 + b_u**2)[0]
+        b_az = np.arctan2(b_e, b_n)
+        b_el = np.arctan2(b_u, np.sqrt(b_n**2 + b_e**2))
+        b_altaz = AltAz(az=b_az[0] * u.rad, alt=b_el[0] * u.rad, location=loc)
+        b_itrs = b_altaz.transform_to(ITRS())
 
-    # project to LOS
-    los = ipp.los
-    b_par = los.x * b_itrs.x + los.y * b_itrs.y + los.z * b_itrs.z
-    b_par = b_par * b_magn
-    # magnitude along LOS,
+        # project to LOS
+        los = ipp.los[indices][:, np.newaxis]
+        b_par[indices] = los.x * b_itrs.x + los.y * b_itrs.y + los.z * b_itrs.z
+        b_par[indices] *= b_magn
+        # magnitude along LOS,
     return u.Quantity(b_par * u.nanotesla)
 
 

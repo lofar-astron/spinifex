@@ -5,11 +5,15 @@
 
 from __future__ import annotations
 
+from importlib import resources
+from typing import Any
+
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.time import Time
 from spinifex import get_rm
+from spinifex.ionospheric import ionospheric_models
 
 
 def test_get_rm():
@@ -23,3 +27,16 @@ def test_get_rm():
     assert isinstance(rm.rm, np.ndarray)
     assert rm.rm.shape == times.shape
     assert np.isclose(rm.rm[0], 68.7, 0.1)
+    iono_kwargs: dict[str, Any] = {}
+    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
+        iono_kwargs["output_directory"] = datapath
+        iono_kwargs["prefix"] = "esa"
+        iono_kwargs["server"] = "cddis"
+        rm = get_rm.get_rm_from_skycoord(
+            loc=dwingeloo,
+            times=times,
+            source=source,
+            iono_model=ionospheric_models.ionex,
+            iono_kwargs=iono_kwargs,
+        )
+        assert isinstance(rm.rm, np.ndarray)

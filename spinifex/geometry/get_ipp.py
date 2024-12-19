@@ -109,12 +109,13 @@ def _get_ipp_simple(
     """
     c_value = R_earth**2 - (R_earth + height_array) ** 2
     b_value = u.Quantity(loc.geocentric) @ los_dir.cartesian.xyz
-    alphas = -b_value + np.sqrt(b_value**2 - c_value[:, np.newaxis])
+    b_value = b_value[:, np.newaxis]
+    alphas = -b_value + np.sqrt(b_value**2 - c_value)
     ipp = (
         u.Quantity(loc.geocentric)[:, np.newaxis, np.newaxis]
-        + alphas[np.newaxis] * los_dir.cartesian.xyz[:, np.newaxis]
+        + alphas * los_dir.cartesian.xyz[:, :, np.newaxis]
     )
-    inv_airmass = np.einsum("ijk,ik->jk", ipp, los_dir.cartesian.xyz)
-    inv_airmass /= R_earth + height_array[:, np.newaxis]  # normalized
+    inv_airmass = np.einsum("ijk,ij->jk", ipp, los_dir.cartesian.xyz)
+    inv_airmass /= R_earth + height_array  # normalized
     airmass = 1.0 / inv_airmass.value
     return ipp, airmass
