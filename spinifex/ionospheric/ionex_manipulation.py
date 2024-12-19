@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from importlib import resources
 from pathlib import Path
+from typing import Any, NamedTuple
 
 import astropy.units as u
 import numpy as np
@@ -22,6 +23,13 @@ from spinifex.ionospheric.ionex_download import (
     download_ionex,
 )
 from spinifex.ionospheric.ionex_parser import IonexData, read_ionex
+
+
+class GroupedIPPs(NamedTuple):
+    """Grouped IPPs"""
+
+    ipps: list[IPP]
+    indices: list[ArrayLike]
 
 
 def interpolate_ionex(
@@ -175,11 +183,24 @@ def get_ionex_file(
         )
 
 
-def _group_by_day(ipp: IPP, unique_days: Time) -> list[IPP]:
-    if not unique_days.shape:
-        return ipp
-    ipps = []
-    indices = []
+def group_by_day(ipp: IPP, unique_days: Time) -> GroupedIPPs:
+    """Group IPPs by day
+
+    Parameters
+    ----------
+    ipp : IPP
+        ionospheric piercepoints
+    unique_days : Time
+        Unique days
+
+    Returns
+    -------
+    GroupedIPPs
+        Grouped IPPs: ipps, indices
+    """
+    assert not np.isscalar(unique_days.value), "unique_days should be an array"
+    ipps: list[IPP] = []
+    indices: list[ArrayLike] = []
 
     for day in unique_days.mjd:
         indices.append(np.floor(ipp.times.mjd) == day)
@@ -192,10 +213,10 @@ def _group_by_day(ipp: IPP, unique_days: Time) -> list[IPP]:
                 altaz=ipp.altaz[indices[-1]],
             )
         )
-    return ipps, indices
+    return GroupedIPPs(ipps=ipps, indices=indices)
 
 
-def _read_ionex_stuff(ipp: IPP, iono_kwargs: dict | None = None) -> ArrayLike:
+def get_density_ionex(ipp: IPP, iono_kwargs: dict[str, Any] | None = None) -> ArrayLike:
     """read ionex files and interpolate values to ipp locations/times
 
     Parameters
@@ -221,13 +242,13 @@ def _read_ionex_stuff(ipp: IPP, iono_kwargs: dict | None = None) -> ArrayLike:
     if not sorted_ionex_paths.unique_days.shape:
         ionex = read_ionex(sorted_ionex_paths.ionex_list[0])
         return interpolate_ionex(ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times)
-    day_groups, group_indices = _group_by_day(ipp, sorted_ionex_paths.unique_days)
+    day_groups, group_indices = group_by_day(ipp, sorted_ionex_paths.unique_days)
     tec = np.zeros(ipp.loc.shape, dtype=float)
     for u_ipp, indices, ionex_file in zip(
         day_groups, group_indices, sorted_ionex_paths.ionex_list
     ):
-        if ionex_file is None:
-            msg = "No ionex file found!"
+        if not ionex_file.exists():
+            msg = f"Ionex file {ionex_file} not found!"
             raise FileNotFoundError(msg)
         ionex = read_ionex(ionex_file)
         tec[indices] = interpolate_ionex(
