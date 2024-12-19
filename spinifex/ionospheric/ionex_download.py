@@ -4,7 +4,7 @@ import asyncio
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Literal, NamedTuple
+from typing import Literal
 from urllib.parse import urlparse
 
 import astropy.units as u
@@ -47,13 +47,6 @@ assert (
 NAME_SWITCH_WEEK = 2238  # GPS Week where the naming convention changed
 
 SOLUTION = Literal["final", "rapid"]
-
-
-class SortedIonexPaths(NamedTuple):
-    """lists of sorted ionex paths and days"""
-
-    unique_days: Time
-    ionex_list: list[Path]
 
 
 async def download_file(
@@ -330,7 +323,7 @@ async def download_from_cddis(
     url_stem: str | None = None,
     solution: SOLUTION = "final",
     output_directory: Path | None = None,
-) -> SortedIonexPaths:
+) -> list[Path]:
     """Download IONEX files from CDDIS.
 
     Parameters
@@ -350,8 +343,8 @@ async def download_from_cddis(
 
     Returns
     -------
-    SortedIonexPaths
-        List of downloaded files and corresponding unique days
+    list[Path]
+        List of downloaded files
     """
     unique_days: Time = get_unique_days(times)
 
@@ -370,8 +363,7 @@ async def download_from_cddis(
         )
         coros.append(download_or_copy_url(url, output_directory=output_directory))
 
-    file_list = await asyncio.gather(*coros)
-    return SortedIonexPaths(ionex_list=file_list, unique_days=unique_days)
+    return await asyncio.gather(*coros)
 
 
 def download_ionex(
@@ -382,7 +374,7 @@ def download_ionex(
     time_resolution: u.Quantity | None = None,
     solution: SOLUTION = "final",
     output_directory: Path | None = None,
-) -> SortedIonexPaths:
+) -> list[Path]:
     """Download IONEX files from a server.
 
     Parameters
@@ -404,8 +396,8 @@ def download_ionex(
 
     Returns
     -------
-    SortedIonexPaths
-        List of downloaded files and corresponding unique days
+    list[Path]
+        List of downloaded files
 
     Raises
     ------

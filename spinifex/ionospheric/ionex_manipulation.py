@@ -19,10 +19,14 @@ from spinifex.ionospheric.index_tools import (
 )
 from spinifex.ionospheric.ionex_download import (
     SOLUTION,
-    SortedIonexPaths,
     download_ionex,
 )
-from spinifex.ionospheric.ionex_parser import IonexData, read_ionex
+from spinifex.ionospheric.ionex_parser import (
+    IonexData,
+    read_ionex,
+    unique_days_from_ionex_files,
+)
+from spinifex.times import get_indexlist_unique_days
 
 
 class GroupedIPPs(NamedTuple):
@@ -135,7 +139,7 @@ def interpolate_ionex(
     return tecdata
 
 
-def get_ionex_file(
+def get_ionex_files(
     times: Time,
     server: str | None = None,
     prefix: str = "cod",
@@ -143,7 +147,7 @@ def get_ionex_file(
     time_resolution: u.Quantity | None = None,
     solution: SOLUTION = "final",
     output_directory: Path | None = None,
-) -> SortedIonexPaths:
+) -> list[Path]:
     """Find ionex file locally or online.
 
     Parameters
@@ -157,8 +161,8 @@ def get_ionex_file(
 
     Returns
     -------
-    SortedIonexPaths :
-        ionex files and unique days
+    list[Path] :
+        ionex files
 
     """
     # TODO: convert to the new tool in ionex_parser to get the unique days of ionex data
@@ -167,10 +171,7 @@ def get_ionex_file(
         yy = times[0].ymdhms[0]
         yy = yy - 2000 if yy > 2000 else yy - 1990
         with resources.as_file(resources.files("spinifex.data.tests")) as test_data:
-            return SortedIonexPaths(
-                ionex_list=[test_data / f"{prefix.upper()}G{doy:03d}0.{yy:02d}I.gz"],
-                unique_days=times[0],
-            )
+            return [test_data / f"{prefix.upper()}G{doy:03d}0.{yy:02d}I.gz"]
     else:
         return download_ionex(
             times=times,
@@ -181,39 +182,6 @@ def get_ionex_file(
             solution=solution,
             output_directory=output_directory,
         )
-
-
-def group_by_day(ipp: IPP, unique_days: Time) -> GroupedIPPs:
-    """Group IPPs by day
-
-    Parameters
-    ----------
-    ipp : IPP
-        ionospheric piercepoints
-    unique_days : Time
-        Unique days
-
-    Returns
-    -------
-    GroupedIPPs
-        Grouped IPPs: ipps, indices
-    """
-    assert not np.isscalar(unique_days.value), "unique_days should be an array"
-    ipps: list[IPP] = []
-    indices: list[ArrayLike] = []
-
-    for day in unique_days.mjd:
-        indices.append(np.floor(ipp.times.mjd) == day)
-        ipps.append(
-            IPP(
-                times=ipp.times[indices[-1]],
-                loc=ipp.loc[indices[-1]],
-                los=ipp.los[indices[-1]],
-                airmass=ipp.airmass[indices[-1]],
-                altaz=ipp.altaz[indices[-1]],
-            )
-        )
-    return GroupedIPPs(ipps=ipps, indices=indices)
 
 
 def get_density_ionex(ipp: IPP, iono_kwargs: dict[str, Any] | None = None) -> ArrayLike:
@@ -238,21 +206,20 @@ def get_density_ionex(ipp: IPP, iono_kwargs: dict[str, Any] | None = None) -> Ar
     """
     # TODO: apply_earth_rotation as option
     iono_kwargs = iono_kwargs or {}
-    sorted_ionex_paths = get_ionex_file(ipp.times, **iono_kwargs)
-    if not sorted_ionex_paths.unique_days.shape:
-        ionex = read_ionex(sorted_ionex_paths.ionex_list[0])
+    sorted_ionex_paths = get_ionex_files(ipp.times, **iono_kwargs)
+    unique_days = unique_days_from_ionex_files(sorted_ionex_paths)
+    if not unique_days.shape:
+        ionex = read_ionex(sorted_ionex_paths[0])
         return interpolate_ionex(ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times)
-    day_groups, group_indices = group_by_day(ipp, sorted_ionex_paths.unique_days)
+    group_indices = get_indexlist_unique_days(unique_days, ipp.times)
     tec = np.zeros(ipp.loc.shape, dtype=float)
-    for u_ipp, indices, ionex_file in zip(
-        day_groups, group_indices, sorted_ionex_paths.ionex_list
-    ):
+    for indices, ionex_file in zip(group_indices, sorted_ionex_paths):
         if not ionex_file.exists():
             msg = f"Ionex file {ionex_file} not found!"
             raise FileNotFoundError(msg)
+        u_loc = ipp.loc[indices]
+        u_times = ipp.times[indices]
         ionex = read_ionex(ionex_file)
-        tec[indices] = interpolate_ionex(
-            ionex, u_ipp.loc.lon.deg, u_ipp.loc.lat.deg, u_ipp.times
-        )
+        tec[indices] = interpolate_ionex(ionex, u_loc.lon.deg, u_loc.lat.deg, u_times)
 
     return tec

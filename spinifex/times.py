@@ -54,3 +54,11 @@ def get_unique_days_index(times: Time) -> ArrayLike:
         Unique days index
     """
     return np.searchsorted(get_unique_days(times).mjd, np.floor(times.mjd))
+
+
+def get_indexlist_unique_days(unique_days: Time, times: Time) -> ArrayLike:
+    return np.floor(times.mjd)[np.newaxis] == unique_days.mjd[:, np.newaxis]
+
+
+def get_consecutive_days(unique_days: Time) -> ArrayLike:
+    return np.cumsum(np.diff(unique_days.mjd, prepend=unique_days.mjd[0]) > 1)
