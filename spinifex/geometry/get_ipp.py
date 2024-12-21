@@ -12,7 +12,7 @@ import numpy as np
 from astropy.constants import R_earth
 from astropy.coordinates import ITRS, AltAz, EarthLocation, SkyCoord
 from astropy.time import Time
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 
 
 class IPP(NamedTuple):
@@ -24,7 +24,7 @@ class IPP(NamedTuple):
     """array of times"""
     los: SkyCoord
     """Line of sight direction in ITRS coordinates"""
-    airmass: ArrayLike
+    airmass: NDArray[np.float64]
     """airmass factor to convert to slant values"""
     altaz: AltAz
     """azimuth elevation"""
@@ -88,9 +88,10 @@ def get_ipp_from_altaz(
     )
 
 
+# TODO: Create return type for this function
 def _get_ipp_simple(
     height_array: u.Quantity, loc: EarthLocation, los_dir: SkyCoord
-) -> tuple[list[u.Quantity], ArrayLike]:
+) -> tuple[list[u.Quantity], NDArray[np.float64]]:
     """helper function to calculate ionospheric piercepoints using a simple spherical earth model
     |loc + alphas * los_dir| = R_earth + height_array, solve for alphas using abc formula
     Parameters
@@ -104,7 +105,7 @@ def _get_ipp_simple(
 
     Returns
     -------
-    tuple(list[u.Quantity], ArrayLike)
+    tuple(list[u.Quantity], NDArray)
         ipp.x, ipp.y, ipp.z positions, airmass
     """
     c_value = R_earth**2 - (R_earth + height_array) ** 2

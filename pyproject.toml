@@ -104,16 +104,9 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
 [[tool.mypy.overrides]]
-module = "astropy.*"
+module = ["astropy.*", "requests", "casacore.*", "unlzw3.*", "ppigrf.*", "PyIRI.*"]
 ignore_missing_imports = true
 
-[[tool.mypy.overrides]]
-module = "requests"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "casacore.*"
-ignore_missing_imports = true
 
 
 [tool.ruff]

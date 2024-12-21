@@ -7,7 +7,8 @@ from typing import Any, Protocol
 
 import astropy.units as u
 import numpy as np
-from numpy.typing import ArrayLike
+from astropy.coordinates import EarthLocation
+from numpy.typing import NDArray
 
 import spinifex.ionospheric.iri_density as iri
 from spinifex.geometry.get_ipp import IPP
@@ -22,7 +23,7 @@ class ModelDensityFunction(Protocol):
         ipp: IPP,
         height: u.Quantity = 350 * u.km,
         iono_kwargs: dict[str, Any] | None = None,
-    ) -> ArrayLike: ...
+    ) -> NDArray[np.float64]: ...
 
 
 @dataclass
@@ -34,13 +35,9 @@ class IonosphericModels:
     ionex_iri: ModelDensityFunction
 
 
-def _read_tomion_stuff() -> ArrayLike:
-    raise NotImplementedError
-
-
 def get_density_ionex_single_layer(
     ipp: IPP, height: u.Quantity = 350 * u.km, iono_kwargs: dict[str, Any] | None = None
-) -> ArrayLike:
+) -> NDArray[np.float64]:
     """gets the ionex files and interpolate values for a single altitude, thin screen assumption
 
     Parameters
@@ -53,7 +50,7 @@ def get_density_ionex_single_layer(
 
     Returns
     -------
-    ArrayLike
+    NDArray
         interpolated vTEC values at ipp, zeros everywhere apart from the altitude
         closest to the specified height
     """
@@ -62,7 +59,7 @@ def get_density_ionex_single_layer(
     index = np.argmin(
         np.abs(ipp.loc.height.to(u.km).value - height.to(u.km).value), axis=1
     )
-    single_layer_loc = ipp.loc[np.arange(n_times), index]
+    single_layer_loc = EarthLocation(ipp.loc[np.arange(n_times), index])
     ipp_single_layer = IPP(
         loc=single_layer_loc,
         times=ipp.times,
@@ -79,27 +76,15 @@ def get_density_ionex_single_layer(
 
 def get_density_ionex_iri(
     ipp: IPP, height: u.Quantity = 350 * u.km, iono_kwargs: dict[str, Any] | None = None
-) -> ArrayLike:
+) -> NDArray[np.float64]:
     iono_kwargs = iono_kwargs or {}
     profile = iri.get_profile(ipp)
     tec = get_density_ionex_single_layer(ipp, height=height, iono_kwargs=iono_kwargs)
     # get tec at single altitude
-    return np.sum(tec, keepdims=True, axis=1) * profile
+    return np.array(np.sum(tec, keepdims=True, axis=1) * profile)
 
-
-# def get_density_tomion(ipp: IPP) -> ArrayLike:
-#    return _read_tomion_stuff()
 
 ionospheric_models = IonosphericModels(
     ionex=get_density_ionex_single_layer,
     ionex_iri=get_density_ionex_iri,
 )
-
-
-def get_ionosphere(
-    ipp: IPP,
-    iono_model: ModelDensityFunction = ionospheric_models.ionex,
-) -> u.Quantity[u.m**-3]:
-    """Prints a nice message"""
-
-    return iono_model(ipp)

@@ -5,10 +5,10 @@ from __future__ import annotations
 import astropy.units as u
 import numpy as np
 from astropy.time import Time
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 
 
-def get_gps_week(time: Time) -> ArrayLike:
+def get_gps_week(time: Time) -> NDArray[np.int32]:
     """Get the GPS week from a time.
 
     Parameters
@@ -18,10 +18,10 @@ def get_gps_week(time: Time) -> ArrayLike:
 
     Returns
     -------
-    ArrayLike
+    NDArray
         GPS week(s)
     """
-    return np.floor((time.gps * u.s).to(u.week).value).astype(int)
+    return np.array(np.floor((time.gps * u.s).to(u.week).value), dtype=np.int32)
 
 
 def get_unique_days(times: Time) -> Time:
@@ -40,7 +40,7 @@ def get_unique_days(times: Time) -> Time:
     return Time(np.sort(np.unique(np.floor(times.mjd))), format="mjd")
 
 
-def get_unique_days_index(times: Time) -> ArrayLike:
+def get_unique_days_index(times: Time) -> NDArray[np.int32]:
     """Get the unique days index from a list of times.
 
     Parameters
@@ -50,15 +50,22 @@ def get_unique_days_index(times: Time) -> ArrayLike:
 
     Returns
     -------
-    ArrayLike
+    NDArray
         Unique days index
     """
-    return np.searchsorted(get_unique_days(times).mjd, np.floor(times.mjd))
+    return np.array(
+        np.searchsorted(get_unique_days(times).mjd, np.floor(times.mjd)), dtype=np.int32
+    )
 
 
-def get_indexlist_unique_days(unique_days: Time, times: Time) -> ArrayLike:
-    return np.floor(times.mjd)[np.newaxis] == unique_days.mjd[:, np.newaxis]
+# TODO: Add docs
+def get_indexlist_unique_days(unique_days: Time, times: Time) -> NDArray[np.bool_]:
+    return np.array(
+        np.floor(times.mjd)[np.newaxis] == unique_days.mjd[:, np.newaxis],
+        dtype=np.bool_,
+    )
 
 
-def get_consecutive_days(unique_days: Time) -> ArrayLike:
+# TODO: Add docs
+def get_consecutive_days(unique_days: Time) -> NDArray[np.int32]:
     return np.cumsum(np.diff(unique_days.mjd, prepend=unique_days.mjd[0]) > 1)

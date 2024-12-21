@@ -6,7 +6,7 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from astropy.time import Time
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 
 from spinifex.geometry import IPP, get_ipp_from_altaz, get_ipp_from_skycoord
 from spinifex.ionospheric import ModelDensityFunction, ionospheric_models
@@ -18,19 +18,19 @@ DEFAULT_IONO_HEIGHT = np.array([450.0]) * u.km
 class RM(NamedTuple):
     """object with all rotation measures"""
 
-    rm: ArrayLike
+    rm: NDArray[Any]
     """rotation measures"""
     times: Time
     """time axis"""
-    b_parallel: ArrayLike
+    b_parallel: NDArray[Any]
     """parallel magnetic field"""
-    electron_density: ArrayLike
+    electron_density: NDArray[Any]
     """electron content"""
-    height: ArrayLike
+    height: NDArray[Any]
     """array of altitudes (km)"""
-    azimuth: ArrayLike
+    azimuth: NDArray[Any]
     """array of azimuths (degrees)"""
-    elevation: ArrayLike
+    elevation: NDArray[Any]
     """array of elevation (degrees)"""
 
 
@@ -81,7 +81,7 @@ def _get_rm(
 def get_rm_from_altaz(
     loc: EarthLocation,
     altaz: AltAz,
-    height_array: ArrayLike = DEFAULT_IONO_HEIGHT,
+    height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
     iono_model: ModelDensityFunction = ionospheric_models.ionex,
     magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
     iono_kwargs: dict[str, Any] | None = None,
@@ -94,7 +94,7 @@ def get_rm_from_altaz(
         observer location
     altaz : AltAz
         altaz coordinates
-    height_array : ArrayLike, optional
+    height_array : u.Quantity, optional
         altitudes, by default default_height
     iono_model : ModelDensityFunction, optional
         ionospheric model, by default ionospheric_models.ionex
@@ -135,7 +135,7 @@ def get_rm_from_skycoord(
         times
     source : SkyCoord
         coordinates of the source
-    height_array : ArrayLike, optional
+    height_array : NDArray, optional
         altitudes, by default default_height
     iono_model : ModelDensityFunction, optional
         ionospheric model, by default ionospheric_models.ionex

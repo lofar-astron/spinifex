@@ -9,7 +9,6 @@ from spinifex.ionospheric.models import (
     ModelDensityFunction,
     get_density_ionex_iri,
     get_density_ionex_single_layer,
-    get_ionosphere,
     ionospheric_models,
 )
 
@@ -17,6 +16,5 @@ __all__ = [
     "ModelDensityFunction",
     "get_density_ionex_iri",
     "get_density_ionex_single_layer",
-    "get_ionosphere",
     "ionospheric_models",
 ]
