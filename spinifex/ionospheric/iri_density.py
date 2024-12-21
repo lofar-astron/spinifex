@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import astropy.units as u
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from PyIRI import coeff_dir
 from PyIRI.main_library import IRI_density_1day
 
@@ -12,7 +12,7 @@ from spinifex.geometry.get_ipp import IPP
 from spinifex.times import get_unique_days
 
 
-def get_profile(ipp: IPP) -> ArrayLike:
+def get_profile(ipp: IPP) -> NDArray[np.float32]:
     """Get the normalized electron density profile for all times an altitudes in ipp
 
     Parameters
@@ -22,7 +22,7 @@ def get_profile(ipp: IPP) -> ArrayLike:
 
     Returns
     -------
-    ArrayLike
+    NDArray
         normalied density profile per time
     """
     unique_days = get_unique_days(times=ipp.times)

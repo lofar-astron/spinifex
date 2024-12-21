@@ -10,11 +10,11 @@ from typing import Any, NamedTuple
 import astropy.units as u
 import numpy as np
 from astropy.time import Time
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 
 from spinifex.geometry.get_ipp import IPP
 from spinifex.ionospheric.index_tools import (
-    _compute_index_and_weights,
+    compute_index_and_weights,
     get_indices_axis,
 )
 from spinifex.ionospheric.ionex_download import (
@@ -33,31 +33,33 @@ class GroupedIPPs(NamedTuple):
     """Grouped IPPs"""
 
     ipps: list[IPP]
-    indices: list[ArrayLike]
+    indices: list[NDArray[np.int32]]
 
 
 def interpolate_ionex(
     ionex: IonexData,
-    lons: ArrayLike,
-    lats: ArrayLike,
+    lons: NDArray[np.float64],
+    lats: NDArray[np.float64],
     times: Time,
     apply_earth_rotation: float = 1,
-) -> ArrayLike:
+) -> NDArray[np.float64]:
     """Interpolate ionex data to a given lon/lat/height grid.
     lons, lats, times all should have the same length
+
     apply_earth_rotation:
     This is assuming that the TEC maps move according to the rotation
     Earth (following method 3 of interpolation described in the IONEX
     document). Experiments with high time resolution ROB data show that
     this is not really the case, resulting in strange wavelike structures
     when applying this smart interpolation.
+
     Parameters
     ----------
     ionex : IonexData
         ionex object containing the information of the ionex file
-    lons : ArrayLike
+    lons : NDArray
         longitudes (deg) of all points to interpolate to
-    lats : ArrayLike
+    lats : NDArray
         lattitudes (deg) of all points to interpolate to
     times : Time
         times of all points to interpolate to
@@ -67,11 +69,11 @@ def interpolate_ionex(
 
     Returns
     -------
-    ArrayLike
+    NDArray
         array with interpolated tec values
     """
-    timeindex = _compute_index_and_weights(ionex.times.mjd, times.mjd)
-    latindex = _compute_index_and_weights(ionex.lats, lats)
+    timeindex = compute_index_and_weights(ionex.times.mjd, times.mjd)
+    latindex = compute_index_and_weights(ionex.lats, lats)
     # take into account earth rotation
     if apply_earth_rotation > 0:
         rot1 = (
@@ -184,7 +186,9 @@ def get_ionex_files(
         )
 
 
-def get_density_ionex(ipp: IPP, iono_kwargs: dict[str, Any] | None = None) -> ArrayLike:
+def get_density_ionex(
+    ipp: IPP, iono_kwargs: dict[str, Any] | None = None
+) -> NDArray[np.float64]:
     """read ionex files and interpolate values to ipp locations/times
 
     Parameters
@@ -196,7 +200,7 @@ def get_density_ionex(ipp: IPP, iono_kwargs: dict[str, Any] | None = None) -> Ar
 
     Returns
     -------
-    ArrayLike
+    NDArray
         array with tec values for every entry in ipp
 
     Raises

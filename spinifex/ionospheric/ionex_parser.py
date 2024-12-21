@@ -14,7 +14,7 @@ from typing import Any, NamedTuple, TextIO
 import astropy.units as u
 import numpy as np
 from astropy.time import Time
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from unlzw3 import unlzw
 
 from spinifex.exceptions import IonexError
@@ -25,34 +25,34 @@ from spinifex.times import get_unique_days
 class IonexData(NamedTuple):
     """Object containing all necessary information from Ionex data"""
 
-    lons: ArrayLike
+    lons: NDArray[np.float64]
     """array with available longitude values (degrees)"""
-    lats: ArrayLike
+    lats: NDArray[np.float64]
     """array with available latitude values (degrees)"""
     times: Time
     """available times"""
     dims: int
     """dimension of the heights (usually 1)"""
-    h: ArrayLike
+    h: NDArray[np.float64]
     """available heights (km)"""
-    tec: ArrayLike
+    tec: NDArray[np.float64]
     """array with tecvalues times x lons x lats (TECU)"""
-    rms: ArrayLike
+    rms: NDArray[np.float64]
     """array with rms of tecvalues times x lons x lats (TECU, if available, zeros otherwise)"""
 
 
 class IonexHeader(NamedTuple):
     """Object containing header information from ionex file"""
 
-    lons: ArrayLike
+    lons: NDArray[np.float64]
     """array with available longitude values (degrees)"""
-    lats: ArrayLike
+    lats: NDArray[np.float64]
     """array with available latitude values (degrees)"""
     times: Time
     """available times"""
     dims: int
     """dimension of the heights (usually 1)"""
-    h: ArrayLike
+    h: NDArray[np.float64]
     """available heights (km)"""
     mfactor: float
     """multiplication factor for tec values"""
@@ -180,7 +180,7 @@ def _read_ionex_header(filep: TextIO) -> IonexHeader:
 
 
 def _fill_data_record(
-    data: ArrayLike,
+    data: NDArray[np.float64],
     filep: TextIO,
     stop_label: str,
     timeidx: int,
@@ -191,7 +191,7 @@ def _fill_data_record(
 
     Parameters
     ----------
-    data : ArrayLike
+    data : NDArray
         pre allocated array to store the datablock
     filep : TextIO
         _description_
@@ -212,13 +212,13 @@ def _fill_data_record(
         label = line[60:-1]
         if stop_label in label:
             if tec:
-                tec = np.array(tec) * ionex_header.mfactor
-                data[timeidx, lonidx:, latidx] = tec
+                tec_array = np.array(tec) * ionex_header.mfactor
+                data[timeidx, lonidx:, latidx] = tec_array
             return
         if "LAT/LON1/LON2/DLON/H" in label:
             if tec:
-                tec = np.array(tec) * ionex_header.mfactor
-                data[timeidx, lonidx:, latidx] = tec
+                tec_array = np.array(tec) * ionex_header.mfactor
+                data[timeidx, lonidx:, latidx] = tec_array
             tec = []
             record = line[:60]
             lat, lon1, _, _, _ = (float(record[i : i + 6]) for i in range(2, 32, 6))
@@ -270,7 +270,7 @@ def _read_ionex_data(filep: TextIO) -> IonexData:
         lats=ionex_header.lats,
         times=ionex_header.times,
         dims=ionex_header.dims,
-        h=ionex_header.dims,
+        h=ionex_header.h,
         tec=tecarray,
         rms=rmsarray,
     )
@@ -294,7 +294,7 @@ def unique_days_from_ionex(ionex_data: IonexData | list[IonexData]) -> Time:
     if isinstance(ionex_data, IonexData):
         time_jd_array = ionex_data.times.sort().mjd[0]
     else:
-        time_list: list[ArrayLike] = []
+        time_list: list[NDArray[np.int64]] = []
         for ionex in ionex_data:
             ionex_time = ionex.times.sort().mjd[0]
             time_list.append(ionex_time)

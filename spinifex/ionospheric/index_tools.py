@@ -5,42 +5,43 @@ from __future__ import annotations
 from typing import NamedTuple
 
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 
 
 class Indices(NamedTuple):
     """Indices of the closest two points in a possibly wrapping selection and the inverse distance weights"""
 
-    idx1: ArrayLike
+    idx1: NDArray[np.int64]
     """Index of the first closest point"""
-    idx2: ArrayLike
+    idx2: NDArray[np.int64]
     """Index of the second closest point"""
-    w1: ArrayLike
+    w1: NDArray[np.float64]
     """Weight of the first closest point"""
-    w2: ArrayLike
+    w2: NDArray[np.float64]
     """Weight of the second closest point"""
 
 
 class SortedIndices(NamedTuple):
     """Indices of the closest two points in a possibly wrapping selection"""
 
-    indices: ArrayLike
+    indices: NDArray[np.int64]
     """Index of the first closest point"""
-    distance: ArrayLike
+    distance: NDArray[np.float64]
     """Index of the second closest point"""
 
 
 class Weights(NamedTuple):
     """Weights of the closest two points in a possibly wrapping selection"""
 
-    w1: ArrayLike
+    w1: NDArray[np.float64]
     """Weight of the first closest point"""
-    w2: ArrayLike
+    w2: NDArray[np.float64]
     """Weight of the second closest point"""
 
 
+# TODO: Get typing right for this function
 def get_indices_axis(
-    goal: ArrayLike, selection: ArrayLike, wrap_unit: float = 0
+    goal: NDArray[np.float64], selection: NDArray[np.float64], wrap_unit: float = 0
 ) -> Indices:
     """get indices of the closest two points in a possibly wrapping selection for an array
     of goals"""
@@ -53,7 +54,7 @@ def get_indices_axis(
                 - 0.5 * wrap_unit
             ),
             axis=-1,
-        )
+        ).astype(np.int64)
     else:
         idx1 = np.argmin(np.absolute(goal[..., np.newaxis] - selection), axis=-1)
     if np.isscalar(idx1):
@@ -83,24 +84,25 @@ def get_indices_axis(
     return Indices(idx1=idx1, idx2=idx2, w1=weights.w1, w2=weights.w2)
 
 
+# TODO: Get typing right for this function
 def _get_weights(
-    goal: ArrayLike,
-    index1: ArrayLike,
-    index2: ArrayLike,
-    selection: ArrayLike,
+    goal: float,
+    index1: NDArray[np.int64],
+    index2: NDArray[np.int64],
+    selection: NDArray[np.float64],
     wrap_unit: float = 0,
 ) -> Weights:
     """Calculate weights based on distance of goal to selection
 
     Parameters
     ----------
-    goal : ArrayLike
+    goal : NDArray
         array of points to get weights for
-    index1 : ArrayLike
+    index1 : NDArray
         indices in selection for goals (index1, index2) per goal
-    index2 : ArrayLike
+    index2 : NDArray
         indices in selection for goals (index1, index2) per goal
-    selection : ArrayLike
+    selection : NDArray
         array to select from
     wrap_unit : float, optional
         if goal/selection is a wrapable (e.g. angle) set this unit (e.g. 360), by default 0
@@ -116,14 +118,16 @@ def _get_weights(
     return Weights(w1=1 - distance1 / sumdist, w2=1 - distance2 / sumdist)
 
 
-def get_indices(goal: float, selection: ArrayLike, wrap_unit: float = 0) -> Indices:
+def get_indices(
+    goal: float, selection: NDArray[np.float64], wrap_unit: float = 0
+) -> Indices:
     """find the indices of the closest two points in a possibly wrapping array selection
 
     Parameters
     ----------
     goal : float
         location of point
-    selection : ArrayLike
+    selection : NDArray
         array of points
     wrap_unit : float, optional
         if goal/selection is a wrapping entity (e.g. angles) set this to the wrap value (e.g. 360), by default 0
@@ -155,8 +159,8 @@ def get_indices(goal: float, selection: ArrayLike, wrap_unit: float = 0) -> Indi
 def get_sorted_indices(
     lon: float,
     lat: float,
-    avail_lon: ArrayLike,
-    avail_lat: ArrayLike,
+    avail_lon: NDArray[np.float64],
+    avail_lat: NDArray[np.float64],
     wrap_unit: float = 360.0,
 ) -> SortedIndices:
     """find distances of a lon/lat grid to a point and return sorted list of indices"""
@@ -168,24 +172,28 @@ def get_sorted_indices(
     return SortedIndices(indices=sorted_idx, distance=distance[sorted_idx])
 
 
-def get_interpol(data: ArrayLike, dist: ArrayLike) -> float:
+def get_interpol(data: NDArray[np.float64], dist: NDArray[np.float64]) -> float:
     """get distance weighted sum of data"""
     w = 1.0 / dist
     w /= np.sum(w)
     return float(np.sum(data * w))
 
 
-def wrap_around_zero(data: ArrayLike, wrap_unit: float = 2 * np.pi) -> ArrayLike:
+def wrap_around_zero(
+    data: NDArray[np.float64], wrap_unit: float = 2 * np.pi
+) -> NDArray[np.float64]:
     """Function to calculate the remainder of data such that this is centered around zero"""
     return np.remainder(data + 0.5 * wrap_unit, wrap_unit) - 0.5 * wrap_unit
 
 
-def _compute_index_and_weights(maparray: ArrayLike, mapvalues: ArrayLike) -> Indices:
+def compute_index_and_weights(
+    maparray: NDArray[np.float64], mapvalues: NDArray[np.float64]
+) -> Indices:
     """helper function  to get indices and weights for interpolating tecmaps
 
 
     Args:
-        maparray (ArrayLike) : array to get indices in
+        maparray (NDArray) : array to get indices in
         mapvalues (Union[float,np.array]) :  values to get indices for
     Returns:
         Tuple[np.array, np.array, np.array]: idx1,idx2 and weights for idx2,
