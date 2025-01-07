@@ -1,5 +1,5 @@
 ====================================================
-Welcome to the documentation of spinifex
+Spinifex Documentation
 ====================================================
 
 ..
@@ -7,10 +7,16 @@ Welcome to the documentation of spinifex
 
 Documentation for version: |version|
 
+.. include:: ../../README.md
+    :parser: myst_parser.sphinx_
+
+-----------------
 Contents:
+-----------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    readme
+   usage
    source_documentation/index
