@@ -37,7 +37,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "spinifex"
-copyright = "2023, ASTRON"
+copyright = "2025, ASTRON"
 
 # openstackdocstheme options
 repository_name = "git.astron.nl/spinifex"
