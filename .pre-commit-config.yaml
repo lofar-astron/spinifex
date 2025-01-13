@@ -86,4 +86,4 @@ repos:
       - id: check-github-workflows
       - id: check-readthedocs
 
-exclude: "tests/data/"
+exclude: "spinifex/data/tests/test.MS/"
