@@ -77,7 +77,9 @@ def get_ipp_from_altaz(
     IPP
         ionospheric piercepoints
     """
-    los_dir = altaz.transform_to(ITRS)
+    if not altaz.obstime.shape or altaz.obstime.shape != altaz.az.shape:
+        altaz = _make_dimensions_match(altaz)
+    los_dir = altaz.transform_to(ITRS())
     ipp, airmass = _get_ipp_simple(height_array=height_array, loc=loc, los_dir=los_dir)
     return IPP(
         loc=EarthLocation.from_geocentric(*ipp),
@@ -86,6 +88,37 @@ def get_ipp_from_altaz(
         airmass=airmass,
         altaz=altaz,
     )
+
+
+def _make_dimensions_match(altaz: AltAz) -> AltAz:
+    """Helper function to change time dimensions suchthat they correspond to the altaz dimension
+
+    Parameters
+    ----------
+    altaz : AltAz
+        the altaz object
+
+    Returns
+    -------
+    AltAz
+        altaz object with matching obstime dimension
+
+    Raises
+    ------
+    NotImplementedError
+        multiple times with different shape than altaz is not implemented yet
+    """
+    times = altaz.obstime
+    az = altaz.az
+    # if multiple azimuth/altitudes for one time, just increase dimensions of time
+    if not times.shape:
+        times = Time(times.mjd * np.ones(az.shape), format="mjd")
+    if times.shape != az.shape:
+        raise NotImplementedError(
+            "Support for multiple times for azimuth/elevation grids is not implemented"
+        )
+
+    return AltAz(az=altaz.az, alt=altaz.alt, obstime=times, location=altaz.location)
 
 
 # TODO: Create return type for this function
@@ -118,5 +151,7 @@ def _get_ipp_simple(
     )
     inv_airmass = np.einsum("ijk,ij->jk", ipp, los_dir.cartesian.xyz)
     inv_airmass /= R_earth + height_array  # normalized
-    airmass = 1.0 / inv_airmass.value
+    airmass = (
+        1.0 / inv_airmass.decompose().value
+    )  # if you forget the .decompose it can have airmass in (m/km)
     return ipp, airmass

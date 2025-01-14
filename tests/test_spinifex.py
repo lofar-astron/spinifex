@@ -30,7 +30,7 @@ def test_get_rm():
     rm = get_rm.get_rm_from_skycoord(loc=dwingeloo, times=times, source=cas_a)
     assert isinstance(rm.rm, np.ndarray)
     assert rm.rm.shape == times.shape
-    assert np.isclose(rm.rm[0], 68.7, 0.1)
+    assert np.isclose(rm.rm[0], 0.0687, 0.001)
     iono_kwargs: dict[str, Any] = {}
     with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
         iono_kwargs["output_directory"] = datapath
