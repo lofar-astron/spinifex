@@ -10,6 +10,10 @@ import shutil
 from importlib import resources
 from pathlib import Path
 
+from astropy.utils import iers  # pylint: disable=ungrouped-imports
+
+iers.conf.auto_download = False
+
 import astropy.units as u
 import pytest
 from spinifex.vis_tools.ms_tools import get_columns_from_ms, get_rm_from_ms
