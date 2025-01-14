@@ -5,6 +5,10 @@
 
 from __future__ import annotations
 
+from astropy.utils import iers  # pylint: disable=ungrouped-imports
+
+iers.conf.auto_download = False
+
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import EarthLocation, SkyCoord
@@ -24,14 +28,14 @@ def is_convertible_to_unit(quantity: u.Quantity, unit: u.Unit) -> bool:
 
 def test_get_magnetic_field():
     """Test that get_magnetic does not crash"""
-    source = SkyCoord.from_name("Cas A")
+    cas_a = SkyCoord(ra=350.85 * u.deg, dec=58.815 * u.deg)
     lon = 6.367 * u.deg
     lat = 52.833 * u.deg
     heights = np.arange(100, 2000, 100) * u.km
     dwingeloo = EarthLocation(lon=lon, lat=lat, height=0 * u.km)
     times = Time("2020-01-20T01:00:00") + np.arange(0, 10) * 15 * u.min
     ipp = get_ipp_from_skycoord(
-        loc=dwingeloo, times=times, source=source, height_array=heights
+        loc=dwingeloo, times=times, source=cas_a, height_array=heights
     )
     field = magnetic_models.ppigrf(ipp)
     assert field.shape == times.shape + heights.shape

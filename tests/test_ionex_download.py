@@ -1,6 +1,10 @@
 # pylint: disable=redefined-outer-name
 from __future__ import annotations
 
+from astropy.utils import iers  # pylint: disable=ungrouped-imports
+
+iers.conf.auto_download = False
+
 import astropy.units as u
 import pytest
 from astropy.time import Time

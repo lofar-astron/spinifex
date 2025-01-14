@@ -3,6 +3,10 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from astropy.utils import iers  # pylint: disable=ungrouped-imports
+
+iers.conf.auto_download = False
+
 from astropy.time import Time
 from spinifex.times import (
     get_consecutive_days,
