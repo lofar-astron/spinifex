@@ -45,8 +45,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest >=6", "pytest-cov >=3"]
-dev = ["pytest >=6", "pytest-cov >=3", "tox-uv", "pre-commit", "ruff", "mypy"]
+test = ["pytest >=6", "pytest-cov >=3", "pytest-asyncio"]
+dev = ["pytest >=6", "pytest-cov >=3", "tox-uv", "pre-commit", "ruff", "mypy", "pytest-asyncio"]
 docs = [
     "sphinx!=1.6.6,!=1.6.7,>=1.6.5", # BSD
     "sphinx-rtd-theme>=0.4.3", #MIT
@@ -79,7 +79,7 @@ scripts.test = "pytest {args}"
 minversion = "6.0"
 addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
 xfail_strict = true
-filterwarnings = ["error"]
+filterwarnings = ["error", "ignore::pytest.PytestUnraisableExceptionWarning"]
 log_cli_level = "INFO"
 testpaths = ["tests"]
 
@@ -146,7 +146,7 @@ isort.required-imports = ["from __future__ import annotations"]
 # typing-modules = ["spinifex._compat.typing"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["T20"]
+"tests/**" = ["T20", "E402"]
 
 
 [tool.pylint]
