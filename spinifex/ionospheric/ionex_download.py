@@ -1,8 +1,11 @@
+"""Utilities for downloading IONEX files from various servers."""
+
 from __future__ import annotations
 
 import asyncio
 import shutil
 from datetime import datetime
+from ftplib import FTP
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlparse
@@ -17,10 +20,8 @@ from spinifex.times import get_gps_week, get_unique_days
 
 # We need to support downloading from the following sources:
 # "cddis.nasa.gov": cddis_nasa_gov,
-# "http://chapman.upc.es": chapman_upc_es
+# "chapman.upc.es": chapman_upc_es
 # "igsiono.uwm.edu.pl": igsiono_uwm_edu_pl
-
-# TODO: Add support for chapman and igsiono
 
 CENTER_NAMES = {
     "cod",
@@ -28,6 +29,7 @@ CENTER_NAMES = {
     "igs",
     "jpl",
     "upc",
+    "irt",
 }
 DEFAULT_TIME_RESOLUTIONS: dict[str, u.Quantity] = {
     "cod": 1 * u.hour,
@@ -35,11 +37,12 @@ DEFAULT_TIME_RESOLUTIONS: dict[str, u.Quantity] = {
     "igs": 2 * u.hour,
     "jpl": 2 * u.hour,
     "upc": 2 * u.hour,
+    "irt": 2 * u.hour,
 }
 SERVERS = {
     "cddis": "https://cddis.nasa.gov/archive/gnss/products/ionex",
-    "chapman": "",
-    "igsiono": "",
+    "chapman": "http://chapman.upc.es/tomion/rapid",
+    "igsiono": "ftp://igs-final.man.olsztyn.pl",
 }
 assert (
     set(DEFAULT_TIME_RESOLUTIONS.keys()) == CENTER_NAMES
@@ -49,7 +52,60 @@ NAME_SWITCH_WEEK = 2238  # GPS Week where the naming convention changed
 SOLUTION = Literal["final", "rapid"]
 
 
-async def download_file(
+def _ftp_download_and_quit(ftp: FTP, file_name: str, output_file: Path) -> None:
+    """Download a file from an FTP server and quit the connection.
+
+    Parameters
+    ----------
+    ftp : FTP
+        FTP connection.
+    file_name : str
+        File name to download.
+    output_file : Path
+        Output file path.
+
+    Raises
+    ------
+    e
+        If the download fails.
+    """
+    try:
+        with output_file.open("wb") as file_desc:
+            ftp.retrbinary(f"RETR {file_name}", file_desc.write)
+    except Exception as e:
+        output_file.unlink(missing_ok=True)
+        raise e
+    finally:
+        ftp.quit()
+
+
+async def download_file_ftp(
+    url: str,
+    output_file: Path,
+) -> None:
+    """Download a file from a given URL using asyncio.
+
+    Parameters
+    ----------
+    url : str
+        URL to download.
+    output_file : Path
+        Output file path.
+    """
+    url_parsed = urlparse(url)
+    url_path = Path(url_parsed.path)
+    file_name = url_path.name
+    directory_name = url_path.parent.as_posix()[1:]  # Remove leading slash
+
+    ftp = FTP(url_parsed.netloc)
+    # Anonymous login
+    ftp.login()
+    ftp.cwd(directory_name)
+
+    await asyncio.to_thread(_ftp_download_and_quit, ftp, file_name, output_file)
+
+
+async def download_file_http(
     url: str,
     output_file: Path,
     timeout_seconds: int = 30,
@@ -140,6 +196,10 @@ async def download_or_copy_url(
         result = await asyncio.to_thread(shutil.copy, url_path, output_file)
         return Path(result)
 
+    if url_parsed.scheme == "ftp":
+        await download_file_ftp(url, output_file)
+        return output_file
+
     if url.startswith("https://cddis.nasa.gov"):
         # CDDIS requires a .netrc file to download
         netrc = Path("~/.netrc").expanduser()
@@ -150,7 +210,7 @@ async def download_or_copy_url(
             logger.error(msg)
             raise FileNotFoundError(msg)
 
-    await download_file(
+    await download_file_http(
         url, output_file, timeout_seconds=timeout_seconds, chunk_size=chunk_size
     )
 
@@ -366,6 +426,190 @@ async def download_from_cddis(
     return await asyncio.gather(*coros)
 
 
+def chapman_format(
+    time: Time,
+    prefix: str = "uqr",
+    url_stem: str | None = None,
+) -> str:
+    """Format a URL for an IRTG file from Chapman.
+
+    Parameters
+    ----------
+    time : Time
+        Time to get the URL for.
+    prefix : str, optional
+        Ionex prefix, by default "irt"
+    url_stem : str | None, optional
+        URL stem, by default None
+
+    Returns
+    -------
+    str
+        File URL
+    """
+
+    assert time.isscalar, "Only one time is supported"
+
+    dtime: datetime = time.to_datetime()
+    doy = int(time.datetime.timetuple().tm_yday)
+    yy = f"{dtime.year:02d}"[-2:]
+    # e.g. uqrg3260.96i.Z
+    file_name = f"{prefix}g{doy:03d}0.{yy}i.Z"
+    # e.g. 1996/326_961121.15min/
+    # Hard coded to 15 minute resolution - Chapman only provides 15 minute resolution right now
+    # Could be updated to be more flexible in the future
+    directory_name = (
+        f"{dtime.year:04d}/{doy:03d}_{yy}{dtime.month:02d}{dtime.day:02d}.15min"
+    )
+    if url_stem is None:
+        url_stem = SERVERS.get("chapman")
+    return f"{url_stem}/{directory_name}/{file_name}"
+
+
+async def download_from_chapman(
+    times: Time,
+    prefix: str = "uqr",
+    url_stem: str | None = None,
+    output_directory: Path | None = None,
+) -> list[Path]:
+    """Download IONEX files from Chapman.
+
+    Parameters
+    ----------
+    times : Time
+        Times to download for.
+    prefix : str, optional
+        Ionex prefix, by default "irt"
+    url_stem : str | None, optional
+        URL stem, by default None
+    output_directory : Path | None, optional
+        Output directory path, by default None
+
+    Returns
+    -------
+    list[Path]
+        List of downloaded file paths
+
+    Raises
+    ------
+    IonexError
+        If the date is before 2021/024.
+    """
+    unique_days: Time = get_unique_days(times)
+    for day in unique_days:
+        # Chapman goes back to 326th day of 1996 == 21/11/1996
+        _chapman_start = datetime(1996, 11, 21)
+        if day.datetime < _chapman_start:
+            msg = f"Date {day.datetime} is before {_chapman_start}. Chapman only goes back to this date."
+            raise IonexError(msg)
+
+    coros = []
+    for day in unique_days:
+        url = chapman_format(day, prefix=prefix, url_stem=url_stem)
+        coros.append(download_or_copy_url(url, output_directory=output_directory))
+
+    return await asyncio.gather(*coros)
+
+
+def igsiono_format(
+    time: Time,
+    prefix: str = "igs",
+    time_resolution: u.Quantity | None = None,
+    url_stem: str | None = None,
+    solution: SOLUTION = "final",
+) -> str:
+    """Format a URL for an IGS IONO file from IGSIONO.
+
+    Parameters
+    ----------
+    time : Time
+        Time to get the URL for.
+    prefix : str, optional
+        Ionex prefix, by default "igs"
+    time_resolution : u.Quantity | None, optional
+        Ionex resolution, by default None
+    url_stem : str | None, optional
+        URL stem, by default None
+    solution : SOLUTION, optional
+        Type of solution, by default "final"
+
+    Returns
+    -------
+    str
+        File URL
+    """
+    assert time.isscalar, "Only one time is supported"
+
+    dtime: datetime = time.to_datetime()
+    doy = time.datetime.timetuple().tm_yday
+    yy = f"{dtime.year:02d}"[-2:]
+    directory_name = f"pub/gps_data/GPS_IONO/cmpcmb/{yy}{doy}"
+    if url_stem is None:
+        url_stem = SERVERS.get("igsiono")
+
+    # File name matches CDDIS format
+    if get_gps_week(time) >= NAME_SWITCH_WEEK:
+        formatter = new_cddis_format
+    else:
+        formatter = old_cddis_format
+    file_name = Path(
+        formatter(
+            time,
+            prefix=prefix,
+            url_stem=url_stem,
+            time_resolution=time_resolution,
+            solution=solution,
+        )
+    ).name
+    return f"{url_stem}/{directory_name}/{file_name}"
+
+
+async def download_from_igsiono(
+    times: Time,
+    prefix: str = "igs",
+    time_resolution: u.Quantity | None = None,
+    url_stem: str | None = None,
+    solution: SOLUTION = "final",
+    output_directory: Path | None = None,
+) -> list[Path]:
+    """Download IONEX files from IGSIONO.
+
+    Parameters
+    ----------
+    times : Time
+        Times to download for.
+    prefix : str, optional
+        URL prefix, by default "igs"
+    time_resolution : u.Quantity | None, optional
+        Ionex resolution, by default None
+    url_stem : str | None, optional
+        URL stem, by default None
+    solution : SOLUTION, optional
+        Type of solution, by default "final"
+    output_directory : Path | None, optional
+        Output directory path, by default None
+
+    Returns
+    -------
+    list[Path]
+        List of downloaded file paths
+    """
+    unique_days: Time = get_unique_days(times)
+
+    coros = []
+    for day in unique_days:
+        url = igsiono_format(
+            day,
+            prefix=prefix,
+            time_resolution=time_resolution,
+            url_stem=url_stem,
+            solution=solution,
+        )
+        coros.append(download_or_copy_url(url, output_directory=output_directory))
+
+    return await asyncio.gather(*coros)
+
+
 def download_ionex(
     server: str,
     times: Time,
@@ -418,6 +662,31 @@ def download_ionex(
                 prefix=prefix,
                 url_stem=url_stem,
                 time_resolution=time_resolution,
+                solution=solution,
+                output_directory=output_directory,
+            )
+        )
+    if server == "chapman":
+        if prefix != "uqr":
+            msg = f"Chapman server primarily supports uqr prefix. You provided {prefix}, this may fail"
+            logger.warning(msg)
+
+        return asyncio.run(
+            download_from_chapman(
+                times,
+                prefix=prefix,
+                url_stem=url_stem,
+                output_directory=output_directory,
+            )
+        )
+
+    if server == "igsiono":
+        return asyncio.run(
+            download_from_igsiono(
+                times,
+                prefix=prefix,
+                time_resolution=time_resolution,
+                url_stem=url_stem,
                 solution=solution,
                 output_directory=output_directory,
             )

@@ -18,7 +18,6 @@ from numpy.typing import NDArray
 from unlzw3 import unlzw
 
 from spinifex.exceptions import IonexError
-from spinifex.logger import logger
 from spinifex.times import get_unique_days
 
 
@@ -300,7 +299,6 @@ def unique_days_from_ionex(ionex_data: IonexData | list[IonexData]) -> Time:
             time_list.append(ionex_time)
         time_jd_array = np.array(time_list)
 
-    logger.critical(time_jd_array)
     times = Time(
         time_jd_array,
         format="mjd",
