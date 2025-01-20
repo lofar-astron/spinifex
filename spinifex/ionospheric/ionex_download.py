@@ -7,7 +7,7 @@ import shutil
 from datetime import datetime
 from ftplib import FTP
 from pathlib import Path
-from typing import Literal
+from typing import Literal, overload
 from urllib.parse import urlparse
 
 import astropy.units as u
@@ -17,6 +17,7 @@ from astropy.time import Time
 from spinifex.exceptions import IonexError, TimeResolutionError
 from spinifex.logger import logger
 from spinifex.times import get_gps_week, get_unique_days
+from spinifex.utils import sync_wrapper
 
 # We need to support downloading from the following sources:
 # "cddis.nasa.gov": cddis_nasa_gov,
@@ -610,7 +611,7 @@ async def download_from_igsiono(
     return await asyncio.gather(*coros)
 
 
-def download_ionex(
+async def download_ionex_coro(
     server: str,
     times: Time,
     prefix: str = "cod",
@@ -656,41 +657,56 @@ def download_ionex(
         raise IonexError(msg)
 
     if server == "cddis":
-        return asyncio.run(
-            download_from_cddis(
-                times,
-                prefix=prefix,
-                url_stem=url_stem,
-                time_resolution=time_resolution,
-                solution=solution,
-                output_directory=output_directory,
-            )
+        return await download_from_cddis(
+            times,
+            prefix=prefix,
+            url_stem=url_stem,
+            time_resolution=time_resolution,
+            solution=solution,
+            output_directory=output_directory,
         )
     if server == "chapman":
         if prefix != "uqr":
             msg = f"Chapman server primarily supports uqr prefix. You provided {prefix}, this may fail"
             logger.warning(msg)
 
-        return asyncio.run(
-            download_from_chapman(
-                times,
-                prefix=prefix,
-                url_stem=url_stem,
-                output_directory=output_directory,
-            )
+        return await download_from_chapman(
+            times,
+            prefix=prefix,
+            url_stem=url_stem,
+            output_directory=output_directory,
         )
 
     if server == "igsiono":
-        return asyncio.run(
-            download_from_igsiono(
-                times,
-                prefix=prefix,
-                time_resolution=time_resolution,
-                url_stem=url_stem,
-                solution=solution,
-                output_directory=output_directory,
-            )
+        if prefix != "igs":
+            msg = f"IGS IONO server primarily supports igs prefix. You provided {prefix}, this may fail"
+            logger.warning(msg)
+        return await download_from_igsiono(
+            times,
+            prefix=prefix,
+            time_resolution=time_resolution,
+            url_stem=url_stem,
+            solution=solution,
+            output_directory=output_directory,
         )
 
     msg = f"Server {server} is not implemented yet"
     raise NotImplementedError(msg)
+
+
+# This overload is needed to work with IDEs
+# It will need to be updated if the function signature changes
+# Hopefully the tests will catch this if a change is made
+@overload
+def download_ionex(
+    server: str,
+    times: Time,
+    prefix: str = "cod",
+    url_stem: str | None = None,
+    time_resolution: u.Quantity | None = None,
+    solution: SOLUTION = "final",
+    output_directory: Path | None = None,
+) -> list[Path]: ...
+
+
+download_ionex = sync_wrapper(download_ionex_coro)
