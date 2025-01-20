@@ -1,7 +1,6 @@
+"""Module for getting the Ionospheric Piercepoints"""
 #  Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
 #  SPDX-License-Identifier: Apache-2.0
-
-"""Module for getting the Ionospheric Piercepoints"""
 
 from __future__ import annotations
 
@@ -126,8 +125,14 @@ def _make_dimensions_match(altaz: AltAz) -> AltAz:
 def _get_ipp_simple(
     height_array: u.Quantity, loc: EarthLocation, los_dir: SkyCoord
 ) -> tuple[list[u.Quantity], NDArray[np.float64]]:
-    """helper function to calculate ionospheric piercepoints using a simple spherical earth model
-    |loc + alphas * los_dir| = R_earth + height_array, solve for alphas using abc formula
+    r"""helper function to calculate ionospheric piercepoints using a simple spherical earth model
+
+    .. code-block::
+
+        |loc + alphas * los_dir| = R_earth + height_array
+
+    solve for alphas using abc formula
+
     Parameters
     ----------
     height_array : u.Quantity

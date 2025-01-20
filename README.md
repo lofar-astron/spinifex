@@ -20,7 +20,7 @@ Spinifex uses following reference ionosphere models:
 -   [ppigrf](https://github.com/IAGA-VMOD/ppigrf) - Pure Python IGRF (International Geomagnetic Reference Field)
     -   [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14231854.svg)](https://doi.org/10.5281/zenodo.14231854)
 
-### Why 'Spinifex'?
+## Why 'Spinifex'?
 
 [Spinifex](<https://en.wikipedia.org/wiki/Triodia_(plant)>) is a spiky grass native to the Australian continent. The
 spines of spinifex are reminiscent of the ionospheric pierce points computed by this software. The 'spin' in spinifex
