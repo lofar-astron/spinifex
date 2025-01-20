@@ -7,7 +7,7 @@ import shutil
 from datetime import datetime
 from ftplib import FTP
 from pathlib import Path
-from typing import Literal, overload
+from typing import Literal
 from urllib.parse import urlparse
 
 import astropy.units as u
@@ -697,16 +697,4 @@ async def download_ionex_coro(
 # This overload is needed to work with IDEs
 # It will need to be updated if the function signature changes
 # Hopefully the tests will catch this if a change is made
-@overload
-def download_ionex(
-    server: str,
-    times: Time,
-    prefix: str = "cod",
-    url_stem: str | None = None,
-    time_resolution: u.Quantity | None = None,
-    solution: SOLUTION = "final",
-    output_directory: Path | None = None,
-) -> list[Path]: ...
-
-
 download_ionex = sync_wrapper(download_ionex_coro)

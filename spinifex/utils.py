@@ -3,19 +3,22 @@
 from __future__ import annotations
 
 import asyncio
-import inspect
+from collections.abc import Coroutine
 from functools import wraps
-from typing import Callable
+from typing import Callable, ParamSpec, TypeVar
+
+P = ParamSpec("P")
+T = TypeVar("T")
 
 
-def sync_wrapper(coro: Callable) -> Callable:
-    """Creates a synchronous wrapper for an asynchronous coroutine."""
-
+def sync_wrapper(coro: Callable[P, Coroutine[None, None, T]]) -> Callable[P, T]:
     @wraps(coro)
-    def wrapper(*args, **kwargs):
-        # Call the coroutine in an event loop
+    def wrapper(
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
         return asyncio.run(coro(*args, **kwargs))
 
-    # Dynamically copy the signature
-    wrapper.__signature__ = inspect.signature(coro)
+    # Keep the function docs correct
+    wrapper.__doc__ = coro.__doc__
     return wrapper
