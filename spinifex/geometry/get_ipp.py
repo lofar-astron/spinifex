@@ -114,9 +114,10 @@ def _make_dimensions_match(altaz: AltAz) -> AltAz:
     if not times.shape:
         times = Time(times.mjd * np.ones(az.shape), format="mjd")
     if times.shape != az.shape:
-        raise NotImplementedError(
+        msg = (
             "Support for multiple times for azimuth/elevation grids is not implemented"
         )
+        raise NotImplementedError(msg)
 
     return AltAz(az=altaz.az, alt=altaz.alt, obstime=times, location=altaz.location)
 
