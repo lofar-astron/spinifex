@@ -694,7 +694,5 @@ async def download_ionex_coro(
     raise NotImplementedError(msg)
 
 
-# This overload is needed to work with IDEs
-# It will need to be updated if the function signature changes
-# Hopefully the tests will catch this if a change is made
+# Create synchronous wrapper of download_ionex_coro
 download_ionex = sync_wrapper(download_ionex_coro)
