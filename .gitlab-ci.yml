@@ -110,6 +110,9 @@ package_files:
 
 package_docs:
   stage: package
+  before_script:
+    - apt-get update -y
+    - apt-get install -y pandoc
   artifacts:
     expire_in: 1w
     paths:

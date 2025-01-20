@@ -15,8 +15,6 @@ Contents:
 -----------------
 
 .. toctree::
-   :maxdepth: 1
+    :maxdepth: 1
 
-   readme
-   usage
-   source_documentation/index
+    usage
