@@ -1,7 +1,7 @@
+"""Module for getting ionospheric ionospheric_models"""
+
 #  Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
 #  SPDX-License-Identifier: Apache-2.0
-
-"""Module for getting ionospheric ionospheric_models"""
 
 from __future__ import annotations
 

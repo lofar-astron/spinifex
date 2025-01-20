@@ -28,8 +28,10 @@ class ModelDensityFunction(Protocol):
 
 @dataclass
 class IonosphericModels:
-    """Names space for different ionospheric ionospheric_models. An ionospheric model should be
-    a callable get_density"""
+    """
+    Names space for different ionospheric ionospheric_models. An ionospheric model should be
+        a callable get_density
+    """
 
     ionex: ModelDensityFunction
     ionex_iri: ModelDensityFunction
@@ -47,6 +49,7 @@ def get_density_ionex_single_layer(
     height : u.Quantity, optional
         altitude of the thin scrreen, by default 350*u.km
     iono_kwargs: dict, optional
+        options for the ionospheric model, by default {}
 
     Returns
     -------

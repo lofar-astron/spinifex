@@ -17,6 +17,7 @@ extensions = [
     "myst_parser",
     "sphinx_autodoc_typehints",
     "autoapi.extension",
+    "nbsphinx",
 ]
 
 autoapi_type = "python"
@@ -28,7 +29,6 @@ autoapi_add_toctree_entry = True
 
 # Assumes tox is used to call sphinx-build
 project_root_directory = Path.cwd().as_posix()
-
 # The suffix of source filenames.
 source_suffix = [".rst"]
 

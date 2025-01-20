@@ -1,3 +1,5 @@
+"""Module to calculate rotation measures"""
+
 from __future__ import annotations
 
 from typing import Any, NamedTuple
@@ -102,6 +104,7 @@ def get_rm_from_altaz(
         geomagnetic model, by default magnetic_models.ppigrf
     iono_kwargs : dict
         options for the ionospheric model, by default {}
+
     Returns
     -------
     RM
