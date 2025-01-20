@@ -14,10 +14,10 @@ import astropy.units as u
 import requests
 from astropy.time import Time
 
+from spinifex.asyncio import sync_wrapper
 from spinifex.exceptions import IonexError, TimeResolutionError
 from spinifex.logger import logger
 from spinifex.times import get_gps_week, get_unique_days
-from spinifex.utils import sync_wrapper
 
 # We need to support downloading from the following sources:
 # "cddis.nasa.gov": cddis_nasa_gov,
