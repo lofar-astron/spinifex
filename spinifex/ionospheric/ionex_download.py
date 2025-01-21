@@ -14,6 +14,7 @@ import astropy.units as u
 import requests
 from astropy.time import Time
 
+from spinifex.asyncio import sync_wrapper
 from spinifex.exceptions import IonexError, TimeResolutionError
 from spinifex.logger import logger
 from spinifex.times import get_gps_week, get_unique_days
@@ -543,7 +544,7 @@ def igsiono_format(
     dtime: datetime = time.to_datetime()
     doy = time.datetime.timetuple().tm_yday
     yy = f"{dtime.year:02d}"[-2:]
-    directory_name = f"pub/gps_data/GPS_IONO/cmpcmb/{yy}{doy}"
+    directory_name = f"pub/gps_data/GPS_IONO/cmpcmb/{yy}{doy:03d}"
     if url_stem is None:
         url_stem = SERVERS.get("igsiono")
 
@@ -610,7 +611,7 @@ async def download_from_igsiono(
     return await asyncio.gather(*coros)
 
 
-def download_ionex(
+async def download_ionex_coro(
     server: str,
     times: Time,
     prefix: str = "cod",
@@ -656,41 +657,42 @@ def download_ionex(
         raise IonexError(msg)
 
     if server == "cddis":
-        return asyncio.run(
-            download_from_cddis(
-                times,
-                prefix=prefix,
-                url_stem=url_stem,
-                time_resolution=time_resolution,
-                solution=solution,
-                output_directory=output_directory,
-            )
+        return await download_from_cddis(
+            times,
+            prefix=prefix,
+            url_stem=url_stem,
+            time_resolution=time_resolution,
+            solution=solution,
+            output_directory=output_directory,
         )
     if server == "chapman":
         if prefix != "uqr":
             msg = f"Chapman server primarily supports uqr prefix. You provided {prefix}, this may fail"
             logger.warning(msg)
 
-        return asyncio.run(
-            download_from_chapman(
-                times,
-                prefix=prefix,
-                url_stem=url_stem,
-                output_directory=output_directory,
-            )
+        return await download_from_chapman(
+            times,
+            prefix=prefix,
+            url_stem=url_stem,
+            output_directory=output_directory,
         )
 
     if server == "igsiono":
-        return asyncio.run(
-            download_from_igsiono(
-                times,
-                prefix=prefix,
-                time_resolution=time_resolution,
-                url_stem=url_stem,
-                solution=solution,
-                output_directory=output_directory,
-            )
+        if prefix != "igs":
+            msg = f"IGS IONO server primarily supports igs prefix. You provided {prefix}, this may fail"
+            logger.warning(msg)
+        return await download_from_igsiono(
+            times,
+            prefix=prefix,
+            time_resolution=time_resolution,
+            url_stem=url_stem,
+            solution=solution,
+            output_directory=output_directory,
         )
 
     msg = f"Server {server} is not implemented yet"
     raise NotImplementedError(msg)
+
+
+# Create synchronous wrapper of download_ionex_coro
+download_ionex = sync_wrapper(download_ionex_coro)

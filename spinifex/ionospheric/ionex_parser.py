@@ -112,7 +112,7 @@ def _read_ionex_header(filep: TextIO) -> IonexHeader:
             yy, mm, day, hr, minute, second = (
                 int(float(i)) for i in record.strip().split()
             )
-            epoch = Time(f"{yy}-{mm}-{day}T{hr%24}:{minute}:{second}")
+            epoch = Time(f"{yy}-{mm}-{day}T{hr % 24}:{minute}:{second}")
             start_time = epoch
         if "INTERVAL" in label:
             step_time = float(record) * u.s

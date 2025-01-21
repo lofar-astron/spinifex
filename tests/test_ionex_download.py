@@ -216,3 +216,64 @@ async def test_igsiono_download(tmpdir, igsiono_time):
 
     # Clean up
     downloaded_file.unlink(missing_ok=True)
+
+
+def test_download_ionex_igsiono(tmpdir, igsiono_time):
+    downloaded_files = ionex_download.download_ionex(
+        server="igsiono",
+        times=igsiono_time,
+        prefix="igs",
+        url_stem=None,
+        time_resolution=None,
+        solution="final",
+        output_directory=Path(tmpdir),
+    )
+    downloaded_file = downloaded_files[0]
+
+    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
+        expected_file = datapath / "IGS0OPSFIN_20243490000_01D_02H_GIM.INX.gz"
+
+    assert filecmp.cmp(downloaded_file, expected_file)
+
+    # Clean up
+    downloaded_file.unlink(missing_ok=True)
+
+
+def test_download_ionex_chapman(tmpdir, new_time):
+    downloaded_files = ionex_download.download_ionex(
+        server="chapman",
+        times=new_time,
+        prefix="uqr",
+        url_stem=None,
+        time_resolution=None,
+        solution="final",
+        output_directory=Path(tmpdir),
+    )
+    downloaded_file = downloaded_files[0]
+
+    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
+        expected_file_compressed = datapath / "uqrg0010.25i.truncated.zip"
+        shutil.unpack_archive(expected_file_compressed, tmpdir)
+
+    expected_file = Path(tmpdir) / "uqrg0010.25i.truncated"
+
+    downloaded_data = (
+        unlzw(
+            downloaded_file.read_bytes(),
+        )
+        .decode("utf-8")
+        .splitlines()
+    )
+
+    expected_data = expected_file.read_text().splitlines()
+    n_lines_tructed = len(expected_data) - 1  # Last line is truncated
+
+    # Compare first 49 lines of the downloaded file
+    for i, (line1, line2) in enumerate(zip(downloaded_data, expected_data)):
+        if i == n_lines_tructed:
+            break
+        assert line1 == line2
+
+    # Clean up
+    downloaded_file.unlink(missing_ok=True)
+    expected_file.unlink(missing_ok=True)
