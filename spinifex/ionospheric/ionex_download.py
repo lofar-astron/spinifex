@@ -544,7 +544,7 @@ def igsiono_format(
     dtime: datetime = time.to_datetime()
     doy = time.datetime.timetuple().tm_yday
     yy = f"{dtime.year:02d}"[-2:]
-    directory_name = f"pub/gps_data/GPS_IONO/cmpcmb/{yy}{doy}"
+    directory_name = f"pub/gps_data/GPS_IONO/cmpcmb/{yy}{doy:03d}"
     if url_stem is None:
         url_stem = SERVERS.get("igsiono")
 
