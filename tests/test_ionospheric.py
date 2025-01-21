@@ -56,7 +56,7 @@ def ipp2() -> IPP:
 def test_get_ionosphere(ipp):
     """Test that get_ionosphere does not crash"""
     with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        testdata = datapath / "CODG0080.20I.gz"
+        testdata = datapath / "codg0080.20i.Z"
 
     ionex = read_ionex(testdata)
     assert ionex.tec.shape == (25, 73, 71)
@@ -96,7 +96,7 @@ def test_ionosphere_ionex_multiple_days(ipp2):
 
 def test_unique_days():
     with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        testdata = datapath / "CODG0080.20I.gz"
+        testdata = datapath / "codg0080.20i.Z"
         other_data = datapath / "casg0010.99i.Z"
 
     unique_days = unique_days_from_ionex_files(testdata)
