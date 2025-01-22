@@ -67,5 +67,6 @@ logger = logging.getLogger("spinifex")
 
 ch = logging.StreamHandler()
 ch.setFormatter(formatter)
-ch.setLevel(logging.WARNING)
+ch.setLevel(logging.INFO)
 logger.addHandler(ch)
+logger.setLevel(logging.INFO)
