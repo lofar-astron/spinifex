@@ -13,6 +13,8 @@ from astropy.coordinates import ITRS, AltAz, EarthLocation, SkyCoord
 from astropy.time import Time
 from numpy.typing import NDArray
 
+from spinifex.logger import logger
+
 
 class IPP(NamedTuple):
     """Ionospheric Piercepoints"""
@@ -147,6 +149,7 @@ def _get_ipp_simple(
     tuple(list[u.Quantity], NDArray)
         ipp.x, ipp.y, ipp.z positions, airmass
     """
+    logger.info("Calculating ionospheric piercepoints")
     c_value = R_earth**2 - (R_earth + height_array) ** 2
     b_value = u.Quantity(loc.geocentric) @ los_dir.cartesian.xyz
     b_value = b_value[:, np.newaxis]
