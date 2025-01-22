@@ -3,11 +3,8 @@
 
 from __future__ import annotations
 
-from importlib import resources
-from pathlib import Path
 from typing import Any, NamedTuple
 
-import astropy.units as u
 import numpy as np
 from astropy.time import Time
 from numpy.typing import NDArray
@@ -18,7 +15,6 @@ from spinifex.ionospheric.index_tools import (
     get_indices_axis,
 )
 from spinifex.ionospheric.ionex_download import (
-    SOLUTION,
     download_ionex,
 )
 from spinifex.ionospheric.ionex_parser import (
@@ -141,51 +137,6 @@ def interpolate_ionex(
     return tecdata
 
 
-def get_ionex_files(
-    times: Time,
-    server: str | None = None,
-    prefix: str = "cod",
-    url_stem: str | None = None,
-    time_resolution: u.Quantity | None = None,
-    solution: SOLUTION = "final",
-    output_directory: Path | None = None,
-) -> list[Path]:
-    """Find ionex file locally or online.
-
-    Parameters
-    ----------
-    times : Time
-        time for which to retrieve
-    server : str, optional
-        URL of a server to query. If not specified, local files will be searched.
-    prefix : str, optional
-        name of the ionex provider, by default "CODG"
-
-    Returns
-    -------
-    list[Path] :
-        ionex files
-
-    """
-    # TODO: convert to the new tool in ionex_parser to get the unique days of ionex data
-    if server is None:
-        doy = times[0].datetime.timetuple().tm_yday
-        yy = times[0].ymdhms[0]
-        yy = yy - 2000 if yy > 2000 else yy - 1990
-        with resources.as_file(resources.files("spinifex.data.tests")) as test_data:
-            return [test_data / f"{prefix.upper()}G{doy:03d}0.{yy:02d}I.gz"]
-    else:
-        return download_ionex(
-            times=times,
-            server=server,
-            prefix=prefix,
-            url_stem=url_stem,
-            time_resolution=time_resolution,
-            solution=solution,
-            output_directory=output_directory,
-        )
-
-
 def get_density_ionex(
     ipp: IPP, iono_kwargs: dict[str, Any] | None = None
 ) -> NDArray[np.float64]:
@@ -210,7 +161,8 @@ def get_density_ionex(
     """
     # TODO: apply_earth_rotation as option
     iono_kwargs = iono_kwargs or {}
-    sorted_ionex_paths = get_ionex_files(ipp.times, **iono_kwargs)
+    sorted_ionex_paths = download_ionex(times=ipp.times, **iono_kwargs)
+
     unique_days = unique_days_from_ionex_files(sorted_ionex_paths)
     if not unique_days.shape:
         ionex = read_ionex(sorted_ionex_paths[0])

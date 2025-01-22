@@ -27,14 +27,10 @@ def test_get_rm():
     lon = 6.367 * u.deg
     lat = 52.833 * u.deg
     dwingeloo = EarthLocation(lon=lon, lat=lat, height=0 * u.km)
-    rm = get_rm.get_rm_from_skycoord(loc=dwingeloo, times=times, source=cas_a)
-    assert isinstance(rm.rm, np.ndarray)
-    assert rm.rm.shape == times.shape
-    assert np.isclose(rm.rm[0], 0.0687, 0.001)
     iono_kwargs: dict[str, Any] = {}
     with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
         iono_kwargs["output_directory"] = datapath
-        iono_kwargs["prefix"] = "esa"
+        iono_kwargs["prefix"] = "cod"
         iono_kwargs["server"] = "cddis"
         rm = get_rm.get_rm_from_skycoord(
             loc=dwingeloo,
@@ -44,3 +40,5 @@ def test_get_rm():
             iono_kwargs=iono_kwargs,
         )
         assert isinstance(rm.rm, np.ndarray)
+        assert rm.rm.shape == times.shape
+        assert np.isclose(rm.rm[0], 0.0687, 0.001)

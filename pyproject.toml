@@ -43,6 +43,7 @@ dependencies = [
     "requests",
     "unlzw3",
     "typing-extensions; python_version < '3.10'",
+    "nest-asyncio",
 ]
 
 [project.optional-dependencies]
@@ -138,7 +139,8 @@ extend-select = [
     "YTT", # flake8-2020
     "EXE", # flake8-executable
     "NPY", # NumPy specific rules
-    "PD",  # pandas-vet
+    "PD",  # pandas-vet,
+    "RET", # flake8-return
 ]
 ignore = [
     "PLR09",   # Too many <...>

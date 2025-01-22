@@ -612,9 +612,9 @@ async def download_from_igsiono(
 
 
 async def download_ionex_coro(
-    server: str,
     times: Time,
-    prefix: str = "cod",
+    server: str = "chapman",
+    prefix: str = "uqr",
     url_stem: str | None = None,
     time_resolution: u.Quantity | None = None,
     solution: SOLUTION = "final",
@@ -624,10 +624,10 @@ async def download_ionex_coro(
 
     Parameters
     ----------
-    server : str
-        Server to download from. Must be a supported server.
     times : Time
         Times to download for.
+    server : str
+        Server to download from, by default "cddis". Must be a supported server.
     prefix : str, optional
         Analysis centre prefix, by default "cod". Must be a supported analysis centre.
     url_stem : str | None, optional
