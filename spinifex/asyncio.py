@@ -23,7 +23,18 @@ def sync_wrapper(coro: Callable[P, Coroutine[None, None, T]]) -> Callable[P, T]:
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> T:
-        return asyncio.run(coro(*args, **kwargs))
+        # First see if we are already in an event loop
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            # Nope - we can go ahead and create one
+            return asyncio.run(coro(*args, **kwargs))
+        else:
+            # We are in an event loop, so we can't use run
+            # Submit the coroutine to the event loop
+            return asyncio.run_coroutine_threadsafe(
+                coro(*args, **kwargs), loop
+            ).result()
 
     # Keep the function docs correct
     wrapper.__doc__ = coro.__doc__
