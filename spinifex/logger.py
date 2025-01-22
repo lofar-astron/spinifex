@@ -14,7 +14,6 @@ formatter = logging.Formatter(
 )
 
 
-# pylint: disable=W0621
 class TqdmToLogger(io.StringIO):
     """
     Output stream for TQDM which will output to logger module instead of

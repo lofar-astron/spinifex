@@ -1,7 +1,6 @@
-# pylint: disable=duplicate-code
 from __future__ import annotations
 
-from astropy.utils import iers  # pylint: disable=ungrouped-imports
+from astropy.utils import iers
 
 iers.conf.auto_download = False
 

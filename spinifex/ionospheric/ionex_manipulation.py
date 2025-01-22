@@ -1,4 +1,3 @@
-# pylint: disable=duplicate-code
 """Module of ionex manipulation tools"""
 
 from __future__ import annotations

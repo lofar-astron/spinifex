@@ -34,16 +34,10 @@ trigger_prepare:
     strategy: depend
     include: .prepare.gitlab-ci.yml
 
-run_ruff:
+pre_commit:
   stage: lint
   script:
-    - tox -e ruff
-  allow_failure: false
-
-run_pylint:
-  stage: lint
-  script:
-    - tox -e pylint
+    - tox -e pre-commit
   allow_failure: false
 
 # build_extensions:

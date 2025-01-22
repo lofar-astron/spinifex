@@ -1,9 +1,8 @@
-# pylint: disable=redefined-outer-name
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from astropy.utils import iers  # pylint: disable=ungrouped-imports
+from astropy.utils import iers
 
 iers.conf.auto_download = False
 

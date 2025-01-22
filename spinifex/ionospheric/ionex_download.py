@@ -44,9 +44,9 @@ SERVERS = {
     "chapman": "http://chapman.upc.es/tomion/rapid",
     "igsiono": "ftp://igs-final.man.olsztyn.pl",
 }
-assert (
-    set(DEFAULT_TIME_RESOLUTIONS.keys()) == CENTER_NAMES
-), "Time resolutions must be defined for all analysis centres"
+assert set(DEFAULT_TIME_RESOLUTIONS.keys()) == CENTER_NAMES, (
+    "Time resolutions must be defined for all analysis centres"
+)
 NAME_SWITCH_WEEK = 2238  # GPS Week where the naming convention changed
 
 SOLUTION = Literal["final", "rapid"]
