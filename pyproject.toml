@@ -43,6 +43,7 @@ dependencies = [
     "requests",
     "unlzw3",
     "typing-extensions; python_version < '3.10'",
+    "nest-asyncio",
 ]
 
 [project.optional-dependencies]
