@@ -12,6 +12,7 @@ from numpy.typing import NDArray
 
 from spinifex.geometry import IPP, get_ipp_from_altaz, get_ipp_from_skycoord
 from spinifex.ionospheric import ModelDensityFunction, ionospheric_models
+from spinifex.logger import logger
 from spinifex.magnetic import MagneticFieldFunction, magnetic_models
 
 DEFAULT_IONO_HEIGHT = np.array([450.0]) * u.km
@@ -60,7 +61,7 @@ def _get_rm(
     RM
         rotation measures object
     """
-
+    logger.info("Calculating rotation measure")
     iono_kwargs = iono_kwargs or {}
     density_profile = iono_model(ipp=ipp, iono_kwargs=iono_kwargs)
     magnetic_profile = magnetic_model(ipp=ipp)
