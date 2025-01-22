@@ -1,11 +1,10 @@
 #  Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 #  SPDX-License-Identifier: Apache-2.0
-# pylint: disable=duplicate-code
 """Testing of magnetic"""
 
 from __future__ import annotations
 
-from astropy.utils import iers  # pylint: disable=ungrouped-imports
+from astropy.utils import iers
 
 iers.conf.auto_download = False
 

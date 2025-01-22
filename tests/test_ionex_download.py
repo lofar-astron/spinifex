@@ -1,6 +1,3 @@
-# pylint: disable=redefined-outer-name
-# pylint: disable=ungrouped-imports
-# pylint: disable=C0411
 from __future__ import annotations
 
 import filecmp
