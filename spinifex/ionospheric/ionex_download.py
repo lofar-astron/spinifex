@@ -31,6 +31,7 @@ CENTER_NAMES = {
     "jpl",
     "upc",
     "irt",
+    "uqr",
 }
 DEFAULT_TIME_RESOLUTIONS: dict[str, u.Quantity] = {
     "cod": 1 * u.hour,
@@ -39,6 +40,7 @@ DEFAULT_TIME_RESOLUTIONS: dict[str, u.Quantity] = {
     "jpl": 2 * u.hour,
     "upc": 2 * u.hour,
     "irt": 2 * u.hour,
+    "uqr": 15 * u.min,  # Chapman only provides 15 minute resolution right now
 }
 SERVERS = {
     "cddis": "https://cddis.nasa.gov/archive/gnss/products/ionex",
