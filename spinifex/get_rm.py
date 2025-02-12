@@ -35,6 +35,8 @@ class RM(NamedTuple):
     """array of azimuths (degrees)"""
     elevation: NDArray[Any]
     """array of elevation (degrees)"""
+    loc: EarthLocation
+    """observer location"""
 
 
 def _get_rm(
@@ -78,6 +80,7 @@ def _get_rm(
         height=ipp.loc.height.to(u.km).value,
         azimuth=ipp.altaz.az.deg,
         elevation=ipp.altaz.alt.deg,
+        loc=ipp.station_loc,
     )
 
 
