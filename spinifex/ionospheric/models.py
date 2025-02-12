@@ -69,6 +69,7 @@ def get_density_ionex_single_layer(
         los=ipp.los,
         airmass=ipp.airmass[:, index],
         altaz=ipp.altaz,
+        station_loc=ipp.station_loc,
     )
     result = np.zeros(ipp.loc.shape, dtype=float)
     result[np.arange(n_times), index] = get_density_ionex(
