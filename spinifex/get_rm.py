@@ -84,6 +84,21 @@ def _get_rm(
     )
 
 
+def get_average_rm(rm: RM) -> RM:
+    profile_weights = np.sum(rm.electron_density, axis=1, keepdims=True)
+    return RM(
+        rm=rm.rm.mean(),
+        times=rm.times.mean(),
+        b_parallel=np.sum(
+            rm.b_parallel * rm.electron_density / profile_weights, axis=1
+        ).mean(),
+        electron_density=profile_weights.mean(),
+        height=np.sum(rm.height * rm.electron_density / profile_weights, axis=1).mean(),
+        azimuth=np.degrees(np.angle(np.sum(np.exp(1.0j * np.radians(rm.azimuth))))),
+        elevation=rm.elevation.mean(),
+    )
+
+
 def get_rm_from_altaz(
     loc: EarthLocation,
     altaz: AltAz,
