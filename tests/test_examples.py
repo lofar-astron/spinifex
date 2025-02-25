@@ -22,6 +22,7 @@ example_scripts = list(EXAMPLES_DIR.glob("*.py"))
 example_notebooks = list(EXAMPLES_DIR.glob("*.ipynb"))
 
 
+@pytest.mark.filterwarnings("ignore:'datfix' made the change")
 @pytest.mark.parametrize("notebook", example_notebooks, ids=lambda nb: nb.name)
 def test_example_notebook(notebook: Path, tmpdir):
     """Run Jupyter notebook and ensure it executes without errors."""
@@ -39,6 +40,7 @@ def test_example_notebook(notebook: Path, tmpdir):
     runpy.run_path(str(tmp_script_path))
 
 
+@pytest.mark.filterwarnings("ignore:'datfix' made the change")
 @pytest.mark.parametrize("script", example_scripts, ids=lambda s: s.name)
 def test_example_script(script):
     """Run example script using runpy and ensure it executes without errors."""

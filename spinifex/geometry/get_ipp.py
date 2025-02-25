@@ -29,6 +29,8 @@ class IPP(NamedTuple):
     """airmass factor to convert to slant values"""
     altaz: AltAz
     """azimuth elevation"""
+    station_loc: EarthLocation
+    """Observer Location"""
 
 
 def get_ipp_from_skycoord(
@@ -88,6 +90,7 @@ def get_ipp_from_altaz(
         los=los_dir,
         airmass=airmass,
         altaz=altaz,
+        station_loc=loc,
     )
 
 

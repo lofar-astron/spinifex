@@ -35,6 +35,8 @@ class RM(NamedTuple):
     """array of azimuths (degrees)"""
     elevation: NDArray[Any]
     """array of elevation (degrees)"""
+    loc: EarthLocation
+    """observer location"""
 
 
 def _get_rm(
@@ -78,6 +80,22 @@ def _get_rm(
         height=ipp.loc.height.to(u.km).value,
         azimuth=ipp.altaz.az.deg,
         elevation=ipp.altaz.alt.deg,
+        loc=ipp.station_loc,
+    )
+
+
+def get_average_rm(rm: RM) -> RM:
+    profile_weights = np.sum(rm.electron_density, axis=1, keepdims=True)
+    return RM(
+        rm=rm.rm.mean(),
+        times=rm.times.mean(),
+        b_parallel=np.sum(
+            rm.b_parallel * rm.electron_density / profile_weights, axis=1
+        ).mean(),
+        electron_density=profile_weights.mean(),
+        height=np.sum(rm.height * rm.electron_density / profile_weights, axis=1).mean(),
+        azimuth=np.degrees(np.angle(np.sum(np.exp(1.0j * np.radians(rm.azimuth))))),
+        elevation=rm.elevation.mean(),
     )
 
 

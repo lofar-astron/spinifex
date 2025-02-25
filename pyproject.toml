@@ -38,6 +38,7 @@ dynamic = ["version"]
 dependencies = [
     "numpy",
     "astropy",
+    "h5py",
     "ppigrf",
     "PyIRI",
     "requests",
