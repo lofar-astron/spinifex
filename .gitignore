@@ -161,8 +161,11 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 scratch.ipynb
+junk.ipynb
 spinifex/_version.py
 scratch_time.ipynb
 
 .DS_Store
 *.svg
+
+*.fits
