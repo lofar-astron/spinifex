@@ -48,16 +48,20 @@ def get_metadata_from_ms(ms_path: Path) -> MsMetaData:
             0
         ].values()
     )
-    with tab.table(ms_path.as_posix()) as my_ms:
+    with tab.table(ms_path.as_posix(), ack=False) as my_ms:
         timestep = my_ms.getcell("INTERVAL", 0)
         times = Time(
             np.arange(timerange[0], timerange[1] + 0.5 * timestep, timestep)
             / (24 * 3600),
             format="mjd",
         )
-        pointing = tab.table(my_ms.getkeyword("FIELD")).getcell("PHASE_DIR", 0)[0]
-        stations = tab.table(my_ms.getkeyword("ANTENNA")).getcol("NAME")
-        station_pos = tab.table(my_ms.getkeyword("ANTENNA")).getcol("POSITION")
+        pointing = tab.table(my_ms.getkeyword("FIELD"), ack=False).getcell(
+            "PHASE_DIR", 0
+        )[0]
+        stations = tab.table(my_ms.getkeyword("ANTENNA"), ack=False).getcol("NAME")
+        station_pos = tab.table(my_ms.getkeyword("ANTENNA"), ack=False).getcol(
+            "POSITION"
+        )
         locations = EarthLocation.from_geocentric(*station_pos.T, unit=u.m)
         return MsMetaData(
             times=times,
@@ -70,7 +74,7 @@ def get_metadata_from_ms(ms_path: Path) -> MsMetaData:
 
 def get_columns_from_ms(ms_path: Path) -> list[str]:
     """Get the columns from a MeasurementSet"""
-    with tab.table(ms_path.as_posix()) as my_ms:
+    with tab.table(ms_path.as_posix(), ack=False) as my_ms:
         return list(my_ms.colnames())
 
 
