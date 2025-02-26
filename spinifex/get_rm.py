@@ -96,6 +96,7 @@ def get_average_rm(rm: RM) -> RM:
         height=np.sum(rm.height * rm.electron_density / profile_weights, axis=1).mean(),
         azimuth=np.degrees(np.angle(np.sum(np.exp(1.0j * np.radians(rm.azimuth))))),
         elevation=rm.elevation.mean(),
+        loc=rm.loc,
     )
 
 
