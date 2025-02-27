@@ -6,7 +6,6 @@ from typing import Any
 import astropy.units as u
 import h5py
 import numpy as np
-from astropy.coordinates import SkyCoord
 from numpy.typing import NDArray
 
 from spinifex.get_rm import RM
@@ -287,8 +286,6 @@ def _zero_terminated_string(size: int = 10) -> h5py.Datatype:
 def write_rm_to_h5parm(
     rms: dict[str, RM],
     h5parm_name: str,
-    src_name: str,
-    src_dir: SkyCoord,
     solset_name: str | None = None,
 ) -> None:
     """writes a dictionary of RM values per station to a new or existing h5parm file
@@ -299,10 +296,6 @@ def write_rm_to_h5parm(
         rm values per station
     h5parm_name : str
         name of the h5parm file
-    src_name : str
-        source name, only one source allowed
-    src_dir : SkyCoord
-        coordinates of the source
     solset_name : str | None, optional
         name of the solset if None it  will default to sol###, by default None
 
@@ -316,19 +309,14 @@ def write_rm_to_h5parm(
     with h5py.File(h5parm_name, "a") as h5parm:
         solset = create_solset(h5parm, solset_name=solset_name)
         add_antenna_info(solset, station_names, station_pos)
-        add_source_info(solset, [src_name], [[src_dir.ra.rad, src_dir.dec.rad]])
-        soltab_axes = ["ant", "time", "dir"]
+        soltab_axes = ["ant", "time"]
         axes_values = {}
         ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
         axes_values["ant"] = np.array(station_names, dtype=ant_dtype)
         axes_values["time"] = (
             rms[station_names[0]].times.mjd * 24 * 3600.0
         )  # mjd in seconds?
-        dir_dtype = _zero_terminated_string(len(src_name) + 1)
-        axes_values["dir"] = np.array([src_name], dtype=dir_dtype)
-        rm_values = np.array(
-            [rms[stname].rm[..., np.newaxis] for stname in station_names]
-        )
+        rm_values = np.array([rms[stname].rm for stname in station_names])
         weights = np.ones(rm_values.shape, dtype=bool)
         weights[np.isnan(rm_values)] = 0
         add_soltab(
