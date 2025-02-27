@@ -11,6 +11,7 @@ iers.conf.auto_download = False
 import astropy.units as u
 import h5py
 import numpy as np
+import pytest
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
 from spinifex import h5parm_tools as h5pt
@@ -75,3 +76,57 @@ def test_write_rm_h5parm(tmpdir):
     for stat in stations:
         rms[stat] = rm
     h5pt.write_rm_to_h5parm(rms, h5parm_name=h5parm_name)
+    # check sol000 exists, check sol000/rotationmeasure000 exists
+    with h5py.File(h5parm_name) as myh5:
+        assert "sol000" in myh5
+        assert "sol000/rotationmeasure000" in myh5
+    h5pt.write_rm_to_h5parm(rms, h5parm_name=h5parm_name)
+    # check sol001 exists, check sol001/rotationmeasure000 exists
+    with h5py.File(h5parm_name) as myh5:
+        assert "sol001" in myh5
+        assert "sol001/rotationmeasure000" in myh5
+    with pytest.raises(RuntimeError, match="sol000 already exists"):
+        h5pt.write_rm_to_h5parm(rms, h5parm_name=h5parm_name, solset_name="sol000")
+        # check runtime error
+    h5pt.write_rm_to_h5parm(
+        rms, h5parm_name=h5parm_name, solset_name="sol000", add_to_existing_solset=True
+    )
+    # check sol000 exists, check sol000/rotationmeasure001 exists
+    with h5py.File(h5parm_name) as myh5:
+        assert "sol000" in myh5
+        assert "sol000/rotationmeasure001" in myh5
+    with pytest.raises(RuntimeError, match="rotationmeasure000 already exists"):
+        h5pt.write_rm_to_h5parm(
+            rms,
+            h5parm_name=h5parm_name,
+            solset_name="sol000",
+            soltab_name="rotationmeasure000",
+            add_to_existing_solset=True,
+        )
+        # check runtime error
+    h5pt.write_rm_to_h5parm(
+        rms,
+        h5parm_name=h5parm_name,
+        solset_name="sol000",
+        soltab_name="RMextract",
+        add_to_existing_solset=True,
+    )
+    # check sol000 exists, check sol000/RMextract exists
+    with h5py.File(h5parm_name) as myh5:
+        assert "sol000" in myh5
+        assert "sol000/RMextract" in myh5
+    h5pt.write_rm_to_h5parm(rms, h5parm_name=h5parm_name, solset_name="sol042")
+    # check sol042 exists, check sol042/rotationmeasure000 exists
+    with h5py.File(h5parm_name) as myh5:
+        assert "sol042" in myh5
+        assert "sol042/rotationmeasure000" in myh5
+    h5pt.write_rm_to_h5parm(
+        rms,
+        h5parm_name=h5parm_name,
+        soltab_name="RMextract",
+        add_to_existing_solset=True,
+    )
+    # check sol002 exists, check sol002/RMextract exists
+    with h5py.File(h5parm_name) as myh5:
+        assert "sol002" in myh5
+        assert "sol002/RMextract" in myh5
