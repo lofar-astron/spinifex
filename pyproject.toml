@@ -70,6 +70,7 @@ Homepage = "https://git.astron.nl/RD/spinifex"
 Changelog = "https://git.astron.nl/RD/spinifex/-/releases"
 
 [project.scripts]
+get_rm_h5parm_for_ms = "spinifex.vis_tools.get_rm_h5parm_for_ms:main"
 
 
 [tool.hatch]
