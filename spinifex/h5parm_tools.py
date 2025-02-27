@@ -9,7 +9,6 @@ import numpy as np
 from numpy.typing import NDArray
 
 from spinifex.get_rm import RM
-from spinifex.logger import logger
 
 
 def get_minimal_solset_name(h5file: h5py.File) -> str:
@@ -71,10 +70,8 @@ def create_solset(h5file: h5py.File, solset_name: str | None = None) -> h5py.Dat
     if solset_name is None:
         solset_name = get_minimal_solset_name(h5file)
     if solset_name in h5file:
-        tmp = get_minimal_solset_name(h5file)
-        msg = f"{solset_name} already existing in {h5file.name}. Switching to default name: {tmp}"
-        logger.warning(msg)
-        solset_name = tmp
+        message = f"{solset_name} already exists in {h5file.name}."
+        raise RuntimeError(message)
 
     solset = h5file.create_group(solset_name)
     solset.attrs.h5parm_version = "1.0"
@@ -179,10 +176,8 @@ def add_soltab(
     if soltab_name is None:
         soltab_name = get_minimal_soltab_name(solset, soltab_type)
     if soltab_name in solset:
-        tmp = get_minimal_soltab_name(solset, soltab_type)
-        msg = f"{soltab_name} already existing in {solset.name}. Switching to default name: {tmp}"
-        logger.warning(msg)
-        soltab_name = tmp
+        message = f"{soltab_name} already exists in {solset.name}."
+        raise RuntimeError(message)
 
     soltab = solset.create_group(soltab_name)
     # soltab.attrs.title = soltab_type
@@ -287,6 +282,8 @@ def write_rm_to_h5parm(
     rms: dict[str, RM],
     h5parm_name: str,
     solset_name: str | None = None,
+    soltab_name: str | None = None,
+    add_to_existing_solset: bool = False,
 ) -> None:
     """writes a dictionary of RM values per station to a new or existing h5parm file
 
@@ -298,6 +295,11 @@ def write_rm_to_h5parm(
         name of the h5parm file
     solset_name : str | None, optional
         name of the solset if None it  will default to sol###, by default None
+    soltab_name : str | None, optional
+        name of the soltab if None it  will default to 'rotationmeasure###'
+    add_to_existing_solset : bool = False
+        whether to append to an existing solset, if it exists. If True, the user
+        is responsible for having consistent antennas and sources.
 
     Raises
     ------
@@ -307,8 +309,12 @@ def write_rm_to_h5parm(
     create_empty_h5parm(h5parm_name=h5parm_name)
     station_names, station_pos = _get_station_metadata(rms)
     with h5py.File(h5parm_name, "a") as h5parm:
-        solset = create_solset(h5parm, solset_name=solset_name)
-        add_antenna_info(solset, station_names, station_pos)
+        if solset_name is not None and solset_name in h5parm and add_to_existing_solset:
+            solset = h5parm[solset_name]
+        else:
+            solset = create_solset(h5parm, solset_name=solset_name)
+            add_antenna_info(solset, station_names, station_pos)
+
         soltab_axes = ["ant", "time"]
         axes_values = {}
         ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
@@ -326,4 +332,5 @@ def write_rm_to_h5parm(
             weight=weights,
             soltab_axes=soltab_axes,
             axes_values=axes_values,
+            soltab_name=soltab_name,
         )

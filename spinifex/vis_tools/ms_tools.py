@@ -22,7 +22,7 @@ except ImportError as e:
     raise ImportError(MSG) from e
 
 # Disable acknowledgement from opening casacore tables
-table = partial(_casacore_table)
+table = partial(_casacore_table, ack=False)
 
 
 class MsMetaData(NamedTuple):
