@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import runpy
+import shutil
 from pathlib import Path
 
 import nbconvert
@@ -42,6 +43,9 @@ def test_example_notebook(notebook: Path, tmpdir):
 
 @pytest.mark.filterwarnings("ignore:'datfix' made the change")
 @pytest.mark.parametrize("script", example_scripts, ids=lambda s: s.name)
-def test_example_script(script):
+def test_example_script(script, tmpdir):
     """Run example script using runpy and ensure it executes without errors."""
-    runpy.run_path(str(script))
+    # copy script to temporary directory for write access
+    tmp_script_path = tmpdir / script.name
+    shutil.copy(script, tmp_script_path)
+    runpy.run_path(str(tmp_script_path))

@@ -11,7 +11,7 @@ iers.conf.auto_download = False
 import astropy.units as u
 import h5py
 import numpy as np
-from astropy.coordinates import EarthLocation, SkyCoord
+from astropy.coordinates import EarthLocation
 from astropy.time import Time
 from spinifex import h5parm_tools as h5pt
 from spinifex.get_rm import RM
@@ -58,7 +58,6 @@ def test_write_rm_h5parm(tmpdir):
     """test that writing rotation measures does not crash"""
     h5parm_name = f"{tmpdir}/test.h5"
     rms = {}
-    cas_a = SkyCoord(ra=350.85 * u.deg, dec=58.815 * u.deg)
     lon = 6.367 * u.deg
     lat = 52.833 * u.deg
     dwingeloo = EarthLocation(lon=lon, lat=lat, height=0 * u.km)
@@ -75,6 +74,4 @@ def test_write_rm_h5parm(tmpdir):
     stations = ["CS001LBA", "CS002LBA"]
     for stat in stations:
         rms[stat] = rm
-    h5pt.write_rm_to_h5parm(
-        rms, h5parm_name=h5parm_name, src_name="CAS_A", src_dir=cas_a
-    )
+    h5pt.write_rm_to_h5parm(rms, h5parm_name=h5parm_name)
