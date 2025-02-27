@@ -79,6 +79,10 @@ def create_solset(h5file: h5py.File, solset_name: str | None = None) -> h5py.Dat
 
     solset = h5file.create_group(solset_name)
     solset.attrs.h5parm_version = "1.0"
+    solset.attrs["CLASS"] = np.bytes_("GROUP")
+    solset.attrs["FILTERS"] = 0
+    solset.attrs["TITLE"] = np.bytes_("")
+    solset.attrs["VERSION"] = np.bytes_("1.0")
     solset.create_dataset(
         "antenna",
         shape=(1,),
@@ -182,18 +186,22 @@ def add_soltab(
         soltab_name = tmp
 
     soltab = solset.create_group(soltab_name)
-    soltab.attrs.title = soltab_type
-
+    # soltab.attrs.title = soltab_type
+    soltab.attrs["CLASS"] = np.bytes_("GROUP")
+    soltab.attrs["FILTERS"] = 0
+    soltab.attrs["TITLE"] = np.bytes_(soltab_type)
+    soltab.attrs["VERSION"] = np.bytes_("1.0")
     soltab_axes_str = ",".join(soltab_axes)
     for axis in soltab_axes:
         soltab.create_dataset(axis, data=axes_values[axis])
 
     soltab_val = soltab.create_dataset("val", shape=val.shape, dtype="<f8")
     soltab_val.attrs["soltype"] = soltab_type
-    soltab_val.attrs["AXES"] = soltab_axes_str
+    soltab_axes_dtype = _zero_terminated_string(len(soltab_axes_str) + 1)
+    soltab_val.attrs["AXES"] = np.array(soltab_axes_str, dtype=soltab_axes_dtype)
     soltab_val[:] = val
     soltab_weight = soltab.create_dataset("weight", shape=weight.shape, dtype="<f2")
-    soltab_weight.attrs["AXES"] = soltab_axes
+    soltab_weight.attrs["AXES"] = np.array(soltab_axes_str, dtype=soltab_axes_dtype)
     soltab_weight[:] = weight  # Todo: np.isnan?
     return soltab
 
@@ -211,7 +219,7 @@ def check_h5parm(h5file: h5py.File) -> bool:
     bool
         True if the file is conform h5parm definition
     """
-    return "h5parm_version" in h5file.attrs
+    return "TITLE" in h5file.attrs
 
 
 def _get_station_metadata(rms: dict[str, RM]) -> tuple[list[Any], list[Any]]:
@@ -263,7 +271,17 @@ def create_empty_h5parm(h5parm_name: str) -> None:
                 raise ValueError(msg)
     else:
         with h5py.File(h5parm_name, "w") as h5parm:
-            h5parm.attrs["h5parm_version"] = "1.0"
+            h5parm.attrs["h5parm_version"] = np.bytes_("1.0")
+            h5parm.attrs["CLASS"] = np.bytes_("GROUP")
+            h5parm.attrs["FILTERS"] = 0
+            h5parm.attrs["TITLE"] = np.bytes_("")
+            h5parm.attrs["VERSION"] = np.bytes_("1.0")
+
+
+def _zero_terminated_string(size: int = 10) -> h5py.Datatype:
+    tid = h5py.h5t.C_S1.copy()
+    tid.set_size(size)
+    return h5py.Datatype(tid)
 
 
 def write_rm_to_h5parm(
@@ -295,18 +313,19 @@ def write_rm_to_h5parm(
     """
     create_empty_h5parm(h5parm_name=h5parm_name)
     station_names, station_pos = _get_station_metadata(rms)
-
     with h5py.File(h5parm_name, "a") as h5parm:
         solset = create_solset(h5parm, solset_name=solset_name)
         add_antenna_info(solset, station_names, station_pos)
         add_source_info(solset, [src_name], [[src_dir.ra.rad, src_dir.dec.rad]])
         soltab_axes = ["ant", "time", "dir"]
         axes_values = {}
-        axes_values["ant"] = station_names
+        ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
+        axes_values["ant"] = np.array(station_names, dtype=ant_dtype)
         axes_values["time"] = (
             rms[station_names[0]].times.mjd * 24 * 3600.0
         )  # mjd in seconds?
-        axes_values["dir"] = [src_name]
+        dir_dtype = _zero_terminated_string(len(src_name) + 1)
+        axes_values["dir"] = np.array([src_name], dtype=dir_dtype)
         rm_values = np.array(
             [rms[stname].rm[..., np.newaxis] for stname in station_names]
         )
