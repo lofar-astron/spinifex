@@ -180,7 +180,6 @@ def add_soltab(
         raise RuntimeError(message)
 
     soltab = solset.create_group(soltab_name)
-    # soltab.attrs.title = soltab_type
     soltab.attrs["CLASS"] = np.bytes_("GROUP")
     soltab.attrs["FILTERS"] = 0
     soltab.attrs["TITLE"] = np.bytes_(soltab_type)
