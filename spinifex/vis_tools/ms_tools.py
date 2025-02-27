@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -14,10 +15,14 @@ from spinifex.ionospheric import ModelDensityFunction, ionospheric_models
 from spinifex.magnetic import MagneticFieldFunction, magnetic_models
 
 try:
-    import casacore.tables as tab
+    from casacore.tables import table as _casacore_table
+    from casacore.tables import taql
 except ImportError as e:
     MSG = "casacore is not installed! To operate on MeasurementSets, install spinifex[casa]."
     raise ImportError(MSG) from e
+
+# Disable acknowledgement from opening casacore tables
+table = partial(_casacore_table)
 
 
 class MsMetaData(NamedTuple):
@@ -44,20 +49,20 @@ def get_metadata_from_ms(ms_path: Path) -> MsMetaData:
         object with metadata
     """
     timerange = list(
-        tab.taql("select gmin(TIME_CENTROID), gmax(TIME_CENTROID) from $ms_path")[
+        taql("select gmin(TIME_CENTROID), gmax(TIME_CENTROID) from $ms_path")[
             0
         ].values()
     )
-    with tab.table(ms_path.as_posix()) as my_ms:
+    with table(ms_path.as_posix()) as my_ms:
         timestep = my_ms.getcell("INTERVAL", 0)
         times = Time(
             np.arange(timerange[0], timerange[1] + 0.5 * timestep, timestep)
             / (24 * 3600),
             format="mjd",
         )
-        pointing = tab.table(my_ms.getkeyword("FIELD")).getcell("PHASE_DIR", 0)[0]
-        stations = tab.table(my_ms.getkeyword("ANTENNA")).getcol("NAME")
-        station_pos = tab.table(my_ms.getkeyword("ANTENNA")).getcol("POSITION")
+        pointing = table(my_ms.getkeyword("FIELD")).getcell("PHASE_DIR", 0)[0]
+        stations = table(my_ms.getkeyword("ANTENNA")).getcol("NAME")
+        station_pos = table(my_ms.getkeyword("ANTENNA")).getcol("POSITION")
         locations = EarthLocation.from_geocentric(*station_pos.T, unit=u.m)
         return MsMetaData(
             times=times,
@@ -70,7 +75,7 @@ def get_metadata_from_ms(ms_path: Path) -> MsMetaData:
 
 def get_columns_from_ms(ms_path: Path) -> list[str]:
     """Get the columns from a MeasurementSet"""
-    with tab.table(ms_path.as_posix()) as my_ms:
+    with table(ms_path.as_posix()) as my_ms:
         return list(my_ms.colnames())
 
 
