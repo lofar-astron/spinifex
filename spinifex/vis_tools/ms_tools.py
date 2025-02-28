@@ -10,6 +10,7 @@ from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.time import Time
 from numpy.typing import NDArray
 
+from spinifex.get_dtec import get_dtec_from_skycoord
 from spinifex.get_rm import DEFAULT_IONO_HEIGHT, RM, get_rm_from_skycoord
 from spinifex.ionospheric import ModelDensityFunction, ionospheric_models
 from spinifex.magnetic import MagneticFieldFunction, magnetic_models
@@ -176,3 +177,81 @@ def get_rm_from_ms(
                 iono_kwargs=iono_kwargs,
             )
     return rm_dict
+
+
+def get_dtec_from_ms(
+    ms_path: Path,
+    timestep: u.Quantity | None = None,
+    use_stations: list[int | str] | None = None,
+    height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
+    iono_model: ModelDensityFunction = ionospheric_models.ionex,
+    iono_kwargs: dict[str, Any] | None = None,
+) -> dict[str, NDArray]:
+    """Get rotation measures for a measurement set
+
+    Parameters
+    ----------
+    ms_path : Path
+        measurement set
+    timestep : u.Quantity | None, optional
+        only calculate rotation measure every timestep, by default None
+    use_stations : list[int  |  str] | None, optional
+        list of stations (index or name) to use,
+        if None use first of the measurement set, by default None
+    height_array : NDArray[np.float64], optional
+        array of ionospheric altitudes, by default DEFAULT_IONO_HEIGHT
+    iono_model : ModelDensityFunction, optional
+        ionospheric model, by default ionospheric_models.ionex
+    iono_kwargs : dict[str, Any] | None, optional
+        arguments for the ionospheric model, by default None
+
+    Returns
+    -------
+    dict[str, NDArray]
+        dictionary with electron_density_profiles per station
+    """
+    iono_kwargs = iono_kwargs or {}
+    dtec_dict = {}
+    ms_metadata = get_metadata_from_ms(ms_path)
+    if timestep is not None:
+        # dtime = ms_metadata.times[1].mjd - ms_metadata.times[0].mjd
+        dtime_in_days = timestep.to(u.hr).value / 24
+        times = Time(
+            np.arange(
+                ms_metadata.times[0].mjd - 0.5 * dtime_in_days,
+                ms_metadata.times[-1].mjd + 0.5 * dtime_in_days,
+                dtime_in_days,
+            ),
+            format="mjd",
+        )
+    else:
+        times = ms_metadata.times
+
+    # TODO: implement use_stations is all (default?)
+
+    if use_stations is None:
+        location = get_average_location(ms_metadata.locations)
+        dtec_dict["average_station_pos"] = get_dtec_from_skycoord(
+            loc=location,
+            times=times,
+            source=ms_metadata.source,
+            height_array=height_array,
+            iono_model=iono_model,
+            iono_kwargs=iono_kwargs,
+        )
+    else:
+        # get rm per station
+        for stat in use_stations:
+            if isinstance(stat, str):
+                istat = ms_metadata.station_names.index(stat)
+            else:
+                istat = stat
+            dtec_dict[ms_metadata.station_names[istat]] = get_dtec_from_skycoord(
+                loc=ms_metadata.locations[istat],
+                times=times,
+                source=ms_metadata.source,
+                height_array=height_array,
+                iono_model=iono_model,
+                iono_kwargs=iono_kwargs,
+            )
+    return dtec_dict
