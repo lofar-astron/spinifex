@@ -8,6 +8,7 @@ import h5py
 import numpy as np
 from numpy.typing import NDArray
 
+from spinifex.get_dtec import DTEC
 from spinifex.get_rm import RM
 
 
@@ -215,12 +216,12 @@ def check_h5parm(h5file: h5py.File) -> bool:
     return "TITLE" in h5file.attrs
 
 
-def _get_station_metadata(rms: dict[str, RM]) -> tuple[list[Any], list[Any]]:
+def _get_station_metadata(rms: dict[str, Any]) -> tuple[list[Any], list[Any]]:
     """helper function to generate arrays of station names and positions
 
     Parameters
     ----------
-    rms : dict[RM]
+    rms : dict[RM|DTEC]
         dictionary with RM object per station
 
     Returns
@@ -328,6 +329,66 @@ def write_rm_to_h5parm(
             solset=solset,
             soltab_type="rotationmeasure",
             val=rm_values,
+            weight=weights,
+            soltab_axes=soltab_axes,
+            axes_values=axes_values,
+            soltab_name=soltab_name,
+        )
+
+
+def write_tec_to_h5parm(
+    dtec: dict[str, DTEC],
+    h5parm_name: str,
+    solset_name: str | None = None,
+    soltab_name: str | None = None,
+    add_to_existing_solset: bool = False,
+) -> None:
+    """writes a dictionary of RM values per station to a new or existing h5parm file
+
+    Parameters
+    ----------
+    dtec : dict[DTEC]
+        electron density profiles per station
+    h5parm_name : str
+        name of the h5parm file
+    solset_name : str | None, optional
+        name of the solset if None it  will default to sol###, by default None
+    soltab_name : str | None, optional
+        name of the soltab if None it  will default to 'rotationmeasure###'
+    add_to_existing_solset : bool = False
+        whether to append to an existing solset, if it exists. If True, the user
+        is responsible for having consistent antennas and sources.
+
+    Raises
+    ------
+    TypeError
+        error if h5parm_name is existing and not a valid h5parm
+    """
+    create_empty_h5parm(h5parm_name=h5parm_name)
+    station_names, station_pos = _get_station_metadata(dtec)
+    with h5py.File(h5parm_name, "a") as h5parm:
+        if solset_name is not None and solset_name in h5parm and add_to_existing_solset:
+            solset = h5parm[solset_name]
+        else:
+            solset = create_solset(h5parm, solset_name=solset_name)
+            add_antenna_info(solset, station_names, station_pos)
+
+        soltab_axes = ["ant", "time"]
+        axes_values = {}
+        ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
+        axes_values["ant"] = np.array(station_names, dtype=ant_dtype)
+        axes_values["time"] = (
+            dtec[station_names[0]].times.mjd * 24 * 3600.0
+        )  # mjd in seconds?
+        dtec_values = np.array(
+            [np.sum(dtec[stname].electron_density, axis=-1) for stname in station_names]
+        )
+        weights = np.ones(dtec_values.shape, dtype=bool)
+        weights[np.isnan(dtec_values)] = 0
+        add_soltab(
+            solset=solset,
+            soltab_type="tec",
+            val=dtec_values,
             weight=weights,
             soltab_axes=soltab_axes,
             axes_values=axes_values,

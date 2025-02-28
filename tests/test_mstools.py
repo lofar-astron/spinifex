@@ -12,7 +12,11 @@ iers.conf.auto_download = False
 
 import astropy.units as u
 import pytest
-from spinifex.vis_tools.ms_tools import get_columns_from_ms, get_rm_from_ms
+from spinifex.vis_tools.ms_tools import (
+    get_columns_from_ms,
+    get_dtec_from_ms,
+    get_rm_from_ms,
+)
 
 
 @pytest.fixture
@@ -45,4 +49,15 @@ def test_mstools(unzip_ms: Path) -> None:
             use_stations=["CS002HBA0"],
             timestep=20 * u.s,
         )
-    assert "CS002HBA0" in rms
+        assert "CS002HBA0" in rms
+        dtec = get_dtec_from_ms(
+            unzip_ms,
+            iono_kwargs={
+                "output_directory": test_data,
+                "prefix": "esa",
+                "server": "cddis",
+            },
+            use_stations=["CS002HBA0"],
+            timestep=20 * u.s,
+        )
+        assert "CS002HBA0" in dtec
