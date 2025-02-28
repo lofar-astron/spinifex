@@ -1,6 +1,3 @@
-#  Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
-#  SPDX-License-Identifier: Apache-2.0
-
 """Module to parse the IONosphere map EXchange (IONEX) data format,
 as described in Schaer and Gurtner (1998)"""
 

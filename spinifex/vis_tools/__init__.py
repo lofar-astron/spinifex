@@ -1,6 +1,3 @@
-#  Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
-#  SPDX-License-Identifier: Apache-2.0
-
 """Spinifex tools for correcting interferometric visibilities"""
 
 from __future__ import annotations
