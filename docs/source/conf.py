@@ -1,5 +1,7 @@
-#  Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
+#  Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy) &
+#  CSIRO (Commonwealth Scientific and Industrial Research Organisation)
 #  SPDX-License-Identifier: Apache-2.0
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -37,7 +39,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "spinifex"
-copyright = "2025, ASTRON"
+copyright = "2025, ASTRON & CSIRO"
 
 # openstackdocstheme options
 repository_name = "git.astron.nl/spinifex"
