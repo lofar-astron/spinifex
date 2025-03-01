@@ -381,7 +381,10 @@ def write_tec_to_h5parm(
             dtec[station_names[0]].times.mjd * 24 * 3600.0
         )  # mjd in seconds?
         dtec_values = np.array(
-            [np.sum(dtec[stname].electron_density, axis=-1) for stname in station_names]
+            [
+                np.sum(dtec[stname].electron_density * dtec[stname].airmass, axis=-1)
+                for stname in station_names
+            ]
         )
         weights = np.ones(dtec_values.shape, dtype=bool)
         weights[np.isnan(dtec_values)] = 0

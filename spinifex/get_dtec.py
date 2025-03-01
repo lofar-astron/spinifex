@@ -22,6 +22,8 @@ class DTEC(NamedTuple):
     """time axis"""
     electron_density: NDArray[Any]
     """electron content"""
+    airmass: NDArray[Any]
+    """conversion from vertical to slant TEC"""
     height: NDArray[Any]
     """array of altitudes (km)"""
     loc: EarthLocation
@@ -55,6 +57,7 @@ def _get_dtec(
     return DTEC(
         times=ipp.times,
         electron_density=density_profile,
+        airmass=ipp.airmass,
         height=ipp.loc.height.to(u.km).value,
         loc=ipp.station_loc,
     )
