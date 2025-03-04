@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import argparse
 from functools import partial
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 import astropy.units as u
 import numpy as np
@@ -10,9 +11,11 @@ from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.time import Time
 from numpy.typing import NDArray
 
+from spinifex import h5parm_tools
 from spinifex.get_dtec import get_dtec_from_skycoord
 from spinifex.get_rm import DEFAULT_IONO_HEIGHT, RM, get_rm_from_skycoord
 from spinifex.ionospheric import ModelDensityFunction, ionospheric_models
+from spinifex.logger import logger
 from spinifex.magnetic import MagneticFieldFunction, magnetic_models
 
 try:
@@ -95,13 +98,14 @@ def get_average_location(location: EarthLocation) -> EarthLocation:
     EarthLocation
         first location
     """
+    logger.warning("Using first location from list of locations - not a true average!")
     return location[0]
 
 
 def get_rm_from_ms(
     ms_path: Path,
     timestep: u.Quantity | None = None,
-    use_stations: list[int | str] | None = None,
+    use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
     height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
     iono_model: ModelDensityFunction = ionospheric_models.ionex,
     magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
@@ -132,57 +136,22 @@ def get_rm_from_ms(
     dict[str, RM]
         dictionary with RM object per station
     """
-    iono_kwargs = iono_kwargs or {}
-    rm_dict = {}
-    ms_metadata = get_metadata_from_ms(ms_path)
-    if timestep is not None:
-        # dtime = ms_metadata.times[1].mjd - ms_metadata.times[0].mjd
-        dtime_in_days = timestep.to(u.hr).value / 24
-        times = Time(
-            np.arange(
-                ms_metadata.times[0].mjd - 0.5 * dtime_in_days,
-                ms_metadata.times[-1].mjd + 0.5 * dtime_in_days,
-                dtime_in_days,
-            ),
-            format="mjd",
-        )
-    else:
-        times = ms_metadata.times
-    # TODO: implement use_stations is all (default?)
-    if use_stations is None:
-        location = get_average_location(ms_metadata.locations)
-        rm_dict["average_station_pos"] = get_rm_from_skycoord(
-            loc=location,
-            times=times,
-            source=ms_metadata.source,
-            height_array=height_array,
-            iono_model=iono_model,
-            magnetic_model=magnetic_model,
-            iono_kwargs=iono_kwargs,
-        )
-    else:
-        # get rm per station
-        for stat in use_stations:
-            if isinstance(stat, str):
-                istat = ms_metadata.station_names.index(stat)
-            else:
-                istat = stat
-            rm_dict[ms_metadata.station_names[istat]] = get_rm_from_skycoord(
-                loc=ms_metadata.locations[istat],
-                times=times,
-                source=ms_metadata.source,
-                height_array=height_array,
-                iono_model=iono_model,
-                magnetic_model=magnetic_model,
-                iono_kwargs=iono_kwargs,
-            )
-    return rm_dict
+    return _get_iono_from_ms(
+        ms_path=ms_path,
+        iono_type="rm",
+        timestep=timestep,
+        use_stations=use_stations,
+        height_array=height_array,
+        iono_model=iono_model,
+        magnetic_model=magnetic_model,
+        iono_kwargs=iono_kwargs,
+    )
 
 
 def get_dtec_from_ms(
     ms_path: Path,
     timestep: u.Quantity | None = None,
-    use_stations: list[int | str] | None = None,
+    use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
     height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
     iono_model: ModelDensityFunction = ionospheric_models.ionex,
     iono_kwargs: dict[str, Any] | None = None,
@@ -210,8 +179,69 @@ def get_dtec_from_ms(
     dict[str, NDArray]
         dictionary with electron_density_profiles per station
     """
+    return _get_iono_from_ms(
+        ms_path=ms_path,
+        iono_type="dtec",
+        timestep=timestep,
+        use_stations=use_stations,
+        height_array=height_array,
+        iono_model=iono_model,
+        iono_kwargs=iono_kwargs,
+    )
+
+
+def _get_iono_from_ms(
+    ms_path: Path,
+    iono_type: Literal["dtec", "rm"],
+    timestep: u.Quantity | None = None,
+    use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
+    height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
+    iono_model: ModelDensityFunction = ionospheric_models.ionex,
+    magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
+    iono_kwargs: dict[str, Any] | None = None,
+) -> dict[str, RM] | dict[str, NDArray]:
+    """Get ionospheric values for a measurement set
+
+    Parameters
+    ----------
+    ms_path : Path
+        measurement set
+    iono_type : Literal["dtec", "rm"]
+        type of ionospheric value to calculate
+    timestep : u.Quantity | None, optional
+        only calculate rotation measure every timestep, by default None
+    use_stations : list[int  |  str] | None, optional
+        list of stations (index or name) to use,
+        if None use first of the measurement set, by default None
+    height_array : NDArray[np.float64], optional
+        array of ionospheric altitudes, by default DEFAULT_IONO_HEIGHT
+    iono_model : ModelDensityFunction, optional
+        ionospheric model, by default ionospheric_models.ionex
+    magnetic_model : MagneticFieldFunction, optional
+        geomagnetic model, by default magnetic_models.ppigrf
+    iono_kwargs : dict[str, Any] | None, optional
+        arguments for the ionospheric model, by default None
+
+    Returns
+    -------
+    dict[str, RM] | dict[str, NDArray]
+        dictionary with ionospheric values
+    """
+
+    if iono_type not in ["dtec", "rm"]:
+        msg = f"iono_type should be 'dtec' or 'rm'. Got {iono_type}"
+        raise ValueError(msg)
+
+    get_func = (
+        get_dtec_from_skycoord
+        if iono_type == "dtec"
+        # Set the magnetic model here for get_rm
+        # all other arguments are the same
+        else partial(get_rm_from_skycoord, magnetic_model=magnetic_model)
+    )
+
     iono_kwargs = iono_kwargs or {}
-    dtec_dict = {}
+    result_dict = {}
     ms_metadata = get_metadata_from_ms(ms_path)
     if timestep is not None:
         # dtime = ms_metadata.times[1].mjd - ms_metadata.times[0].mjd
@@ -227,31 +257,131 @@ def get_dtec_from_ms(
     else:
         times = ms_metadata.times
 
-    # TODO: implement use_stations is all (default?)
-
-    if use_stations is None:
-        location = get_average_location(ms_metadata.locations)
-        dtec_dict["average_station_pos"] = get_dtec_from_skycoord(
-            loc=location,
-            times=times,
-            source=ms_metadata.source,
-            height_array=height_array,
-            iono_model=iono_model,
-            iono_kwargs=iono_kwargs,
-        )
-    else:
-        # get rm per station
-        for stat in use_stations:
-            if isinstance(stat, str):
-                istat = ms_metadata.station_names.index(stat)
-            else:
-                istat = stat
-            dtec_dict[ms_metadata.station_names[istat]] = get_dtec_from_skycoord(
-                loc=ms_metadata.locations[istat],
+    if isinstance(use_stations, str):
+        if use_stations == "average":
+            location = get_average_location(ms_metadata.locations)
+            result_dict["average_station_pos"] = get_func(  # type: ignore[operator]
+                loc=location,
                 times=times,
                 source=ms_metadata.source,
                 height_array=height_array,
                 iono_model=iono_model,
                 iono_kwargs=iono_kwargs,
             )
-    return dtec_dict
+            return result_dict
+        if use_stations == "all":
+            station_list: list[str] | list[int] = ms_metadata.station_names
+        else:
+            msg = f"`use_stations` should be a list of stations, or string literal 'average' or 'all'. Got {use_stations}"  # type: ignore[unreachable]
+            raise ValueError(msg)
+
+    elif isinstance(use_stations, list):
+        station_list = use_stations
+    else:
+        msg = f"`use_stations` should be a list of stations, or string literal 'average' or 'all'. Got {use_stations}"  # type: ignore[unreachable]
+        raise ValueError(msg)
+
+    # get rm per station
+    for stat in station_list:
+        istat = ms_metadata.station_names.index(stat) if isinstance(stat, str) else stat
+        result_dict[ms_metadata.station_names[istat]] = get_func(  # type: ignore[operator]
+            loc=ms_metadata.locations[istat],
+            times=times,
+            source=ms_metadata.source,
+            height_array=height_array,
+            iono_model=iono_model,
+            iono_kwargs=iono_kwargs,
+        )
+    return result_dict
+
+
+def cli_get_rm_h5parm_from_ms() -> None:
+    # Initialize parser
+    parser = argparse.ArgumentParser(
+        description="Calculate RM values using spinifex, add to h5parm"
+    )
+    parser.add_argument(
+        "ms",
+        type=Path,
+        help="Measurement set for which the RM values should be calculated.",
+    )
+    parser.add_argument(
+        "--solset-name",
+        type=str,
+        help="Solset name. Default: create a new one based on first existing sol###",
+    )
+    parser.add_argument(
+        "--soltab-name", type=str, help="Soltab name. Default: rotationmeasure"
+    )
+    parser.add_argument(
+        "-o",
+        "--h5parm",
+        default="rotationmeasure.h5",
+        type=Path,
+        help="h5parm to which the results of the RotationMeasure is added.",
+    )
+    parser.add_argument(
+        "-a",
+        "--add-to-existing-solset",
+        action="store_true",
+        help="Add to existing solset if it exists",
+    )
+
+    args = parser.parse_args()
+
+    rm_dict = get_rm_from_ms(
+        ms_path=args.ms,
+        use_stations="all",
+    )
+    h5parm_tools.write_rm_to_h5parm(
+        rm_dict,
+        args.h5parm,
+        solset_name=args.solset_name,
+        soltab_name=args.soltab_name,
+        add_to_existing_solset=args.add_to_existing_solset,
+    )
+
+
+def cli_get_tec_h5parm_from_ms() -> None:
+    # Initialize parser
+    parser = argparse.ArgumentParser(
+        description="Calculate tec values using spinifex, add to h5parm"
+    )
+    parser.add_argument(
+        "ms",
+        type=Path,
+        help="Measurement set for which the tec values should be calculated.",
+    )
+    parser.add_argument(
+        "--solset-name",
+        type=str,
+        help="Solset name. Default: create a new one based on first existing sol###",
+    )
+    parser.add_argument("--soltab-name", type=str, help="Soltab name. Default: tec###")
+    parser.add_argument(
+        "-o",
+        "--h5parm",
+        default="tec.h5",
+        type=Path,
+        help="h5parm to which the results of the tec is added.",
+    )
+    parser.add_argument(
+        "-a",
+        "--add-to-existing-solset",
+        action="store_true",
+        help="Add to existing solset if it exists",
+    )
+
+    args = parser.parse_args()
+
+    dtec = get_dtec_from_ms(
+        ms_path=args.ms,
+        use_stations="all",
+    )
+    h5parm_tools.write_tec_to_h5parm(
+        dtec,
+        args.h5parm,
+        solset_name=args.solset_name,
+        soltab_name=args.soltab_name,
+        add_to_existing_solset=args.add_to_existing_solset,
+    )

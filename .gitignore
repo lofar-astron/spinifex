@@ -169,3 +169,6 @@ scratch_time.ipynb
 *.svg
 
 *.fits
+test.MS/*
+ionex_files/*
+test.h5
