@@ -71,8 +71,8 @@ Homepage = "https://git.astron.nl/RD/spinifex"
 Changelog = "https://git.astron.nl/RD/spinifex/-/releases"
 
 [project.scripts]
-get_rm_h5parm_for_ms = "spinifex.vis_tools.get_rm_h5parm_for_ms:main"
-get_tec_h5parm_for_ms = "spinifex.vis_tools.get_tec_h5parm_for_ms:main"
+get_rm_h5parm_for_ms = "spinifex.vis_tools.ms_tools:cli_get_rm_h5parm_from_ms"
+get_tec_h5parm_for_ms = "spinifex.vis_tools.ms_tools:cli_get_tec_h5parm_from_ms"
 
 [tool.hatch]
 version.source = "vcs"
