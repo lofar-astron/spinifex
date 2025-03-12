@@ -14,7 +14,7 @@ import astropy.units as u
 import requests
 from astropy.time import Time
 
-from spinifex.asyncio import sync_wrapper
+from spinifex.asyncio_wrapper import sync_wrapper
 from spinifex.exceptions import IonexError, TimeResolutionError
 from spinifex.logger import logger
 from spinifex.times import get_gps_week, get_unique_days
