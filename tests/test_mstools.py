@@ -10,8 +10,17 @@ from astropy.utils import iers
 
 iers.conf.auto_download = False
 
+import importlib.util
+
 import astropy.units as u
 import pytest
+
+if not importlib.util.find_spec("casacore"):
+    pytest.skip(
+        "Skipping tests of ms_tools because casacore is not available.",
+        allow_module_level=True,
+    )
+
 from spinifex.vis_tools.ms_tools import (
     get_columns_from_ms,
     get_dtec_from_ms,
