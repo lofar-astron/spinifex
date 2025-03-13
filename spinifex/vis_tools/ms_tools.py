@@ -295,93 +295,41 @@ def _get_iono_from_ms(
     return result_dict
 
 
-def cli_get_rm_h5parm_from_ms() -> None:
-    # Initialize parser
-    parser = argparse.ArgumentParser(
-        description="Calculate RM values using spinifex, add to h5parm"
-    )
-    parser.add_argument(
-        "ms",
-        type=Path,
-        help="Measurement set for which the RM values should be calculated.",
-    )
-    parser.add_argument(
-        "--solset-name",
-        type=str,
-        help="Solset name. Default: create a new one based on first existing sol###",
-    )
-    parser.add_argument(
-        "--soltab-name", type=str, help="Soltab name. Default: rotationmeasure"
-    )
-    parser.add_argument(
-        "-o",
-        "--h5parm",
-        default="rotationmeasure.h5",
-        type=Path,
-        help="h5parm to which the results of the RotationMeasure is added.",
-    )
-    parser.add_argument(
-        "-a",
-        "--add-to-existing-solset",
-        action="store_true",
-        help="Add to existing solset if it exists",
-    )
-
-    args = parser.parse_args()
+def cli_get_rm_h5parm_from_ms(args: argparse.Namespace) -> None:
+    ms_path: Path = Path(args.ms)
+    h5parm_path: str = args.h5parm
+    solset_name: str | None = args.solset_name
+    soltab_name: str | None = args.soltab_name
+    add_to_existing_solset: bool = args.add_to_existing_solset
 
     rm_dict = get_rm_from_ms(
-        ms_path=args.ms,
+        ms_path=ms_path,
         use_stations="all",
     )
     h5parm_tools.write_rm_to_h5parm(
         rm_dict,
-        args.h5parm,
-        solset_name=args.solset_name,
-        soltab_name=args.soltab_name,
-        add_to_existing_solset=args.add_to_existing_solset,
+        h5parm_path,
+        solset_name=solset_name,
+        soltab_name=soltab_name,
+        add_to_existing_solset=add_to_existing_solset,
     )
 
 
-def cli_get_tec_h5parm_from_ms() -> None:
-    # Initialize parser
-    parser = argparse.ArgumentParser(
-        description="Calculate tec values using spinifex, add to h5parm"
-    )
-    parser.add_argument(
-        "ms",
-        type=Path,
-        help="Measurement set for which the tec values should be calculated.",
-    )
-    parser.add_argument(
-        "--solset-name",
-        type=str,
-        help="Solset name. Default: create a new one based on first existing sol###",
-    )
-    parser.add_argument("--soltab-name", type=str, help="Soltab name. Default: tec###")
-    parser.add_argument(
-        "-o",
-        "--h5parm",
-        default="tec.h5",
-        type=Path,
-        help="h5parm to which the results of the tec is added.",
-    )
-    parser.add_argument(
-        "-a",
-        "--add-to-existing-solset",
-        action="store_true",
-        help="Add to existing solset if it exists",
-    )
-
-    args = parser.parse_args()
+def cli_get_dtec_h5parm_from_ms(args: argparse.Namespace) -> None:
+    ms_path: Path = Path(args.ms)
+    h5parm_path: str = args.h5parm
+    solset_name: str | None = args.solset_name
+    soltab_name: str | None = args.soltab_name
+    add_to_existing_solset: bool = args.add_to_existing_solset
 
     dtec = get_dtec_from_ms(
-        ms_path=args.ms,
+        ms_path=ms_path,
         use_stations="all",
     )
     h5parm_tools.write_tec_to_h5parm(
         dtec,
-        args.h5parm,
-        solset_name=args.solset_name,
-        soltab_name=args.soltab_name,
-        add_to_existing_solset=args.add_to_existing_solset,
+        h5parm_path,
+        solset_name=solset_name,
+        soltab_name=soltab_name,
+        add_to_existing_solset=add_to_existing_solset,
     )
