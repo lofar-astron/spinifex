@@ -63,7 +63,7 @@ docs = [
     "jupyter",
     "matplotlib",
 ]
-casa = ["python-casacore"]
+casacore = ["python-casacore"]
 
 [project.urls]
 Homepage = "https://git.astron.nl/RD/spinifex"

@@ -36,6 +36,12 @@ Stable release via PyPI:
 pip install spinifex
 ```
 
+If you have python-casacore installed, install with optional casacore dependency to work on MeasurementSets:
+
+```
+pip install spinifex[casacore]
+```
+
 Latest version on Gitlab:
 
 ```
