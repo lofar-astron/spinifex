@@ -22,7 +22,7 @@ try:
     from casacore.tables import table as _casacore_table
     from casacore.tables import taql
 except ImportError as e:
-    MSG = "casacore is not installed! To operate on MeasurementSets, install spinifex[casa]."
+    MSG = "casacore is not installed! To operate on MeasurementSets, install spinifex[casacore]."
     raise ImportError(MSG) from e
 
 # Disable acknowledgement from opening casacore tables
