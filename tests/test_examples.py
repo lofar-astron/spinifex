@@ -9,7 +9,7 @@ import nbconvert
 import nbformat
 import pytest
 
-# Make Jypyter happy
+# Make Jupyter happy
 os.environ["JUPYTER_PLATFORM_DIRS"] = "1"
 
 # Define the directory containing your example scripts
