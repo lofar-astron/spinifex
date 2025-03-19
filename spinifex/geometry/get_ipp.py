@@ -80,7 +80,7 @@ def get_ipp_from_altaz(
     """
     if not altaz.obstime.shape or altaz.obstime.shape != altaz.az.shape:
         altaz = _make_dimensions_match(altaz)
-    los_dir = altaz.transform_to(ITRS())
+    los_dir = altaz.transform_to(ITRS(obstime=altaz.obstime))
     ipp, airmass = _get_ipp_simple(height_array=height_array, loc=loc, los_dir=los_dir)
     return IPP(
         loc=EarthLocation.from_geocentric(*ipp),
