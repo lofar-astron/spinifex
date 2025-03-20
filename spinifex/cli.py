@@ -10,7 +10,7 @@ from spinifex.vis_tools.ms_tools import (
 )
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
         description="This Spinifex command-line interface can make an H5Parm with ionospheric data (TEC or RM), using the metadata from a measurement set."
     )
@@ -82,6 +82,11 @@ def main():
     )
     parser_tec.set_defaults(func=cli_get_dtec_h5parm_from_ms)
 
+    return parser
+
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
     if args.command:
         args.func(args)
