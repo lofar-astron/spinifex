@@ -66,3 +66,40 @@ def test_mstools(unzip_ms: Path) -> None:
             timestep=20 * u.s,
         )
         assert "CS002HBA0" in dtec
+
+
+def test_station_selection(unzip_ms: Path) -> None:
+    with resources.as_file(resources.files("spinifex.data.tests")) as test_data:
+        rms = get_rm_from_ms(
+            unzip_ms,
+            use_stations=["CS002HBA0"],
+            timestep=20 * u.s,
+            output_directory=test_data,
+            prefix="esa",
+            server="cddis",
+        )
+        assert "CS002HBA0" in rms
+        assert len(rms) == 1
+
+        rms = get_rm_from_ms(
+            unzip_ms,
+            use_stations="all",
+            timestep=20 * u.s,
+            output_directory=test_data,
+            prefix="esa",
+            server="cddis",
+        )
+        stations = ["CS002HBA0", "RS210HBA", "RS509HBA"]
+        assert all(station in rms for station in stations)
+        assert len(rms) == 3
+
+        rms = get_rm_from_ms(
+            unzip_ms,
+            use_stations="average",
+            timestep=20 * u.s,
+            output_directory=test_data,
+            prefix="esa",
+            server="cddis",
+        )
+        assert "average_station_pos" in rms
+        assert len(rms) == 1
