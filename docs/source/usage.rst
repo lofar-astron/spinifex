@@ -11,4 +11,5 @@ Usage and Examples
     examples/get_rm_from_ms.ipynb
     examples/get_rm_from_fits.ipynb
     examples/how_to_download.ipynb
+    examples/iono_options.ipynb
     cli

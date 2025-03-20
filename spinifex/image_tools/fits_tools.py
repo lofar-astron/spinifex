@@ -20,9 +20,7 @@ from numpy.typing import NDArray
 from spinifex.exceptions import FITSHeaderError
 from spinifex.get_rm import DEFAULT_IONO_HEIGHT, RM, get_rm_from_skycoord
 from spinifex.image_tools.image_tools import IntegratedRM, get_integrated_rm
-from spinifex.ionospheric import ModelDensityFunction, ionospheric_models
 from spinifex.logger import logger
-from spinifex.magnetic import MagneticFieldFunction, magnetic_models
 
 
 class FITSMetaData(NamedTuple):
@@ -116,9 +114,9 @@ def get_rm_from_fits(
     fits_path: Path,
     timestep: u.Quantity = 15 * u.min,
     height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
-    iono_model: ModelDensityFunction = ionospheric_models.ionex,
-    magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
-    iono_kwargs: dict[str, Any] | None = None,
+    iono_model_name: str = "ionex",
+    magnetic_model_name: str = "ppigrf",
+    **iono_kwargs: Any,
 ) -> RM:
     """Get the ionospheric RM from a FITS file
 
@@ -130,12 +128,12 @@ def get_rm_from_fits(
         Time step to evaluate time-dependant RM, by default 15*u.min
     height_array : NDArray[np.float64], optional
         Height of ionosphere, by default DEFAULT_IONO_HEIGHT
-    iono_model : ModelDensityFunction, optional
-        Ionospheric model function, by default ionospheric_models.ionex
-    magnetic_model : MagneticFieldFunction, optional
-        Magnetic model function, by default magnetic_models.ppigrf
-    iono_kwargs : dict[str, Any] | None, optional
-        kwargs to pass to `iono_model`, by default None
+    iono_model_name : str, optional
+        ionospheric model name, by default "ionex". Must be a supported ionospheric model.
+    magnetic_model_name : str, optional
+        geomagnetic model name, by default "ppigrf". Must be a supported geomagnetic model.
+    iono_kwargs : dict
+        Keyword arguments for the ionospheric model
 
     Returns
     -------
@@ -157,9 +155,9 @@ def get_rm_from_fits(
         times=times,
         source=fits_metadata.source,
         height_array=height_array,
-        iono_model=iono_model,
-        magnetic_model=magnetic_model,
-        iono_kwargs=iono_kwargs,
+        iono_model_name=iono_model_name,
+        magnetic_model_name=magnetic_model_name,
+        **iono_kwargs,
     )
 
 
@@ -202,9 +200,9 @@ def get_integrated_rm_from_fits(
     fits_path: Path,
     timestep: u.Quantity = 15 * u.min,
     height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
-    iono_model: ModelDensityFunction = ionospheric_models.ionex,
-    magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
-    iono_kwargs: dict[str, Any] | None = None,
+    iono_model_name: str = "ionex",
+    magnetic_model_name: str = "ppigrf",
+    **iono_kwargs: Any,
 ) -> IntegratedRM:
     """Computed the integrated RM effect following Van Eck (2021)
 
@@ -216,12 +214,12 @@ def get_integrated_rm_from_fits(
         Timestep to use for computing time-dependent RM, by default 15*u.min
     height_array : NDArray[np.float64], optional
         altitudes, by default DEFAULT_IONO_HEIGHT
-    iono_model : ModelDensityFunction, optional
-        ionospheric model, by default ionospheric_models.ionex
-    magnetic_model : MagneticFieldFunction, optional
-        geomagnetic model, by default magnetic_models.ppigrf
-    iono_kwargs : dict[str, Any] | None, optional
-        options for the ionospheric model, by default None
+    iono_model_name : str, optional
+        ionospheric model name, by default "ionex". Must be a supported ionospheric model.
+    magnetic_model_name : str, optional
+        geomagnetic model name, by default "ppigrf". Must be a supported geomagnetic model.
+    iono_kwargs : dict
+        keyword arguments for the ionospheric model
 
     Returns
     -------
@@ -234,9 +232,9 @@ def get_integrated_rm_from_fits(
         fits_path=fits_path,
         timestep=timestep,
         height_array=height_array,
-        iono_model=iono_model,
-        magnetic_model=magnetic_model,
-        iono_kwargs=iono_kwargs,
+        iono_model_name=iono_model_name,
+        magnetic_model_name=magnetic_model_name,
+        **iono_kwargs,
     )
 
     freq_arr = get_freq_from_fits(fits_path)

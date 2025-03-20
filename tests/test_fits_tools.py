@@ -110,7 +110,8 @@ def test_get_metadata_from_fits(simple_fits_cube):
 @pytest.mark.filterwarnings("ignore:'datfix' made the change")
 def test_get_rm_from_fits(simple_fits_cube, tmpdir):
     rm = get_rm_from_fits(
-        fits_path=simple_fits_cube, iono_kwargs={"output_directory": Path(tmpdir)}
+        fits_path=simple_fits_cube,
+        output_directory=Path(tmpdir),
     )
     expected_rm = np.array([-0.69612298, -0.6634822])
     assert np.allclose(rm.rm, expected_rm)
@@ -119,10 +120,12 @@ def test_get_rm_from_fits(simple_fits_cube, tmpdir):
 @pytest.mark.filterwarnings("ignore:'datfix' made the change")
 def test_get_integrated_rm_from_fits(simple_fits_cube, tmpdir):
     integrated_rm = get_integrated_rm_from_fits(
-        fits_path=simple_fits_cube, iono_kwargs={"output_directory": Path(tmpdir)}
+        fits_path=simple_fits_cube,
+        output_directory=Path(tmpdir),
     )
     rm = get_rm_from_fits(
-        fits_path=simple_fits_cube, iono_kwargs={"output_directory": Path(tmpdir)}
+        fits_path=simple_fits_cube,
+        output_directory=Path(tmpdir),
     )
     delta_angles = np.rad2deg(np.angle(integrated_rm.theta))
 

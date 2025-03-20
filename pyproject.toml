@@ -46,6 +46,8 @@ dependencies = [
     "unlzw3",
     "typing-extensions; python_version < '3.10'",
     "nest-asyncio",
+    "pydantic>=2.10.6",
+    "eval-type-backport",
 ]
 
 [project.optional-dependencies]
@@ -105,6 +107,7 @@ enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 warn_unreachable = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+plugins = ['pydantic.mypy']
 
 [[tool.mypy.overrides]]
 module = "spinifex.*"

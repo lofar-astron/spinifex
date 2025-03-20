@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
 import numpy as np
 from astropy.time import Time
@@ -14,7 +14,8 @@ from spinifex.ionospheric.index_tools import (
     get_indices_axis,
 )
 from spinifex.ionospheric.ionex_download import (
-    download_ionex,
+    IonexOptions,
+    _download_ionex,
 )
 from spinifex.ionospheric.ionex_parser import (
     IonexData,
@@ -137,7 +138,7 @@ def interpolate_ionex(
 
 
 def get_density_ionex(
-    ipp: IPP, iono_kwargs: dict[str, Any] | None = None
+    ipp: IPP, ionex_options: IonexOptions | None = None
 ) -> NDArray[np.float64]:
     """read ionex files and interpolate values to ipp locations/times
 
@@ -145,7 +146,7 @@ def get_density_ionex(
     ----------
     ipp : IPP
         ionospheric piercepoints
-    iono_kwargs : dict | None, optional
+    ionex_options : IonexOptions, optional
         optional arguments for the ionospheric model, by default None
 
     Returns
@@ -159,8 +160,7 @@ def get_density_ionex(
         if ionex file cannot be downloaded
     """
     # TODO: apply_earth_rotation as option
-    iono_kwargs = iono_kwargs or {}
-    sorted_ionex_paths = download_ionex(times=ipp.times, **iono_kwargs)
+    sorted_ionex_paths = _download_ionex(times=ipp.times, options=ionex_options)
 
     unique_days = unique_days_from_ionex_files(sorted_ionex_paths)
     if not unique_days.shape:

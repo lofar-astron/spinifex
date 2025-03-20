@@ -8,6 +8,7 @@ from __future__ import annotations
 from importlib import metadata
 
 __version__ = metadata.version("spinifex")
+from spinifex import options
 from spinifex.ionospheric import ModelDensityFunction, ionospheric_models
 
-__all__ = ["ModelDensityFunction", "ionospheric_models"]
+__all__ = ["ModelDensityFunction", "ionospheric_models", "options"]

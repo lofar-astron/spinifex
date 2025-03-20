@@ -12,9 +12,14 @@ from astropy.time import Time
 from numpy.typing import NDArray
 
 from spinifex import h5parm_tools
-from spinifex.get_dtec import get_dtec_from_skycoord
-from spinifex.get_rm import DEFAULT_IONO_HEIGHT, RM, get_rm_from_skycoord
+from spinifex.get_dtec import _get_dtec_from_skycoord
+from spinifex.get_rm import (
+    DEFAULT_IONO_HEIGHT,
+    RM,
+    _get_rm_from_skycoord,
+)
 from spinifex.ionospheric import ModelDensityFunction, ionospheric_models
+from spinifex.ionospheric.models import IonoOptions, O, parse_iono_kwargs
 from spinifex.logger import logger
 from spinifex.magnetic import MagneticFieldFunction, magnetic_models
 
@@ -107,9 +112,9 @@ def get_rm_from_ms(
     timestep: u.Quantity | None = None,
     use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
     height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
-    iono_model: ModelDensityFunction = ionospheric_models.ionex,
+    iono_model: ModelDensityFunction[IonoOptions] = ionospheric_models.ionex,
     magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
-    iono_kwargs: dict[str, Any] | None = None,
+    **iono_kwargs: Any,
 ) -> dict[str, RM]:
     """Get rotation measures for a measurement set
 
@@ -128,7 +133,7 @@ def get_rm_from_ms(
         ionospheric model, by default ionospheric_models.ionex
     magnetic_model : MagneticFieldFunction, optional
         geomagnetic model, by default magnetic_models.ppigrf
-    iono_kwargs : dict[str, Any] | None, optional
+    iono_kwargs : dict, optional
         arguments for the ionospheric model, by default None
 
     Returns
@@ -136,6 +141,8 @@ def get_rm_from_ms(
     dict[str, RM]
         dictionary with RM object per station
     """
+    # TODO: Expose and create iono_options
+    iono_options = parse_iono_kwargs(iono_model, **iono_kwargs)
     return _get_iono_from_ms(
         ms_path=ms_path,
         iono_type="rm",
@@ -144,7 +151,7 @@ def get_rm_from_ms(
         height_array=height_array,
         iono_model=iono_model,
         magnetic_model=magnetic_model,
-        iono_kwargs=iono_kwargs,
+        iono_options=iono_options,
     )
 
 
@@ -153,8 +160,8 @@ def get_dtec_from_ms(
     timestep: u.Quantity | None = None,
     use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
     height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
-    iono_model: ModelDensityFunction = ionospheric_models.ionex,
-    iono_kwargs: dict[str, Any] | None = None,
+    iono_model: ModelDensityFunction[IonoOptions] = ionospheric_models.ionex,
+    **iono_kwargs: Any,
 ) -> dict[str, NDArray]:
     """Get rotation measures for a measurement set
 
@@ -171,7 +178,7 @@ def get_dtec_from_ms(
         array of ionospheric altitudes, by default DEFAULT_IONO_HEIGHT
     iono_model : ModelDensityFunction, optional
         ionospheric model, by default ionospheric_models.ionex
-    iono_kwargs : dict[str, Any] | None, optional
+    iono_options : OptionType | None, optional
         arguments for the ionospheric model, by default None
 
     Returns
@@ -179,6 +186,7 @@ def get_dtec_from_ms(
     dict[str, NDArray]
         dictionary with electron_density_profiles per station
     """
+    iono_options = parse_iono_kwargs(iono_model, **iono_kwargs)
     return _get_iono_from_ms(
         ms_path=ms_path,
         iono_type="dtec",
@@ -186,7 +194,7 @@ def get_dtec_from_ms(
         use_stations=use_stations,
         height_array=height_array,
         iono_model=iono_model,
-        iono_kwargs=iono_kwargs,
+        iono_options=iono_options,
     )
 
 
@@ -196,9 +204,9 @@ def _get_iono_from_ms(
     timestep: u.Quantity | None = None,
     use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
     height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
-    iono_model: ModelDensityFunction = ionospheric_models.ionex,
+    iono_model: ModelDensityFunction[O] = ionospheric_models.ionex,
     magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
-    iono_kwargs: dict[str, Any] | None = None,
+    iono_options: O | None = None,
 ) -> dict[str, RM] | dict[str, NDArray]:
     """Get ionospheric values for a measurement set
 
@@ -219,7 +227,7 @@ def _get_iono_from_ms(
         ionospheric model, by default ionospheric_models.ionex
     magnetic_model : MagneticFieldFunction, optional
         geomagnetic model, by default magnetic_models.ppigrf
-    iono_kwargs : dict[str, Any] | None, optional
+    iono_options : OptionType | None, optional
         arguments for the ionospheric model, by default None
 
     Returns
@@ -233,14 +241,13 @@ def _get_iono_from_ms(
         raise ValueError(msg)
 
     get_func = (
-        get_dtec_from_skycoord
+        _get_dtec_from_skycoord
         if iono_type == "dtec"
         # Set the magnetic model here for get_rm
         # all other arguments are the same
-        else partial(get_rm_from_skycoord, magnetic_model=magnetic_model)
+        else partial(_get_rm_from_skycoord, magnetic_model=magnetic_model)
     )
 
-    iono_kwargs = iono_kwargs or {}
     result_dict = {}
     ms_metadata = get_metadata_from_ms(ms_path)
     if timestep is not None:
@@ -266,7 +273,7 @@ def _get_iono_from_ms(
                 source=ms_metadata.source,
                 height_array=height_array,
                 iono_model=iono_model,
-                iono_kwargs=iono_kwargs,
+                iono_options=iono_options,
             )
             return result_dict
         if use_stations == "all":
@@ -290,7 +297,7 @@ def _get_iono_from_ms(
             source=ms_metadata.source,
             height_array=height_array,
             iono_model=iono_model,
-            iono_kwargs=iono_kwargs,
+            iono_options=iono_options,
         )
     return result_dict
 

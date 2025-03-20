@@ -12,8 +12,14 @@ from numpy.typing import NDArray
 
 from spinifex.geometry import IPP, get_ipp_from_altaz, get_ipp_from_skycoord
 from spinifex.ionospheric import ModelDensityFunction, ionospheric_models
+from spinifex.ionospheric.models import (
+    O,
+    parse_iono_kwargs,
+    parse_iono_model,
+)
 from spinifex.logger import logger
 from spinifex.magnetic import MagneticFieldFunction, magnetic_models
+from spinifex.magnetic.models import parse_magnetic_model
 
 DEFAULT_IONO_HEIGHT = np.array([450.0]) * u.km
 
@@ -41,9 +47,9 @@ class RM(NamedTuple):
 
 def _get_rm(
     ipp: IPP,
-    iono_model: ModelDensityFunction = ionospheric_models.ionex,
+    iono_model: ModelDensityFunction[O] = ionospheric_models.ionex,
     magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
-    iono_kwargs: dict[str, Any] | None = None,
+    iono_options: O | None = None,
 ) -> RM:
     """Get the rotation measures for a given set of ionospheric piercepoints
 
@@ -55,8 +61,8 @@ def _get_rm(
         ionospheric model, by default ionospheric_models.ionex
     magnetic_model : MagneticFieldFunction, optional
         geomagnetic model, by default magnetic_models.ppigrf
-    iono_kwargs : dict
-        options for the ionospheric model, by default {}
+    iono_options : OptionType, optional
+        options for the ionospheric model, by default None
 
     Returns
     -------
@@ -64,8 +70,7 @@ def _get_rm(
         rotation measures object
     """
     logger.info("Calculating rotation measure")
-    iono_kwargs = iono_kwargs or {}
-    density_profile = iono_model(ipp=ipp, iono_kwargs=iono_kwargs)
+    density_profile = iono_model(ipp=ipp, options=iono_options)
     magnetic_profile = magnetic_model(ipp=ipp)
     b_field_to_rm = -2.62e-6  # TODO: What are the units of this constant?
     rm = np.sum(
@@ -100,13 +105,13 @@ def get_average_rm(rm: RM) -> RM:
     )
 
 
-def get_rm_from_altaz(
+def _get_rm_from_altaz(
     loc: EarthLocation,
     altaz: AltAz,
     height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
-    iono_model: ModelDensityFunction = ionospheric_models.ionex,
+    iono_model: ModelDensityFunction[O] = ionospheric_models.ionex,
     magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
-    iono_kwargs: dict[str, Any] | None = None,
+    iono_options: O | None = None,
 ) -> RM:
     """get rotation measures for user defined altaz coordinates
 
@@ -123,7 +128,7 @@ def get_rm_from_altaz(
     magnetic_model : MagneticFieldFunction, optional
         geomagnetic model, by default magnetic_models.ppigrf
     iono_kwargs : dict
-        options for the ionospheric model, by default {}
+        keyword arguments for the ionospheric model
 
     Returns
     -------
@@ -135,18 +140,61 @@ def get_rm_from_altaz(
         ipp=ipp,
         iono_model=iono_model,
         magnetic_model=magnetic_model,
-        iono_kwargs=iono_kwargs,
+        iono_options=iono_options,
     )
 
 
-def get_rm_from_skycoord(
+def get_rm_from_altaz(
+    loc: EarthLocation,
+    altaz: AltAz,
+    height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
+    iono_model_name: str = "ionex",
+    magnetic_model_name: str = "ppigrf",
+    **iono_kwargs: Any,
+) -> RM:
+    """get rotation measures for user defined altaz coordinates
+
+    Parameters
+    ----------
+    loc : EarthLocation
+        observer location
+    altaz : AltAz
+        altaz coordinates
+    height_array : u.Quantity, optional
+        altitudes, by default default_height
+    iono_model_name : str, optional
+        ionospheric model name, by default "ionex". Must be a supported ionospheric model.
+    magnetic_model_name : str, optional
+        geomagnetic model name, by default "ppigrf". Must be a supported geomagnetic model.
+    iono_kwargs : dict
+        keyword arguments for the ionospheric model
+
+    Returns
+    -------
+    RM
+        rotation measure object
+    """
+    iono_model = parse_iono_model(iono_model_name)
+    iono_options = parse_iono_kwargs(iono_model=iono_model, **iono_kwargs)
+    magnetic_model = parse_magnetic_model(magnetic_model_name)
+    return _get_rm_from_altaz(
+        loc=loc,
+        altaz=altaz,
+        height_array=height_array,
+        iono_model=iono_model,
+        magnetic_model=magnetic_model,
+        iono_options=iono_options,
+    )
+
+
+def _get_rm_from_skycoord(
     loc: EarthLocation,
     times: Time,
     source: SkyCoord,
     height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
-    iono_model: ModelDensityFunction = ionospheric_models.ionex,
+    iono_model: ModelDensityFunction[O] = ionospheric_models.ionex,
     magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
-    iono_kwargs: dict[str, Any] | None = None,
+    iono_options: O | None = None,
 ) -> RM:
     """get rotation measures for user defined times and source coordinate
 
@@ -164,8 +212,8 @@ def get_rm_from_skycoord(
         ionospheric model, by default ionospheric_models.ionex
     magnetic_model : MagneticFieldFunction, optional
         geomagnetic model, by default magnetic_models.ppigrf
-    iono_kwargs : dict
-        options for the ionospheric model, by default {}
+    iono_options : IonoOptions, optional
+        options for the ionospheric model, by default None
 
 
     Returns
@@ -181,5 +229,53 @@ def get_rm_from_skycoord(
         ipp=ipp,
         iono_model=iono_model,
         magnetic_model=magnetic_model,
-        iono_kwargs=iono_kwargs,
+        iono_options=iono_options,
+    )
+
+
+def get_rm_from_skycoord(
+    loc: EarthLocation,
+    times: Time,
+    source: SkyCoord,
+    height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
+    iono_model_name: str = "ionex",
+    magnetic_model_name: str = "ppigrf",
+    **iono_kwargs: Any,
+) -> RM:
+    """get rotation measures for user defined times and source coordinate
+
+    Parameters
+    ----------
+    loc : EarthLocation
+        observer location
+    times : Time
+        times
+    source : SkyCoord
+        coordinates of the source
+    height_array : NDArray, optional
+        altitudes, by default default_height
+    iono_model_name : str, optional
+        ionospheric model name, by default "ionex". Must be a supported ionospheric model.
+    magnetic_model_name : str, optional
+        geomagnetic model name, by default "ppigrf". Must be a supported geomagnetic model.
+    iono_kwargs : dict
+        keyword arguments for the ionospheric model
+
+
+    Returns
+    -------
+    RM
+        rotation measure object
+    """
+    iono_model = parse_iono_model(iono_model_name)
+    iono_options = parse_iono_kwargs(iono_model=iono_model, **iono_kwargs)
+    magnetic_model = parse_magnetic_model(magnetic_model_name)
+    return _get_rm_from_skycoord(
+        loc=loc,
+        times=times,
+        source=source,
+        height_array=height_array,
+        iono_model=iono_model,
+        magnetic_model=magnetic_model,
+        iono_options=iono_options,
     )
