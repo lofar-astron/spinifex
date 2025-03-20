@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import Future, ThreadPoolExecutor
 from functools import partial
 from pathlib import Path
 from typing import Any, Literal, NamedTuple
@@ -12,7 +13,7 @@ from astropy.time import Time
 from numpy.typing import NDArray
 
 from spinifex import h5parm_tools
-from spinifex.get_dtec import _get_dtec_from_skycoord
+from spinifex.get_dtec import DTEC, _get_dtec_from_skycoord
 from spinifex.get_rm import (
     DEFAULT_IONO_HEIGHT,
     RM,
@@ -248,7 +249,8 @@ def _get_iono_from_ms(
         else partial(_get_rm_from_skycoord, magnetic_model=magnetic_model)
     )
 
-    result_dict = {}
+    result_dict: dict[str, RM | DTEC] = {}
+
     ms_metadata = get_metadata_from_ms(ms_path)
     if timestep is not None:
         # dtime = ms_metadata.times[1].mjd - ms_metadata.times[0].mjd
@@ -287,18 +289,52 @@ def _get_iono_from_ms(
     else:
         msg = f"`use_stations` should be a list of stations, or string literal 'average' or 'all'. Got {use_stations}"  # type: ignore[unreachable]
         raise ValueError(msg)
+    # get rm per station
+    logger.info("Getting DTEC per station")
 
     # get rm per station
-    for stat in station_list:
-        istat = ms_metadata.station_names.index(stat) if isinstance(stat, str) else stat
-        result_dict[ms_metadata.station_names[istat]] = get_func(  # type: ignore[operator]
-            loc=ms_metadata.locations[istat],
-            times=times,
-            source=ms_metadata.source,
-            height_array=height_array,
-            iono_model=iono_model,
-            iono_options=iono_options,
-        )
+    # Submit jobs to ThreadPoolExecutor
+    # Gets Future objects for each station
+    future_dict: dict[str, Future[RM | DTEC]] = {}
+    key_names: list[str] = []
+
+    # Execute the first station in serial
+    # Avoids race conidition to download ionex files
+
+    stat = station_list[0]
+    istat = ms_metadata.station_names.index(stat) if isinstance(stat, str) else stat
+    key_name = ms_metadata.station_names[istat]
+    result_dict[key_name] = get_func(  # type: ignore[operator]
+        loc=ms_metadata.locations[istat],
+        times=times,
+        source=ms_metadata.source,
+        height_array=height_array,
+        iono_model=iono_model,
+        iono_options=iono_options,
+    )
+
+    with ThreadPoolExecutor() as executor:
+        # Skip the first station
+        for stat in station_list[1:]:
+            istat = (
+                ms_metadata.station_names.index(stat) if isinstance(stat, str) else stat
+            )
+            key_name = ms_metadata.station_names[istat]
+            key_names.append(key_name)
+            future_dict[key_name] = executor.submit(
+                get_func,  # type: ignore[arg-type]
+                loc=ms_metadata.locations[istat],
+                times=times,
+                source=ms_metadata.source,
+                height_array=height_array,
+                iono_model=iono_model,
+                iono_options=iono_options,
+            )
+
+    # Get concrete results from futures
+    # Resolve Future objects to get the results
+    for key_name in key_names:
+        result_dict[key_name] = future_dict[key_name].result()
     return result_dict
 
 

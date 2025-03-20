@@ -9,7 +9,7 @@ logging.captureWarnings(True)
 
 
 formatter = logging.Formatter(
-    fmt="[%(threadName)s] %(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
+    fmt="%(levelname)s %(module)s - %(funcName)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 

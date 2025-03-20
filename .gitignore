@@ -169,8 +169,12 @@ scratch_time.ipynb
 *.svg
 
 *.fits
+
 test.MS/*
-ionex_files/*
+rotationmeasure.h5
 test.h5
+ionex_data/*
+ionex_files/*
 docs/source/examples/test.MS/*
 docs/source/examples/ionex_files/*
+docs/source/examples/test.MS/*
