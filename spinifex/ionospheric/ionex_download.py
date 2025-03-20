@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import shutil
 from datetime import datetime
+from enum import Enum
 from ftplib import FTP
 from pathlib import Path
 from typing import Literal
@@ -13,10 +14,12 @@ from urllib.parse import urlparse
 import astropy.units as u
 import requests
 from astropy.time import Time
+from pydantic import Field
 
 from spinifex.asyncio_wrapper import sync_wrapper
 from spinifex.exceptions import IonexError, TimeResolutionError
 from spinifex.logger import logger
+from spinifex.options import Options
 from spinifex.times import get_gps_week, get_unique_days
 
 # We need to support downloading from the following sources:
@@ -42,11 +45,28 @@ DEFAULT_TIME_RESOLUTIONS: dict[str, u.Quantity] = {
     "irt": 2 * u.hour,
     "uqr": 15 * u.min,  # Chapman only provides 15 minute resolution right now
 }
-SERVERS = {
-    "cddis": "https://cddis.nasa.gov/archive/gnss/products/ionex",
-    "chapman": "http://chapman.upc.es/tomion/rapid",
-    "igsiono": "ftp://igs-final.man.olsztyn.pl",
-}
+
+
+class Servers(str, Enum):
+    CDDIS = ("cddis", "https://cddis.nasa.gov/archive/gnss/products/ionex")
+    CHAPMAN = ("chapman", "http://chapman.upc.es/tomion/rapid")
+    IGSIONO = ("igsiono", "ftp://igs-final.man.olsztyn.pl")
+
+    def __new__(cls, value: str, _url: str) -> Servers:
+        obj = str.__new__(cls, value)
+        obj._value_ = value
+        obj._url = _url  # type: ignore[attr-defined]
+        return obj
+
+    @property
+    def url(self) -> str:
+        return str(self._url)  # type: ignore[attr-defined]
+
+    @classmethod
+    def get_url(cls, server: Servers) -> str:
+        return str(server.url)  # Retrieve URL given an Enum value
+
+
 assert set(DEFAULT_TIME_RESOLUTIONS.keys()) == CENTER_NAMES, (
     "Time resolutions must be defined for all analysis centres"
 )
@@ -305,7 +325,7 @@ def new_cddis_format(
     directory = f"{dtime.year:04d}/{doy:03d}"
 
     if url_stem is None:
-        url_stem = SERVERS.get("cddis")
+        url_stem = Servers.get_url(Servers.CDDIS)
 
     return f"{url_stem}/{directory}/{file_name}"
 
@@ -375,7 +395,8 @@ def old_cddis_format(
     file_name = f"{prefix_str}g{doy:03d}0.{yy}i.Z"
     directory_name = f"{dtime.year:04d}/{doy:03d}"
     if url_stem is None:
-        url_stem = SERVERS.get("cddis")
+        url_stem = Servers.get_url(Servers.CDDIS)
+
     return f"{url_stem}/{directory_name}/{file_name}"
 
 
@@ -465,7 +486,8 @@ def chapman_format(
         f"{dtime.year:04d}/{doy:03d}_{yy}{dtime.month:02d}{dtime.day:02d}.15min"
     )
     if url_stem is None:
-        url_stem = SERVERS.get("chapman")
+        url_stem = Servers.get_url(Servers.CHAPMAN)
+
     return f"{url_stem}/{directory_name}/{file_name}"
 
 
@@ -548,7 +570,7 @@ def igsiono_format(
     yy = f"{dtime.year:02d}"[-2:]
     directory_name = f"pub/gps_data/GPS_IONO/cmpcmb/{yy}{doy:03d}"
     if url_stem is None:
-        url_stem = SERVERS.get("igsiono")
+        url_stem = Servers.get_url(Servers.IGSIONO)
 
     # File name matches CDDIS format
     if get_gps_week(time) >= NAME_SWITCH_WEEK:
@@ -613,6 +635,88 @@ async def download_from_igsiono(
     return await asyncio.gather(*coros)
 
 
+class IonexOptions(Options):
+    """Options for ionex model"""
+
+    server: Servers = Field(
+        Servers.CHAPMAN, description="Server to download ionex files from"
+    )
+    prefix: str = Field("uqr", description="Analysis centre prefix")
+    url_stem: str | None = Field(None, description="URL stem")
+    time_resolution: u.Quantity | None = Field(
+        None, description="Time resolution for ionex files"
+    )
+    solution: SOLUTION = Field("final", description="Solution type")
+    output_directory: Path | None = Field(
+        None, description="Output directory for ionex files"
+    )
+
+
+async def _download_ionex_coro(
+    times: Time,
+    options: IonexOptions | None = None,
+) -> list[Path]:
+    """Download IONEX files from a server.
+
+    Parameters
+    ----------
+    times : Time
+        Times to download for.
+    options : IonexOptions
+        Options for the ionex model.
+
+    Returns
+    -------
+    list[Path]
+        List of downloaded files
+
+    Raises
+    ------
+    IonexError
+        If the server is not supported.
+    NotImplementedError
+        If the server is not implemented yet.
+    """
+    if options is None:
+        options = IonexOptions()
+
+    # TODO: Consider refactor to pass around the options object
+    if options.server == Servers.CDDIS:
+        return await download_from_cddis(
+            times,
+            prefix=options.prefix,
+            url_stem=options.url_stem,
+            time_resolution=options.time_resolution,
+            solution=options.solution,
+            output_directory=options.output_directory,
+        )
+    if options.server == Servers.CHAPMAN:
+        if options.prefix != "uqr":
+            msg = f"Chapman server primarily supports uqr prefix. You provided {options.prefix}, this may fail"
+            logger.warning(msg)
+
+        return await download_from_chapman(
+            times,
+            prefix=options.prefix,
+            url_stem=options.url_stem,
+            output_directory=options.output_directory,
+        )
+
+    # Must be IGSIONO
+    assert options.server == Servers.IGSIONO, "Server not supported"
+    if options.prefix != "igs":
+        msg = f"IGS IONO server primarily supports igs prefix. You provided {options.prefix}, this may fail"
+        logger.warning(msg)
+    return await download_from_igsiono(
+        times,
+        prefix=options.prefix,
+        time_resolution=options.time_resolution,
+        url_stem=options.url_stem,
+        solution=options.solution,
+        output_directory=options.output_directory,
+    )
+
+
 async def download_ionex_coro(
     times: Time,
     server: str = "chapman",
@@ -654,47 +758,18 @@ async def download_ionex_coro(
         If the server is not implemented yet.
     """
 
-    if server not in SERVERS:
-        msg = f"Server {server} is not supported. Supported servers are {list(SERVERS.keys())}"
-        raise IonexError(msg)
+    options = IonexOptions(
+        server=server,
+        prefix=prefix,
+        url_stem=url_stem,
+        time_resolution=time_resolution,
+        solution=solution,
+        output_directory=output_directory,
+    )
 
-    if server == "cddis":
-        return await download_from_cddis(
-            times,
-            prefix=prefix,
-            url_stem=url_stem,
-            time_resolution=time_resolution,
-            solution=solution,
-            output_directory=output_directory,
-        )
-    if server == "chapman":
-        if prefix != "uqr":
-            msg = f"Chapman server primarily supports uqr prefix. You provided {prefix}, this may fail"
-            logger.warning(msg)
-
-        return await download_from_chapman(
-            times,
-            prefix=prefix,
-            url_stem=url_stem,
-            output_directory=output_directory,
-        )
-
-    if server == "igsiono":
-        if prefix != "igs":
-            msg = f"IGS IONO server primarily supports igs prefix. You provided {prefix}, this may fail"
-            logger.warning(msg)
-        return await download_from_igsiono(
-            times,
-            prefix=prefix,
-            time_resolution=time_resolution,
-            url_stem=url_stem,
-            solution=solution,
-            output_directory=output_directory,
-        )
-
-    msg = f"Server {server} is not implemented yet"
-    raise NotImplementedError(msg)
+    return await _download_ionex_coro(times, options)
 
 
 # Create synchronous wrapper of download_ionex_coro
 download_ionex = sync_wrapper(download_ionex_coro)
+_download_ionex = sync_wrapper(_download_ionex_coro)

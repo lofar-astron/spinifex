@@ -50,22 +50,18 @@ def test_mstools(unzip_ms: Path) -> None:
     with resources.as_file(resources.files("spinifex.data.tests")) as test_data:
         rms = get_rm_from_ms(
             unzip_ms,
-            iono_kwargs={
-                "output_directory": test_data,
-                "prefix": "esa",
-                "server": "cddis",
-            },
+            output_directory=test_data,
+            prefix="esa",
+            server="cddis",
             use_stations=["CS002HBA0"],
             timestep=20 * u.s,
         )
         assert "CS002HBA0" in rms
         dtec = get_dtec_from_ms(
             unzip_ms,
-            iono_kwargs={
-                "output_directory": test_data,
-                "prefix": "esa",
-                "server": "cddis",
-            },
+            output_directory=test_data,
+            prefix="esa",
+            server="cddis",
             use_stations=["CS002HBA0"],
             timestep=20 * u.s,
         )

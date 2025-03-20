@@ -12,6 +12,11 @@ from numpy.typing import NDArray
 from spinifex.geometry import IPP, get_ipp_from_altaz, get_ipp_from_skycoord
 from spinifex.get_rm import DEFAULT_IONO_HEIGHT
 from spinifex.ionospheric import ModelDensityFunction, ionospheric_models
+from spinifex.ionospheric.models import (
+    O,
+    parse_iono_kwargs,
+    parse_iono_model,
+)
 from spinifex.logger import logger
 
 
@@ -32,8 +37,8 @@ class DTEC(NamedTuple):
 
 def _get_dtec(
     ipp: IPP,
-    iono_model: ModelDensityFunction = ionospheric_models.ionex,
-    iono_kwargs: dict[str, Any] | None = None,
+    iono_model: ModelDensityFunction[O] = ionospheric_models.ionex,
+    iono_options: O | None = None,
 ) -> DTEC:
     """Get the electron densities for a given set of ionospheric piercepoints
 
@@ -43,8 +48,8 @@ def _get_dtec(
         ionospheric piercepoints
     iono_model : ModelDensityFunction, optional
         ionospheric model, by default ionospheric_models.ionex
-    iono_kwargs : dict
-        options for the ionospheric model, by default {}
+    iono_options : OptionType, optional
+        options for the ionospheric model, by default None
 
     Returns
     -------
@@ -52,8 +57,7 @@ def _get_dtec(
         electron densities object
     """
     logger.info("Calculating electron density")
-    iono_kwargs = iono_kwargs or {}
-    density_profile = iono_model(ipp=ipp, iono_kwargs=iono_kwargs)
+    density_profile = iono_model(ipp=ipp, options=iono_options)
     return DTEC(
         times=ipp.times,
         electron_density=density_profile,
@@ -63,12 +67,12 @@ def _get_dtec(
     )
 
 
-def get_dtec_from_altaz(
+def _get_dtec_from_altaz(
     loc: EarthLocation,
     altaz: AltAz,
     height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
-    iono_model: ModelDensityFunction = ionospheric_models.ionex,
-    iono_kwargs: dict[str, Any] | None = None,
+    iono_model: ModelDensityFunction[O] = ionospheric_models.ionex,
+    iono_options: O | None = None,
 ) -> DTEC:
     """get rotation measures for user defined altaz coordinates
 
@@ -82,8 +86,9 @@ def get_dtec_from_altaz(
         altitudes, by default default_height
     iono_model : ModelDensityFunction, optional
         ionospheric model, by default ionospheric_models.ionex
-    iono_kwargs : dict
-        options for the ionospheric model, by default {}
+    iono_options : dict
+        keyword arguments for the ionospheric model
+
 
     Returns
     -------
@@ -94,17 +99,56 @@ def get_dtec_from_altaz(
     return _get_dtec(
         ipp=ipp,
         iono_model=iono_model,
-        iono_kwargs=iono_kwargs,
+        iono_options=iono_options,
     )
 
 
-def get_dtec_from_skycoord(
+def get_dtec_from_altaz(
+    loc: EarthLocation,
+    altaz: AltAz,
+    height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
+    iono_model_name: str = "ionex",
+    **iono_kwargs: Any,
+) -> DTEC:
+    """get rotation measures for user defined altaz coordinates
+
+    Parameters
+    ----------
+    loc : EarthLocation
+        observer location
+    altaz : AltAz
+        altaz coordinates
+    height_array : u.Quantity, optional
+        altitudes, by default default_height
+    iono_model_name : str, optional
+        ionospheric model name, by default "ionex". Must be a supported ionospheric model.
+    iono_options : dict
+        keyword arguments for the ionospheric model
+
+
+    Returns
+    -------
+    DTEC
+        electron density object
+    """
+    iono_model = parse_iono_model(iono_model_name)
+    iono_options = parse_iono_kwargs(iono_model=iono_model, **iono_kwargs)
+    return _get_dtec_from_altaz(
+        loc=loc,
+        altaz=altaz,
+        height_array=height_array,
+        iono_model=iono_model,
+        iono_options=iono_options,
+    )
+
+
+def _get_dtec_from_skycoord(
     loc: EarthLocation,
     times: Time,
     source: SkyCoord,
     height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
-    iono_model: ModelDensityFunction = ionospheric_models.ionex,
-    iono_kwargs: dict[str, Any] | None = None,
+    iono_model: ModelDensityFunction[O] = ionospheric_models.ionex,
+    iono_options: O | None = None,
 ) -> DTEC:
     """get electron densities for user defined times and source coordinate
 
@@ -121,7 +165,7 @@ def get_dtec_from_skycoord(
     iono_model : ModelDensityFunction, optional
         ionospheric model, by default ionospheric_models.ionex
     iono_kwargs : dict
-        options for the ionospheric model, by default {}
+        keyword arguments for the ionospheric model
 
 
     Returns
@@ -136,5 +180,49 @@ def get_dtec_from_skycoord(
     return _get_dtec(
         ipp=ipp,
         iono_model=iono_model,
-        iono_kwargs=iono_kwargs,
+        iono_options=iono_options,
+    )
+
+
+def get_dtec_from_skycoord(
+    loc: EarthLocation,
+    times: Time,
+    source: SkyCoord,
+    height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
+    iono_model_name: str = "ionex",
+    # iono_model: ModelDensityFunction[IonoOptions] = ionospheric_models.ionex,
+    **iono_kwargs: Any,
+) -> DTEC:
+    """get electron densities for user defined times and source coordinate
+
+    Parameters
+    ----------
+    loc : EarthLocation
+        observer location
+    times : Time
+        times
+    source : SkyCoord
+        coordinates of the source
+    height_array : NDArray, optional
+        altitudes, by default default_height
+    iono_model_name : str, optional
+        ionospheric model name, by default "ionex". Must be a supported ionospheric model.
+    iono_kwargs : dict
+        keyword arguments for the ionospheric model
+
+
+    Returns
+    -------
+    DTEC
+        relectron density object
+    """
+    iono_model = parse_iono_model(iono_model_name)
+    iono_options = parse_iono_kwargs(iono_model=iono_model, **iono_kwargs)
+    return _get_dtec_from_skycoord(
+        loc=loc,
+        times=times,
+        source=source,
+        height_array=height_array,
+        iono_model=iono_model,
+        iono_options=iono_options,
     )

@@ -46,18 +46,10 @@ def get_integrated_rm(
 
     Parameters
     ----------
-    fits_path : Path
-        Path to FITS file
-    timestep : u.Quantity, optional
-        Timestep to use for computing time-dependent RM, by default 15*u.min
-    height_array : NDArray[np.float64], optional
-        altitudes, by default DEFAULT_IONO_HEIGHT
-    iono_model : ModelDensityFunction, optional
-        ionospheric model, by default ionospheric_models.ionex
-    magnetic_model : MagneticFieldFunction, optional
-        geomagnetic model, by default magnetic_models.ppigrf
-    iono_kwargs : dict[str, Any] | None, optional
-        options for the ionospheric model, by default None
+    time_dep_rm : RM
+        Time-dependent RM object
+    freq_arr : u.Quantity
+        Frequency array
 
     Returns
     -------

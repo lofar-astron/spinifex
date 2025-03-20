@@ -6,6 +6,7 @@ from importlib import resources
 from typing import Any
 
 from astropy.utils import iers
+from spinifex.ionospheric.models import parse_iono_kwargs
 
 iers.conf.auto_download = False
 
@@ -76,8 +77,13 @@ def test_ionosphere_ionex(ipp):
         iono_kwargs["output_directory"] = datapath
         iono_kwargs["prefix"] = "esa"
         iono_kwargs["server"] = "cddis"
-        tec = ionospheric_models.ionex(ipp, iono_kwargs=iono_kwargs)
+        options = parse_iono_kwargs(ionospheric_models.ionex, **iono_kwargs)
+        tec = ionospheric_models.ionex(ipp, options=options)
         assert tec.shape == ipp.loc.shape
+
+        # Test bad arguments
+        with pytest.raises(TypeError):
+            options = parse_iono_kwargs(ionospheric_models.ionex, bad_arg="bad")
 
 
 def test_ionosphere_ionex_multiple_days(ipp2):
@@ -86,7 +92,8 @@ def test_ionosphere_ionex_multiple_days(ipp2):
         iono_kwargs["output_directory"] = datapath
         iono_kwargs["prefix"] = "esa"
         iono_kwargs["server"] = "cddis"
-        tec = ionospheric_models.ionex(ipp2, iono_kwargs=iono_kwargs)
+        options = parse_iono_kwargs(ionospheric_models.ionex, **iono_kwargs)
+        tec = ionospheric_models.ionex(ipp2, options=options)
         assert tec.shape == ipp2.loc.shape
 
 

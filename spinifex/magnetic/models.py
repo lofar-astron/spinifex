@@ -56,3 +56,30 @@ def get_ppigrf_magnetic_field(ipp: IPP) -> u.Quantity:
 
 
 magnetic_models = MagneticModels(ppigrf=get_ppigrf_magnetic_field)
+
+
+def parse_magnetic_model(magnetic_model_name: str) -> MagneticFieldFunction:
+    """parse magnetic model name
+
+    Parameters
+    ----------
+    magnetic_model_name : str
+        name of the magnetic model
+
+    Returns
+    -------
+    MagneticFieldFunction
+        magnetic field function
+
+    Raises
+    ------
+    TypeError
+        if the magnetic model is not known
+
+    """
+
+    try:
+        return getattr(magnetic_models, magnetic_model_name)  # type: ignore[no-any-return]
+    except AttributeError as e:
+        msg = f"Unknown magnetic model {magnetic_model_name}. Supported models are {list(magnetic_models.__annotations__.keys())}"
+        raise TypeError(msg) from e
