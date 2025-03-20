@@ -62,6 +62,7 @@ docs = [
     "nbsphinx",
     "jupyter",
     "matplotlib",
+    "sphinx-argparse",
 ]
 casacore = ["python-casacore"]
 

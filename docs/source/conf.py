@@ -20,6 +20,7 @@ extensions = [
     "sphinx_autodoc_typehints",
     "autoapi.extension",
     "nbsphinx",
+    "sphinxarg.ext",
 ]
 
 autoapi_type = "python"
