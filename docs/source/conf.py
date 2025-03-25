@@ -67,7 +67,8 @@ pygments_style = "sphinx"
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
 # html_theme_path = ["."]
-html_theme = "sphinx_rtd_theme"
+html_theme = "furo"
+# html_theme = "sphinx_rtd_theme"
 html_static_path = ["static"]
 html_css_files = [
     "css/custom.css",
