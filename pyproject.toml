@@ -65,6 +65,7 @@ docs = [
     "jupyter",
     "matplotlib",
     "sphinx-argparse",
+    "furo",
 ]
 casacore = ["python-casacore"]
 
