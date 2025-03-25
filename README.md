@@ -6,7 +6,7 @@
 
 <!-- ![Latest release](https://git.astron.nl/templates/python-package/badges/main/release.svg) -->
 
-<img src="docs/spinifex-logo.png" width="300" height="300" />
+<img src="_static/spinifex-logo.png" width="300" height="300" />
 
 Pure Python tooling for ionospheric analyses in radio astronomy, e.g. getting total electron content and rotation
 measure.
