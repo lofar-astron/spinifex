@@ -6,7 +6,7 @@
 
 <!-- ![Latest release](https://git.astron.nl/templates/python-package/badges/main/release.svg) -->
 
-<img src="_static/spinifex-logo.png" width="300" height="300" />
+<img src="_static/spinifex-logo.png" width="300" height="300" align="right" />
 
 Pure Python tooling for ionospheric analyses in radio astronomy, e.g. getting total electron content and rotation
 measure.
@@ -15,7 +15,7 @@ Spinifex is, in part, a re-write of [RMextract](https://github.com/lofar-astron/
 ([Mevius, M. 2018](https://www.ascl.net/1806.024)). We have re-implemented all existing features of RMextract, but
 `spinifex` is not directly backwards compatible with `RMextract`. We plan to extend to new features very soon.
 
-Spinifex uses following reference ionosphere models:
+Spinifex uses following external packages for RM modeling:
 
 -   [PyIRI](https://doi.org/10.5281/zenodo.10139334) - Python implementation of the International Reference Ionosphere
     -   [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10139334.svg)](https://doi.org/10.5281/zenodo.10139334)
@@ -27,6 +27,24 @@ Spinifex uses following reference ionosphere models:
 [Spinifex](<https://en.wikipedia.org/wiki/Triodia_(plant)>) is a spiky grass native to the Australian continent. The
 spines of spinifex are reminiscent of the ionospheric pierce points computed by this software. The 'spin' in spinifex
 can also be thought to relate to the ionospheric Faraday rotation this software predicts.
+
+### Command line interface
+
+To run spinifex from the command line, use:
+
+```
+spinifex  --help
+```
+
+## Documentation
+
+<div style="text-align:center"><img src="_static/altaz_example.png" width="300" height="300" />
+<br />
+<i>Example of RM output as function of azimuth and elevation</i>
+</div>
+
+Full documentation and examples of the Python module and the command-line tools are available on
+[Read the Docs](https://spinifex.readthedocs.io/).
 
 ## Installation
 
@@ -50,22 +68,12 @@ Latest version on Gitlab:
 pip install git+https://git.astron.nl/RD/spinifex
 ```
 
-## Documentation
+## Citing
 
-Full documentation and examples of the Python module and the command-line tools are available on
-[Read the Docs](https://spinifex.readthedocs.io/).
+If you use spinifex for your publications, please cite as:
 
-## Contributing and Development
-
-Test locally: `pip install tox`
-
-With tox the same jobs as run on the CI/CD pipeline can be ran. These include unit tests and linting.
-
-`tox`
-
-To automatically apply most suggested linting changes execute:
-
-`tox -e format`
+> Mevius, M., Thomson, A., Dijkema, T.J.: Spinifex (2025),
+> [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15000430.svg)](https://doi.org/10.5281/zenodo.15000430)
 
 ## License
 
