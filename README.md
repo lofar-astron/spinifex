@@ -28,7 +28,7 @@ Spinifex uses following external packages for RM modeling:
 spines of spinifex are reminiscent of the ionospheric pierce points computed by this software. The 'spin' in spinifex
 can also be thought to relate to the ionospheric Faraday rotation this software predicts.
 
-### Command line interface
+## Command line interface
 
 To run spinifex from the command line, use:
 
