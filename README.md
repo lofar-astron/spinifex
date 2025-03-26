@@ -52,19 +52,19 @@ Spinifex requires Python `>=3.9`. All dependencies can be installed with `pip`.
 
 Stable release via PyPI:
 
-```
+```bash
 pip install spinifex
 ```
 
-If you have python-casacore installed, install with optional casacore dependency to work on MeasurementSets:
+If you have `casacore` installed, install with optional `python-casacore` dependency to work on MeasurementSets:
 
-```
+```bash
 pip install spinifex[casacore]
 ```
 
 Latest version on Gitlab:
 
-```
+```bash
 pip install git+https://git.astron.nl/RD/spinifex
 ```
 
