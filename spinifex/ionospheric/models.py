@@ -55,7 +55,7 @@ def get_density_ionex_single_layer(
     ipp : IPP
         ionospheric piercepoints
     height : u.Quantity, optional
-        altitude of the thin scrreen, by default 350*u.km
+        altitude of the thin screen, by default 350*u.km
     ionex_options: IonexOptions | None, optional
         options for the ionospheric model, by default None
 
@@ -91,6 +91,23 @@ def get_density_ionex_iri(
     height: u.Quantity = 350 * u.km,
     options: IonexOptions | None = None,
 ) -> NDArray[np.float64]:
+    """gets the ionex files and interpolate values for a single altitude, then multiply with a
+    normalised density profile from iri
+
+    Parameters
+    ----------
+    ipp : IPP
+        ionospheric piercepoints
+    height : u.Quantity, optional
+        altitude of the thin screen, by default 350*u.km
+    ionex_options: IonexOptions | None, optional
+        options for the ionospheric model, by default None
+
+    Returns
+    -------
+    NDArray
+        interpolated vTEC values at ipp
+    """
     profile = iri.get_profile(ipp)
     tec = get_density_ionex_single_layer(ipp, height=height, options=options)
     # get tec at single altitude
