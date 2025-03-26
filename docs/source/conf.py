@@ -68,6 +68,7 @@ pygments_style = "sphinx"
 # Sphinx are currently 'default' and 'sphinxdoc'.
 # html_theme_path = ["."]
 html_theme = "furo"
+html_logo = "spinifex-logo.svg"
 # html_theme = "sphinx_rtd_theme"
 html_static_path = ["static"]
 html_css_files = [
