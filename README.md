@@ -40,7 +40,7 @@ spinifex  --help
 
 <div style="text-align:center"><img src="_static/altaz_example.png" width="300" height="300" />
 <br />
-<i>Example of RM output as function of azimuth and elevation</i>
+<i>Example of RM output as function of azimuth and zenith angle</i>
 </div>
 
 Full documentation and examples of the Python module and the command-line tools are available on
