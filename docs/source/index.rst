@@ -17,4 +17,6 @@ Contents:
 .. toctree::
     :maxdepth: 2
 
+    iono_models
+
     usage
