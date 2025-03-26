@@ -156,24 +156,6 @@ publish_on_gitlab:
       python -m twine upload \
       --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
 
-publish_on_test_pypi:
-  stage: publish
-  environment: pypi-test
-  needs:
-    - package_files
-  when: manual
-  rules:
-    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
-  script:
-    - echo "run twine for test pypi"
-    # - |
-    #   TWINE_PASSWORD=${PIPY_TOKEN} \
-    #   TWINE_USERNAME=${PIPY_USERNAME} \
-    # TODO: replace URL with a pipy URL
-    #   python -m twine upload \
-    #   --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
-    - exit 1
-
 publish_on_pypi:
   stage: publish
   environment: pypi
@@ -184,13 +166,10 @@ publish_on_pypi:
     - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
   script:
     - echo "run twine for pypi"
-    # - |
-    #   TWINE_PASSWORD=${PIPY_TOKEN} \
-    #   TWINE_USERNAME=${PIPY_USERNAME} \
-    # TODO: replace URL with a pipy URL
-    #   python -m twine upload \
-    #   --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
-    - exit 1
+    - |
+      TWINE_USERNAME=__token__ \
+      TWINE_PASSWORD=${PYPI_TOKEN} \
+      python -m twine upload dist/*
 
 publish_to_readthedocs:
   stage: publish
