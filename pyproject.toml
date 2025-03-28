@@ -38,7 +38,7 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "numpy",
-    "astropy",
+    "astropy>=6",
     "h5py",
     "ppigrf",
     "PyIRI",
