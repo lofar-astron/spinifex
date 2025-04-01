@@ -163,7 +163,7 @@ publish_on_pypi:
   needs:
     - package_files
   rules:
-    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
+    - if: $CI_COMMIT_TAG
   script:
     - |
       echo "CI_COMMIT_TAG: $CI_COMMIT_TAG, CI_COMMIT_REF_PROTECTED: $CI_COMMIT_REF_PROTECTED"
