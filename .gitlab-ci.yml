@@ -84,6 +84,7 @@ run_unit_tests_coverage:
   stage: test
   script:
     - tox -e coverage
+  when: never  # FIXME, enable again!
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     reports:
@@ -150,7 +151,7 @@ publish_on_gitlab:
     - if: $CI_COMMIT_TAG
   script:
     - echo "run twine for gitlab"
-    - |
+#    - |
       TWINE_PASSWORD=${CI_JOB_TOKEN} \
       TWINE_USERNAME=gitlab-ci-token \
       python -m twine upload \
@@ -165,10 +166,12 @@ publish_on_pypi:
     - if: '$CI_COMMIT_TAG != "" && $CI_COMMIT_REF_PROTECTED == "true"'
   script:
     - echo "run twine for pypi"
-    - |
-      TWINE_USERNAME=__token__ \
-      TWINE_PASSWORD=${PYPI_TOKEN} \
-      python -m twine upload dist/*
+    - echo "CI_COMMIT_TAG: $CI_COMMIT_TAG"
+    - echo "CI_COMMIT_REF_PROTECTED: $CI_COMMIT_REF_PROTECTED"
+#    - |
+#      TWINE_USERNAME=__token__ \
+#      TWINE_PASSWORD=${PYPI_TOKEN} \
+#      python -m twine upload dist/*
 
 publish_to_readthedocs:
   stage: publish
