@@ -84,7 +84,6 @@ run_unit_tests_coverage:
   stage: test
   script:
     - tox -e coverage
-  when: manual # FIXME, enable again!
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     reports:
