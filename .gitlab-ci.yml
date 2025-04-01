@@ -161,9 +161,8 @@ publish_on_pypi:
   environment: pypi
   needs:
     - package_files
-  when: manual
   rules:
-    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
+    - if: '$CI_COMMIT_TAG != "" && $CI_COMMIT_REF_PROTECTED == "true"'
   script:
     - echo "run twine for pypi"
     - |
