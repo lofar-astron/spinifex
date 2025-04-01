@@ -166,11 +166,9 @@ publish_on_pypi:
     - if: $CI_COMMIT_TAG
   script:
     - |
-      echo "CI_COMMIT_TAG: $CI_COMMIT_TAG, CI_COMMIT_REF_PROTECTED: $CI_COMMIT_REF_PROTECTED"
-#    - |
-#      TWINE_USERNAME=__token__ \
-#      TWINE_PASSWORD=${PYPI_TOKEN} \
-#      python -m twine upload dist/*
+      TWINE_USERNAME=__token__ \
+      TWINE_PASSWORD=${PYPI_TOKEN} \
+      python -m twine upload dist/*
 
 publish_to_readthedocs:
   stage: publish
