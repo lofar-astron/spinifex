@@ -167,7 +167,7 @@ publish_on_pypi:
     - |
       TWINE_USERNAME=__token__ \
       TWINE_PASSWORD=${PYPI_TOKEN} \
-      python -m twine upload dist/*
+      python -m twine upload --verbose dist/*
 
 publish_to_readthedocs:
   stage: publish
