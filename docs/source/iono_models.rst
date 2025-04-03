@@ -26,6 +26,35 @@ The ionex model comes with the following options:
 * solution : Solution type, by default "final", must be "final" or "rapid".
 * output_directory : [Path] Output directory path, by default None, will default to "ionex_files" in the current working directory.
 
+At the moment three hosts of ionex data are supported:
+
+* NASA CDDIS - `cddis <https://cddis.nasa.gov/archive/gnss/products/ionex>`_,
+* Barcelona Tech UPC Chapman - `chapman <http://chapman.upc.es/tomion/rapid>`_,
+* IGS Ionosphere Working Group - `igsiono <ftp://igs-final.man.olsztyn.pl>`_.
+
+The CDDIS has a large archive of IONEX data back to the 90's, but now requires authentication to access their data.
+To use this service you must register a NASA EARTHDATA Account (https://urs.earthdata.nasa.gov/).
+Then you need to create a ``~/.netrc`` file with the following text
+
+
+`
+machine urs.earthdata.nasa.gov login <username> password <password>
+`
+
+
+where ``<username>`` and ``<password>`` should be replaced with the appropriate values matching your account.
+If using CDDIS, Spinifex will search for this file and raise an error if it does not exist.
+
+On the servers, global ionospheric model data from different providers are stored, they can be identified with the
+three letter prefix. The currently supported providers can be found in the how to download IONEX data example in:
+
+ :doc:`examples/how_to_download`
+
+
+We found that
+for European purposes the high time resolution data from ``uqr`` give the best results, but this can be different for different
+continents.
+If your favorite server or data provider is not *yet* supported, please file an issue and we will try to include it.
 
 .. _ionex_iri:
 
