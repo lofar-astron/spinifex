@@ -15,3 +15,7 @@ class TimeResolutionError(IonexError):
 
 class FITSHeaderError(SpinifexError):
     """Error in FITS header"""
+
+
+class ArrayShapeError(SpinifexError):
+    """Error in array shapes"""
