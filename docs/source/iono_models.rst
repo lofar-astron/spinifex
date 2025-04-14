@@ -81,4 +81,5 @@ The ionex_iri model comes with the following options:
 
 tomion
 ---------------------
-The 2 layer ionospheric model provided by UPC-IonSat. To be implemented soon...
+The 2 layer ionospheric model provided by UPC-IonSat. This tomographic model is slower, but tends to give more stable results
+when testing long term pulsar observations. See e.g. `Porayko, N. et al <https://link.springer.com/article/10.1007/s00190-023-01806-1>`_

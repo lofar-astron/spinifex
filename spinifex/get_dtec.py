@@ -11,7 +11,7 @@ from numpy.typing import NDArray
 
 from spinifex.geometry import IPP, get_ipp_from_altaz, get_ipp_from_skycoord
 from spinifex.get_rm import DEFAULT_IONO_HEIGHT
-from spinifex.ionospheric import ModelDensityFunction, ionospheric_models
+from spinifex.ionospheric import ModelDensityFunction
 from spinifex.ionospheric.models import (
     O,
     parse_iono_kwargs,
@@ -37,7 +37,7 @@ class DTEC(NamedTuple):
 
 def _get_dtec(
     ipp: IPP,
-    iono_model: ModelDensityFunction[O] = ionospheric_models.ionex,
+    iono_model: ModelDensityFunction[O],
     iono_options: O | None = None,
 ) -> DTEC:
     """Get the electron densities for a given set of ionospheric piercepoints
@@ -70,8 +70,8 @@ def _get_dtec(
 def _get_dtec_from_altaz(
     loc: EarthLocation,
     altaz: AltAz,
+    iono_model: ModelDensityFunction[O],
     height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
-    iono_model: ModelDensityFunction[O] = ionospheric_models.ionex,
     iono_options: O | None = None,
 ) -> DTEC:
     """get rotation measures for user defined altaz coordinates
@@ -146,8 +146,8 @@ def _get_dtec_from_skycoord(
     loc: EarthLocation,
     times: Time,
     source: SkyCoord,
+    iono_model: ModelDensityFunction[O],
     height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
-    iono_model: ModelDensityFunction[O] = ionospheric_models.ionex,
     iono_options: O | None = None,
 ) -> DTEC:
     """get electron densities for user defined times and source coordinate
