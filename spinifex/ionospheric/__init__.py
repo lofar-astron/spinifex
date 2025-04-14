@@ -13,5 +13,6 @@ __all__ = [
     "ModelDensityFunction",
     "get_density_ionex_iri",
     "get_density_ionex_single_layer",
+    "get_density_tomion",
     "ionospheric_models",
 ]

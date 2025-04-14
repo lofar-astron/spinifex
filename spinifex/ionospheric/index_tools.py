@@ -27,9 +27,9 @@ class SortedIndices(NamedTuple):
     """Indices of the closest two points in a possibly wrapping selection"""
 
     indices: NDArray[np.int64]
-    """Index of the first closest point"""
+    """Indices sorted by distance"""
     distance: NDArray[np.float64]
-    """Index of the second closest point"""
+    """Distances"""
 
 
 class Weights(NamedTuple):
@@ -75,7 +75,6 @@ def get_indices_axis(
         ).astype(np.int64)
     else:
         idx1 = np.argmin(np.absolute(goal[..., np.newaxis] - selection), axis=-1)
-
     if np.isscalar(idx1):
         if goal < selection[idx1]:
             idx2 = idx1
@@ -234,7 +233,7 @@ def get_sorted_indices(
     if avail_lon.shape != avail_lat.shape:
         msg = f"shapes of longitudes {avail_lon.shape} and lattiudes {avail_lat.shape} need to be equal"
         raise ArrayShapeError(msg)
-
+    # some messed up thinking here
     distance = (
         wrap_around_zero(avail_lon - lon, wrap_unit) ** 2
         + wrap_around_zero(avail_lat - lat, wrap_unit) ** 2

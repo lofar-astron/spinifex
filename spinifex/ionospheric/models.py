@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Generic, Protocol, TypeVar
+from typing import Any, Generic, Protocol, TypeVar, cast
 
 import astropy.units as u
 import numpy as np
@@ -15,12 +15,11 @@ import spinifex.ionospheric.iri_density as iri
 from spinifex.geometry.get_ipp import IPP
 from spinifex.ionospheric.ionex_download import IonexOptions
 from spinifex.ionospheric.ionex_manipulation import get_density_ionex
+from spinifex.ionospheric.tomion_parser import TomionOptions, get_density_dual_layer
 from spinifex.logger import logger
 
-# TODO: add more ionospheric models
-IonoOptions = IonexOptions  # Single model for now, but we can add more later e.g. IonexOptions | NewOptionType | AnotherOptionType
-O = TypeVar("O", bound=IonoOptions)  # noqa: E741
-O_contra = TypeVar("O_contra", contravariant=True, bound=IonoOptions)
+O = TypeVar("O", IonexOptions, TomionOptions)  # noqa: E741
+O_contra = TypeVar("O_contra", IonexOptions, TomionOptions, contravariant=True)
 
 
 class ModelDensityFunction(Protocol, Generic[O_contra]):
@@ -43,6 +42,7 @@ class IonosphericModels:
 
     ionex: ModelDensityFunction[IonexOptions]
     ionex_iri: ModelDensityFunction[IonexOptions]
+    tomion: ModelDensityFunction[TomionOptions]
 
 
 def get_density_ionex_single_layer(
@@ -114,20 +114,23 @@ def get_density_ionex_iri(
     return np.array(np.sum(tec, keepdims=True, axis=1) * profile)
 
 
+# TODO: move height to IonexOptions
+def get_density_tomion(
+    ipp: IPP, height: u.Quantity = 350 * u.km, options: TomionOptions | None = None
+) -> NDArray[np.float64]:
+    logger.warning(f"Unused option {height=}")
+    _ = height
+    return get_density_dual_layer(ipp, tomion_options=options)
+
+
 ionospheric_models = IonosphericModels(
     ionex=get_density_ionex_single_layer,
     ionex_iri=get_density_ionex_iri,
+    tomion=get_density_tomion,
 )
 
 
-# TODO: Use the TypeVar `O` when we have more than one ionospheric model
-# i.e.
-# >>> def parse_iono_kwargs(
-# >>>     iono_model: ModelDensityFunction[O], **kwargs: Any
-# >>> ) -> O | None:
-def parse_iono_kwargs(
-    iono_model: ModelDensityFunction[IonoOptions], **kwargs: Any
-) -> IonoOptions:
+def parse_iono_kwargs(iono_model: ModelDensityFunction[O], **kwargs: Any) -> O:
     """parse ionospheric options
 
     Parameters
@@ -150,12 +153,22 @@ def parse_iono_kwargs(
     """
 
     try:
-        if iono_model in (ionospheric_models.ionex, ionospheric_models.ionex_iri):
-            options = IonexOptions(**kwargs)
-            logger.info(f"Using ionospheric model {iono_model} with options {options}")
-            return options
+        if iono_model in (
+            ionospheric_models.ionex,
+            ionospheric_models.ionex_iri,
+        ):
+            ionex_options = IonexOptions(**kwargs)
+            logger.info(
+                f"Using ionospheric model {iono_model} with options {ionex_options}"
+            )
+            return cast(O, ionex_options)  # type: ignore[redundant-cast]
+        if iono_model == ionospheric_models.tomion:
+            tomion_options = TomionOptions(**kwargs)
+            logger.info(
+                f"Using ionospheric model {iono_model} with options {tomion_options}"
+            )
+            return cast(O, tomion_options)  # type: ignore[redundant-cast]
 
-        # TODO: add more ionospheric models and their options
         msg = f"Unknown ionospheric model {iono_model}."
         raise TypeError(msg)
 
@@ -164,7 +177,9 @@ def parse_iono_kwargs(
         raise TypeError(msg) from e
 
 
-def parse_iono_model(iono_model_name: str) -> ModelDensityFunction[IonoOptions]:
+def parse_iono_model(
+    iono_model_name: str,
+) -> ModelDensityFunction[O]:
     """parse ionospheric model name
 
     Parameters

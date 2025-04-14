@@ -11,14 +11,14 @@ from astropy.time import Time
 from numpy.typing import NDArray
 
 from spinifex.geometry import IPP, get_ipp_from_altaz, get_ipp_from_skycoord
-from spinifex.ionospheric import ModelDensityFunction, ionospheric_models
+from spinifex.ionospheric import ModelDensityFunction
 from spinifex.ionospheric.models import (
     O,
     parse_iono_kwargs,
     parse_iono_model,
 )
 from spinifex.logger import logger
-from spinifex.magnetic import MagneticFieldFunction, magnetic_models
+from spinifex.magnetic import MagneticFieldFunction
 from spinifex.magnetic.models import parse_magnetic_model
 
 DEFAULT_IONO_HEIGHT = np.array([450.0]) * u.km
@@ -47,8 +47,8 @@ class RM(NamedTuple):
 
 def _get_rm(
     ipp: IPP,
-    iono_model: ModelDensityFunction[O] = ionospheric_models.ionex,
-    magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
+    iono_model: ModelDensityFunction[O],
+    magnetic_model: MagneticFieldFunction,
     iono_options: O | None = None,
 ) -> RM:
     """Get the rotation measures for a given set of ionospheric piercepoints
@@ -108,9 +108,9 @@ def get_average_rm(rm: RM) -> RM:
 def _get_rm_from_altaz(
     loc: EarthLocation,
     altaz: AltAz,
+    iono_model: ModelDensityFunction[O],
+    magnetic_model: MagneticFieldFunction,
     height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
-    iono_model: ModelDensityFunction[O] = ionospheric_models.ionex,
-    magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
     iono_options: O | None = None,
 ) -> RM:
     """get rotation measures for user defined altaz coordinates
@@ -191,9 +191,9 @@ def _get_rm_from_skycoord(
     loc: EarthLocation,
     times: Time,
     source: SkyCoord,
+    iono_model: ModelDensityFunction[O],
+    magnetic_model: MagneticFieldFunction,
     height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
-    iono_model: ModelDensityFunction[O] = ionospheric_models.ionex,
-    magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
     iono_options: O | None = None,
 ) -> RM:
     """get rotation measures for user defined times and source coordinate
