@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from importlib import resources
-from typing import Any
 
 from astropy.utils import iers
 from spinifex.ionospheric.models import parse_iono_kwargs
+from spinifex.ionospheric.tomion_parser import TOMOION_FORMAT_DICT
 
 iers.conf.auto_download = False
 
@@ -46,10 +46,11 @@ def ipp2() -> IPP:
 
 
 def test_ionosphere_tomion(ipp):
-    iono_kwargs: dict[str, Any] = {}
     with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        iono_kwargs["output_directory"] = datapath
-        options = parse_iono_kwargs(ionospheric_models.tomion, **iono_kwargs)
+        options = parse_iono_kwargs(
+            ionospheric_models.tomion,
+            output_directory=datapath,
+        )
         tec = ionospheric_models.tomion(ipp, options=options)
         assert tec.shape == ipp.loc.shape
 
@@ -59,9 +60,42 @@ def test_ionosphere_tomion(ipp):
 
 
 def test_ionosphere_tomionmultiple_days(ipp2):
-    iono_kwargs: dict[str, Any] = {}
     with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        iono_kwargs["output_directory"] = datapath
-        options = parse_iono_kwargs(ionospheric_models.tomion, **iono_kwargs)
+        options = parse_iono_kwargs(
+            ionospheric_models.tomion,
+            output_directory=datapath,
+        )
         tec = ionospheric_models.tomion(ipp2, options=options)
         assert tec.shape == ipp2.loc.shape
+
+
+def test_constants():
+    # Previous constants from first implementation
+    tomion_format = (
+        "mjd index value stddev type number_of_observations height ra dec i j k \
+        label longitude lst year doy month dom".split()
+    )
+    data_types = [
+        float,
+        int,
+        float,
+        float,
+        str,
+        int,
+        float,
+        float,
+        float,
+        int,
+        int,
+        int,
+        str,
+        float,
+        float,
+        int,
+        int,
+        int,
+        int,
+    ]
+
+    assert list(TOMOION_FORMAT_DICT.keys()) == tomion_format
+    assert list(TOMOION_FORMAT_DICT.values()) == data_types

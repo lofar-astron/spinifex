@@ -10,11 +10,12 @@ from typing import Any, NamedTuple
 import astropy.units as u
 import numpy as np
 import requests
+from astropy.table import Table
 from astropy.time import Time
 from numpy.typing import NDArray
 from pydantic import Field
 
-from spinifex.exceptions import IonexError
+from spinifex.exceptions import IonexError, TomionError
 from spinifex.geometry import IPP
 from spinifex.ionospheric.index_tools import (
     compute_index_and_weights,
@@ -24,6 +25,30 @@ from spinifex.ionospheric.index_tools import (
 from spinifex.logger import logger
 from spinifex.options import Options
 from spinifex.times import get_indexlist_unique_days, get_unique_days
+
+TOMOION_FORMAT_DICT: dict[str, Any] = {
+    "mjd": float,
+    "index": int,
+    "value": float,
+    "stddev": float,
+    "type": str,
+    "number_of_observations": int,
+    "height": float,
+    "ra": float,
+    "dec": float,
+    "i": int,
+    "j": int,
+    "k": int,
+    "label": str,
+    "longitude": float,
+    "lst": float,
+    "year": int,
+    "doy": int,
+    "month": int,
+    "dom": int,
+}
+MAX_INTERPOL_POINTS: int = 4  # number of points used for lon/lat interpolation
+TOMION_HEIGHTS: u.Quantity = [450, 1150] * u.km
 
 
 class TomionOptions(Options):
@@ -49,54 +74,8 @@ class TomionData(NamedTuple):
     """heights (km)"""
     tec: NDArray[np.float64]
     """array with voxel tecvalues(TECU)"""
-    h_idx: NDArray[int]
+    h_idx: NDArray[np.int128]
     """array with index of height"""
-
-
-tomion_format = (
-    "mjd index value stddev type number_of_observations height ra dec i j k \
-    label longitude lst year doy month dom".split()
-)
-data_types = [
-    float,
-    int,
-    float,
-    float,
-    str,
-    int,
-    float,
-    float,
-    float,
-    int,
-    int,
-    int,
-    str,
-    float,
-    float,
-    int,
-    int,
-    int,
-    int,
-]
-data_format = [i for i, j in zip(tomion_format, data_types) if j in [int, float]]
-max_interpol_points = 4  # number of points used for lon/lat interpolation
-tomion_heights = [450 * u.km, 1150 * u.km]
-
-
-def _get_data_index(name: str) -> int:
-    """returns the column index of a certain data
-
-    Parameters
-    ----------
-    name : str
-        the requested data type
-
-    Returns
-    -------
-    int
-        index
-    """
-    return data_format.index(name)
 
 
 def _read_tomion(fname: Path) -> TomionData:
@@ -112,20 +91,26 @@ def _read_tomion(fname: Path) -> TomionData:
     TomionData
         object with data and axes of the data
     """
-    usecols = [i for i, j in enumerate(data_types) if j in [int, float]]
-    tomion_data = np.loadtxt(fname, usecols=usecols)
-    available_times = Time(
-        np.array(sorted(set(tomion_data[:, _get_data_index("mjd")]))), format="mjd"
-    )
-    times = Time(tomion_data[:, _get_data_index("mjd")], format="mjd")
-    height = tomion_data[:, _get_data_index("height")]
-    layer_height = np.max(height) - np.min(height)
-    layer_index = tomion_data[:, _get_data_index("k")]
-    electron_density = (
-        (10.0 / 1.05) * layer_height * tomion_data[:, _get_data_index("value")]
-    )
-    available_lat = tomion_data[:, _get_data_index("dec")]
-    available_lon = tomion_data[:, _get_data_index("longitude")]
+    try:
+        tomion_data = Table.read(
+            fname,
+            format="ascii",
+            names=list(TOMOION_FORMAT_DICT.keys()),
+        )
+    except Exception as e:
+        msg = f"Could not read tomion file {fname}"
+        raise TomionError(msg) from e
+
+    time_column = tomion_data["mjd"].value
+    available_times = Time(np.unique(time_column), format="mjd")
+    times = Time(time_column, format="mjd")
+    height = tomion_data["height"].value
+    layer_height = np.ptp(height)
+    layer_index = tomion_data["k"].value
+    # TODO: What are these numbers?
+    electron_density = (10.0 / 1.05) * layer_height * tomion_data["value"].value
+    available_lat = tomion_data["dec"].value
+    available_lon = tomion_data["longitude"].value
     return TomionData(
         lons=available_lon,
         lats=available_lat,
@@ -139,7 +124,7 @@ def _read_tomion(fname: Path) -> TomionData:
 
 def get_tomion_paths(
     unique_days: Time, tomion_options: TomionOptions | None = None
-) -> list[Any]:
+) -> list[Path]:
     """download tomion data for all unique days
 
     Parameters
@@ -154,7 +139,7 @@ def get_tomion_paths(
     list[Any]
         list of paths to the files
     """
-    tomion_paths = []
+    tomion_paths: list[Path] = []
     for day in unique_days:
         url, nefull_name = _tomion_format(day)
         msg = f"downloading {url} to {nefull_name}"
@@ -167,7 +152,7 @@ def get_tomion_paths(
     return tomion_paths
 
 
-def _tomion_format(time: Time) -> tuple[Any, Any]:
+def _tomion_format(time: Time) -> tuple[str, str]:
     """helper function to get the url of the tomion data
 
     Parameters
@@ -225,12 +210,8 @@ def _download_tomion_file(
     IonexError
         error if the download times out
     """
-    if tomion_options is None:
-        output_directory = None
-    else:
-        output_directory = tomion_options.output_directory
-
-    if output_directory is None:
+    # TODO: Consider merging with download tools
+    if tomion_options is None or tomion_options.output_directory is None:
         output_directory = Path.cwd() / "tomion_files"
 
     output_directory.mkdir(exist_ok=True)
@@ -287,10 +268,10 @@ def _extract_nefull(
         msg = f"Extraction successful! Output saved in {output_file}"
         logger.info(msg)
         tomion_file.unlink()
-    else:
-        msg = f"Could not convert {tomion_file} to {output_file}"
-        raise IonexError(msg)
-    return output_file
+        return output_file
+
+    msg = f"Could not convert {tomion_file} to {output_file}"
+    raise TomionError(msg)
 
 
 def interpolate_tomion(
@@ -306,16 +287,16 @@ def interpolate_tomion(
     tomion : TomionData
         data object
     lons : NDArray[np.float64]
-        array of longitudes at the two tomion_heights, shape (2,)
+        array of longitudes at the two TOMION_HEIGHTS, shape (2,)
     lats : NDArray[np.float64]
-        array of latitudes at the two tomion_heights, shape (2,)
+        array of latitudes at the two TOMION_HEIGHTS, shape (2,)
     times : Time
         time
 
     Returns
     -------
     NDArray[np.float64]
-        electron density values at two tomion_heights, shape (2,)
+        electron density values at two TOMION_HEIGHTS, shape (2,)
     """
     # TODO: implement apply_earth_rotation
     # TODO: implement this function directly for an array of times
@@ -341,8 +322,8 @@ def interpolate_tomion(
         )
         tec_lo.append(
             get_interpol(
-                tomion.tec[tms][lo][isorted_low.indices[:max_interpol_points]],
-                isorted_low.distance[:max_interpol_points],
+                tomion.tec[tms][lo][isorted_low.indices[:MAX_INTERPOL_POINTS]],
+                isorted_low.distance[:MAX_INTERPOL_POINTS],
             )
         )
     for hi, tms in zip(layers_hi, timeselect):
@@ -354,8 +335,8 @@ def interpolate_tomion(
         )
         tec_hi.append(
             get_interpol(
-                tomion.tec[tms][hi][isorted_hi.indices[:max_interpol_points]],
-                isorted_hi.distance[:max_interpol_points],
+                tomion.tec[tms][hi][isorted_hi.indices[:MAX_INTERPOL_POINTS]],
+                isorted_hi.distance[:MAX_INTERPOL_POINTS],
             )
         )
 
@@ -368,8 +349,8 @@ def interpolate_tomion(
 def get_density_dual_layer(
     ipp: IPP, tomion_options: TomionOptions | None = None
 ) -> NDArray[np.float64]:
-    """extracts electron densities for the two tomion_heights for all times in ipp. The returned array
-    will have zeros every where apart from the two altitudes closest to tomion_heights
+    """extracts electron densities for the two TOMION_HEIGHTS for all times in ipp. The returned array
+    will have zeros every where apart from the two altitudes closest to TOMION_HEIGHTS
 
     Parameters
     ----------
@@ -382,7 +363,7 @@ def get_density_dual_layer(
     -------
     NDArray[np.float64]
         array with electron densities shape (ipp.loc.shape). The array will only have values at the
-        altitudes closest to the tomion_heights and zeros everywhere else.
+        altitudes closest to the TOMION_HEIGHTS and zeros everywhere else.
 
     Raises
     ------
@@ -392,7 +373,7 @@ def get_density_dual_layer(
     # TODO: no need to go through all the burden, just make sure that the ipps are correct for this model?
     h_index = [
         np.argmin(np.abs(ipp.loc[0].height.to(u.km).value - h.to(u.km).value))
-        for h in tomion_heights
+        for h in TOMION_HEIGHTS
     ]
     selected_ipp = ipp.loc[:, h_index]
     tec = np.zeros(ipp.loc.shape, dtype=float)
