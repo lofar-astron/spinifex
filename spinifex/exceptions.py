@@ -9,6 +9,10 @@ class IonexError(SpinifexError):
     """Error in IONEX files."""
 
 
+class TomionError(SpinifexError):
+    """Error in TomIon files."""
+
+
 class TimeResolutionError(IonexError):
     """Error in IONEX resolution."""
 
