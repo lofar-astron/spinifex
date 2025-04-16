@@ -140,22 +140,6 @@ run_integration_tests:
     - echo "run against foreign systems (e.g. databases, cwl etc.)"
     - exit 0
 
-publish_on_gitlab:
-  stage: publish
-  environment: gitlab
-  needs:
-    - package_files
-  when: manual
-  rules:
-    - if: $CI_COMMIT_TAG
-  script:
-    - echo "run twine for gitlab"
-    - |
-      TWINE_PASSWORD=${CI_JOB_TOKEN} \
-      TWINE_USERNAME=gitlab-ci-token \
-      python -m twine upload \
-      --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
-
 publish_on_pypi:
   stage: publish
   environment: pypi
@@ -168,27 +152,3 @@ publish_on_pypi:
       TWINE_USERNAME=__token__ \
       TWINE_PASSWORD=${PYPI_TOKEN} \
       python -m twine upload --verbose dist/*
-
-publish_to_readthedocs:
-  stage: publish
-  allow_failure: true
-  environment: readthedocs
-  needs:
-    - package_docs
-  when: manual
-  rules:
-    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
-  script:
-    - echo "scp docs/* ???"
-    - exit 1
-
-release_job:
-  stage: publish
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
-  rules:
-    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
-  script:
-    - echo "running release_job"
-  release:
-    tag_name: "$CI_COMMIT_TAG"
-    description: "$CI_COMMIT_TAG - $CI_COMMIT_TAG_MESSAGE"
