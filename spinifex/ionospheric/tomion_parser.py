@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import gzip
 from datetime import datetime
 from pathlib import Path
@@ -9,13 +10,14 @@ from typing import Any, NamedTuple
 
 import astropy.units as u
 import numpy as np
-import requests
 from astropy.table import Table
 from astropy.time import Time
 from numpy.typing import NDArray
 from pydantic import Field
 
-from spinifex.exceptions import IonexError, TomionError
+from spinifex.asyncio_wrapper import sync_wrapper
+from spinifex.download import download_or_copy_url
+from spinifex.exceptions import TomionError
 from spinifex.geometry import IPP
 from spinifex.ionospheric.index_tools import (
     compute_index_and_weights,
@@ -122,7 +124,7 @@ def _read_tomion(fname: Path) -> TomionData:
     )
 
 
-def get_tomion_paths(
+async def get_tomion_paths_coro(
     unique_days: Time, tomion_options: TomionOptions | None = None
 ) -> list[Path]:
     """download tomion data for all unique days
@@ -139,17 +141,22 @@ def get_tomion_paths(
     list[Any]
         list of paths to the files
     """
-    tomion_paths: list[Path] = []
+    if unique_days.isscalar:
+        unique_days = Time([unique_days])
+    tomion_paths_coros = []
     for day in unique_days:
         url, nefull_name = _tomion_format(day)
         msg = f"downloading {url} to {nefull_name}"
         logger.info(msg)
-        tomion_paths.append(
+        tomion_paths_coros.append(
             _download_tomion_file(
                 url=url, nefull_name=nefull_name, tomion_options=tomion_options
             )
         )
-    return tomion_paths
+    return await asyncio.gather(*tomion_paths_coros)
+
+
+get_tomion_paths = sync_wrapper(get_tomion_paths_coro)
 
 
 def _tomion_format(time: Time) -> tuple[str, str]:
@@ -177,7 +184,7 @@ def _tomion_format(time: Time) -> tuple[str, str]:
     return f"{url_stem}/{directory_name}/{file_name}", nefull_name
 
 
-def _download_tomion_file(
+async def _download_tomion_file(
     url: str,
     nefull_name: str,
     tomion_options: TomionOptions | None = None,
@@ -185,7 +192,7 @@ def _download_tomion_file(
     chunk_size: int = 1000,
 ) -> Path:
     """download and convert tomion file to readable nefull text file or if the file already exists
-     just return a pointer to the file
+    just return a pointer to the file
 
     Parameters
     ----------
@@ -213,33 +220,31 @@ def _download_tomion_file(
     # TODO: Consider merging with download tools
     if tomion_options is None or tomion_options.output_directory is None:
         output_directory = Path.cwd() / "tomion_files"
+    else:
+        output_directory = tomion_options.output_directory
 
-    output_directory.mkdir(exist_ok=True)
     output_file = output_directory / nefull_name
 
     if output_file.exists():
         msg = f"File {output_file} already exists. Skipping download."
         logger.info(msg)
         return output_file
-    msg = f"Downloading from {url}"
-    logger.info(msg)
-    try:
-        response = requests.get(url, timeout=timeout_seconds)
-    except requests.exceptions.Timeout as e:
-        msg = "Timed out connecting to server"
-        logger.error(msg)
-        raise IonexError(msg) from e
-    response.raise_for_status()
 
-    tomion_file = output_directory / url.split("/")[-1]
-    with tomion_file.open("wb") as file_desc:
-        for chunk in response.iter_content(chunk_size=chunk_size):
-            file_desc.write(chunk)
-    _extract_nefull(tomion_file, output_file)
+    tomion_file = await download_or_copy_url(
+        url=url,
+        output_directory=output_directory,
+        chunk_size=chunk_size,
+        timeout_seconds=timeout_seconds,
+    )
+
+    output_file = await _extract_nefull(
+        tomion_file=tomion_file, output_file=output_file
+    )
+    assert output_file.exists(), f"File {output_file} not found!"
     return output_file
 
 
-def _extract_nefull(
+async def _extract_nefull(
     tomion_file: Path, output_file: Path, search_term: str = "NeFull"
 ) -> Path:
     """helper function to get the relevant information from the large tomion file.
@@ -259,7 +264,7 @@ def _extract_nefull(
     Path
         pointer to the nefull file
     """
-    with gzip.open(tomion_file, "rt") as f_in, Path.open(output_file, "w") as f_out:
+    with gzip.open(tomion_file, "rt") as f_in, output_file.open("w") as f_out:
         for line in f_in:
             if search_term in line:
                 f_out.write(line)
@@ -378,26 +383,12 @@ def get_density_dual_layer(
     selected_ipp = ipp.loc[:, h_index]
     tec = np.zeros(ipp.loc.shape, dtype=float)
     unique_days = get_unique_days(times=ipp.times)
-    if not unique_days.shape:
-        url, nefull_name = _tomion_format(time=unique_days)
-        tomion_path = _download_tomion_file(
-            url=url, nefull_name=nefull_name, tomion_options=tomion_options
-        )
-        if not tomion_path.exists():
-            msg = f"Tomion file {tomion_path} not found!"
-            raise FileNotFoundError(msg)
-        tomion = _read_tomion(tomion_path)
-        for ippi in range(tec.shape[0]):
-            tec[ippi, h_index] = interpolate_tomion(
-                tomion,
-                selected_ipp[ippi].lon.deg,
-                selected_ipp[ippi].lat.deg,
-                ipp.times[ippi],
-            )
+    sorted_tomion_paths = get_tomion_paths(
+        unique_days=unique_days,
+        tomion_options=tomion_options,
+    )
 
-        return tec
     group_indices = get_indexlist_unique_days(unique_days, ipp.times)
-    sorted_tomion_paths = get_tomion_paths(unique_days)
     for indices, tomion_file in zip(group_indices, sorted_tomion_paths):
         if not tomion_file.exists():
             msg = f"Tomion file {tomion_file} not found!"
