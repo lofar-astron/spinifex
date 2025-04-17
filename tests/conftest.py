@@ -14,18 +14,23 @@ def dummy_bytes() -> bytes:
 
 
 @pytest.fixture
-async def mock_http_server(tmp_path, dummy_bytes):
+def test_data_path() -> Path:
+    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
+        return Path(datapath)
+
+
+@pytest.fixture
+async def mock_http_server(tmp_path, dummy_bytes, test_data_path: Path):
     tmp_path = Path(tmp_path)
     file_path = tmp_path / "test_file.dat"
     file_path.write_bytes(dummy_bytes)
 
     file_paths = {file_path.name: file_path}
 
-    with resources.as_file(resources.files("spinifex.data.tests")) as test_data_path:
-        test_data_file = test_data_path.glob("*")
-        for file in test_data_file:
-            if file.is_file():
-                file_paths[file.name] = file
+    test_data_file = test_data_path.glob("*")
+    for file in test_data_file:
+        if file.is_file():
+            file_paths[file.name] = file
 
     async def generic_handler(request):
         filename = request.match_info["filename"]
@@ -84,9 +89,3 @@ def mock_ftp_server(tmp_path, dummy_bytes):
         ftp_instance.retrbinary.side_effect = retrbinary_side_effect
 
         yield ftp_instance
-
-
-@pytest.fixture
-def test_data_path() -> Path:
-    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        return Path(datapath)
