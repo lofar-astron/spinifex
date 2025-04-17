@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import shutil
-from importlib import resources
 from pathlib import Path
 
 from astropy.utils import iers
@@ -29,9 +28,8 @@ from spinifex.vis_tools.ms_tools import (
 
 
 @pytest.fixture
-def unzip_ms(tmpdir) -> Path:  # type: ignore[misc]
-    with resources.as_file(resources.files("spinifex.data.tests")) as test_data:
-        zipped_ms = test_data / "test.ms.zip"
+def unzip_ms(tmpdir, test_data_path) -> Path:  # type: ignore[misc]
+    zipped_ms = test_data_path / "test.ms.zip"
     shutil.unpack_archive(zipped_ms, tmpdir)
 
     yield Path(tmpdir / "test.MS")
@@ -44,62 +42,60 @@ def test_unzip_worked(unzip_ms: Path):
     assert unzip_ms.exists()
 
 
-def test_mstools(unzip_ms: Path) -> None:
+def test_mstools(unzip_ms: Path, test_data_path) -> None:
     cols = get_columns_from_ms(unzip_ms)
     assert "ANTENNA1" in cols
-    with resources.as_file(resources.files("spinifex.data.tests")) as test_data:
-        rms = get_rm_from_ms(
-            unzip_ms,
-            output_directory=test_data,
-            prefix="esa",
-            server="cddis",
-            use_stations=["CS002HBA0"],
-            timestep=20 * u.s,
-        )
-        assert "CS002HBA0" in rms
-        dtec = get_dtec_from_ms(
-            unzip_ms,
-            output_directory=test_data,
-            prefix="esa",
-            server="cddis",
-            use_stations=["CS002HBA0"],
-            timestep=20 * u.s,
-        )
-        assert "CS002HBA0" in dtec
+    rms = get_rm_from_ms(
+        unzip_ms,
+        output_directory=test_data_path,
+        prefix="esa",
+        server="cddis",
+        use_stations=["CS002HBA0"],
+        timestep=20 * u.s,
+    )
+    assert "CS002HBA0" in rms
+    dtec = get_dtec_from_ms(
+        unzip_ms,
+        output_directory=test_data_path,
+        prefix="esa",
+        server="cddis",
+        use_stations=["CS002HBA0"],
+        timestep=20 * u.s,
+    )
+    assert "CS002HBA0" in dtec
 
 
-def test_station_selection(unzip_ms: Path) -> None:
-    with resources.as_file(resources.files("spinifex.data.tests")) as test_data:
-        rms = get_rm_from_ms(
-            unzip_ms,
-            use_stations=["CS002HBA0"],
-            timestep=20 * u.s,
-            output_directory=test_data,
-            prefix="esa",
-            server="cddis",
-        )
-        assert "CS002HBA0" in rms
-        assert len(rms) == 1
+def test_station_selection(unzip_ms: Path, test_data_path) -> None:
+    rms = get_rm_from_ms(
+        unzip_ms,
+        use_stations=["CS002HBA0"],
+        timestep=20 * u.s,
+        output_directory=test_data_path,
+        prefix="esa",
+        server="cddis",
+    )
+    assert "CS002HBA0" in rms
+    assert len(rms) == 1
 
-        rms = get_rm_from_ms(
-            unzip_ms,
-            use_stations="all",
-            timestep=20 * u.s,
-            output_directory=test_data,
-            prefix="esa",
-            server="cddis",
-        )
-        stations = ["CS002HBA0", "RS210HBA", "RS509HBA"]
-        assert all(station in rms for station in stations)
-        assert len(rms) == 3
+    rms = get_rm_from_ms(
+        unzip_ms,
+        use_stations="all",
+        timestep=20 * u.s,
+        output_directory=test_data_path,
+        prefix="esa",
+        server="cddis",
+    )
+    stations = ["CS002HBA0", "RS210HBA", "RS509HBA"]
+    assert all(station in rms for station in stations)
+    assert len(rms) == 3
 
-        rms = get_rm_from_ms(
-            unzip_ms,
-            use_stations="average",
-            timestep=20 * u.s,
-            output_directory=test_data,
-            prefix="esa",
-            server="cddis",
-        )
-        assert "average_station_pos" in rms
-        assert len(rms) == 1
+    rms = get_rm_from_ms(
+        unzip_ms,
+        use_stations="average",
+        timestep=20 * u.s,
+        output_directory=test_data_path,
+        prefix="esa",
+        server="cddis",
+    )
+    assert "average_station_pos" in rms
+    assert len(rms) == 1

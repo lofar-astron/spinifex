@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from importlib import resources
-from typing import Any
-
 from astropy.utils import iers
 from spinifex.ionospheric.models import parse_iono_kwargs
 
@@ -50,10 +47,9 @@ def ipp2() -> IPP:
     )
 
 
-def test_get_ionosphere(ipp):
+def test_get_ionosphere(ipp, test_data_path):
     """Test that get_ionosphere does not crash"""
-    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        testdata = datapath / "codg0080.20i.Z"
+    testdata = test_data_path / "codg0080.20i.Z"
 
     ionex = read_ionex(testdata)
     assert ionex.tec.shape == (25, 73, 71)
@@ -64,43 +60,41 @@ def test_get_ionosphere(ipp):
     assert tec.shape == ipp.loc.shape
 
 
-def test_read_zcompressed():
-    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        testdata = datapath / "casg0010.99i.Z"
+def test_read_zcompressed(test_data_path):
+    testdata = test_data_path / "casg0010.99i.Z"
     ionex = read_ionex(testdata)
     assert ionex.tec.shape == (12, 73, 71)
 
 
-def test_ionosphere_ionex(ipp):
-    iono_kwargs: dict[str, Any] = {}
-    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        iono_kwargs["output_directory"] = datapath
-        iono_kwargs["prefix"] = "esa"
-        iono_kwargs["server"] = "cddis"
-        options = parse_iono_kwargs(ionospheric_models.ionex, **iono_kwargs)
-        tec = ionospheric_models.ionex(ipp, options=options)
-        assert tec.shape == ipp.loc.shape
+def test_ionosphere_ionex(ipp, test_data_path):
+    options = parse_iono_kwargs(
+        ionospheric_models.ionex,
+        output_directory=test_data_path,
+        prefix="esa",
+        server="cddis",
+    )
+    tec = ionospheric_models.ionex(ipp, options=options)
+    assert tec.shape == ipp.loc.shape
 
-        # Test bad arguments
-        with pytest.raises(TypeError):
-            options = parse_iono_kwargs(ionospheric_models.ionex, bad_arg="bad")
-
-
-def test_ionosphere_ionex_multiple_days(ipp2):
-    iono_kwargs: dict[str, Any] = {}
-    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        iono_kwargs["output_directory"] = datapath
-        iono_kwargs["prefix"] = "esa"
-        iono_kwargs["server"] = "cddis"
-        options = parse_iono_kwargs(ionospheric_models.ionex, **iono_kwargs)
-        tec = ionospheric_models.ionex(ipp2, options=options)
-        assert tec.shape == ipp2.loc.shape
+    # Test bad arguments
+    with pytest.raises(TypeError):
+        options = parse_iono_kwargs(ionospheric_models.ionex, bad_arg="bad")
 
 
-def test_unique_days():
-    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        testdata = datapath / "codg0080.20i.Z"
-        other_data = datapath / "casg0010.99i.Z"
+def test_ionosphere_ionex_multiple_days(ipp2, test_data_path):
+    options = parse_iono_kwargs(
+        ionospheric_models.ionex,
+        output_directory=test_data_path,
+        prefix="esa",
+        server="cddis",
+    )
+    tec = ionospheric_models.ionex(ipp2, options=options)
+    assert tec.shape == ipp2.loc.shape
+
+
+def test_unique_days(test_data_path):
+    testdata = test_data_path / "codg0080.20i.Z"
+    other_data = test_data_path / "casg0010.99i.Z"
 
     unique_days = unique_days_from_ionex_files(testdata)
 

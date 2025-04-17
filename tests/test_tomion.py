@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from importlib import resources
-
 from astropy.utils import iers
 from spinifex.ionospheric.models import parse_iono_kwargs
 from spinifex.ionospheric.tomion_parser import TOMOION_FORMAT_DICT
@@ -45,28 +43,26 @@ def ipp2() -> IPP:
     )
 
 
-def test_ionosphere_tomion(ipp):
-    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        options = parse_iono_kwargs(
-            ionospheric_models.tomion,
-            output_directory=datapath,
-        )
-        tec = ionospheric_models.tomion(ipp, options=options)
-        assert tec.shape == ipp.loc.shape
+def test_ionosphere_tomion(ipp, test_data_path):
+    options = parse_iono_kwargs(
+        ionospheric_models.tomion,
+        output_directory=test_data_path,
+    )
+    tec = ionospheric_models.tomion(ipp, options=options)
+    assert tec.shape == ipp.loc.shape
 
-        # Test bad arguments
-        with pytest.raises(TypeError):
-            options = parse_iono_kwargs(ionospheric_models.tomion, bad_arg="bad")
+    # Test bad arguments
+    with pytest.raises(TypeError):
+        options = parse_iono_kwargs(ionospheric_models.tomion, bad_arg="bad")
 
 
-def test_ionosphere_tomionmultiple_days(ipp2):
-    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        options = parse_iono_kwargs(
-            ionospheric_models.tomion,
-            output_directory=datapath,
-        )
-        tec = ionospheric_models.tomion(ipp2, options=options)
-        assert tec.shape == ipp2.loc.shape
+def test_ionosphere_tomionmultiple_days(ipp2, test_data_path):
+    options = parse_iono_kwargs(
+        ionospheric_models.tomion,
+        output_directory=test_data_path,
+    )
+    tec = ionospheric_models.tomion(ipp2, options=options)
+    assert tec.shape == ipp2.loc.shape
 
 
 def test_constants():

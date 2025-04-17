@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import filecmp
 import shutil
-from importlib import resources
 from pathlib import Path
 
 from astropy.utils import iers
@@ -147,7 +146,7 @@ def test_chapman_format(times):
 
 
 @pytest.mark.asyncio
-async def test_chapman_download(tmpdir, old_time, new_time):
+async def test_chapman_download(tmpdir, old_time, new_time, test_data_path):
     with pytest.raises(IonexError):
         await ionex_download.download_from_chapman(
             times=old_time,
@@ -162,9 +161,8 @@ async def test_chapman_download(tmpdir, old_time, new_time):
     )
     downloaded_file = downloaded_files[0]
 
-    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        expected_file_compressed = datapath / "uqrg0010.25i.truncated.zip"
-        shutil.unpack_archive(expected_file_compressed, tmpdir)
+    expected_file_compressed = test_data_path / "uqrg0010.25i.truncated.zip"
+    shutil.unpack_archive(expected_file_compressed, tmpdir)
 
     expected_file = Path(tmpdir) / "uqrg0010.25i.truncated"
 
@@ -199,15 +197,14 @@ def test_igsiono_format(igsiono_time):
 
 
 @pytest.mark.asyncio
-async def test_igsiono_download(tmpdir, igsiono_time):
+async def test_igsiono_download(tmpdir, igsiono_time, test_data_path):
     downloaded_files = await ionex_download.download_from_igsiono(
         times=igsiono_time,
         output_directory=Path(tmpdir),
     )
     downloaded_file = downloaded_files[0]
 
-    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        expected_file = datapath / "IGS0OPSFIN_20243490000_01D_02H_GIM.INX.gz"
+    expected_file = test_data_path / "IGS0OPSFIN_20243490000_01D_02H_GIM.INX.gz"
 
     assert filecmp.cmp(downloaded_file, expected_file)
 
@@ -215,7 +212,7 @@ async def test_igsiono_download(tmpdir, igsiono_time):
     downloaded_file.unlink(missing_ok=True)
 
 
-def test_download_ionex_igsiono(tmpdir, igsiono_time):
+def test_download_ionex_igsiono(tmpdir, igsiono_time, test_data_path):
     downloaded_files = ionex_download.download_ionex(
         server="igsiono",
         times=igsiono_time,
@@ -227,8 +224,7 @@ def test_download_ionex_igsiono(tmpdir, igsiono_time):
     )
     downloaded_file = downloaded_files[0]
 
-    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        expected_file = datapath / "IGS0OPSFIN_20243490000_01D_02H_GIM.INX.gz"
+    expected_file = test_data_path / "IGS0OPSFIN_20243490000_01D_02H_GIM.INX.gz"
 
     assert filecmp.cmp(downloaded_file, expected_file)
 
@@ -236,7 +232,7 @@ def test_download_ionex_igsiono(tmpdir, igsiono_time):
     downloaded_file.unlink(missing_ok=True)
 
 
-def test_download_ionex_chapman(tmpdir, new_time):
+def test_download_ionex_chapman(tmpdir, new_time, test_data_path):
     downloaded_files = ionex_download.download_ionex(
         server="chapman",
         times=new_time,
@@ -248,9 +244,8 @@ def test_download_ionex_chapman(tmpdir, new_time):
     )
     downloaded_file = downloaded_files[0]
 
-    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
-        expected_file_compressed = datapath / "uqrg0010.25i.truncated.zip"
-        shutil.unpack_archive(expected_file_compressed, tmpdir)
+    expected_file_compressed = test_data_path / "uqrg0010.25i.truncated.zip"
+    shutil.unpack_archive(expected_file_compressed, tmpdir)
 
     expected_file = Path(tmpdir) / "uqrg0010.25i.truncated"
 
