@@ -51,8 +51,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest >=6", "pytest-cov >=3", "pytest-asyncio", "nbconvert", "jupyter"]
-dev = ["pytest >=6", "pytest-cov >=3", "tox-uv", "pre-commit", "ruff", "mypy", "pytest-asyncio", "nbconvert"]
+test = ["pytest >=6", "pytest-cov >=3", "pytest-asyncio", "nbconvert", "jupyter", "pytest-xdist", "pytest-socket"]
+dev = ["pytest >=6", "pytest-cov >=3", "tox-uv", "pre-commit", "ruff", "mypy", "pytest-asyncio", "nbconvert", "pytest-xdist", "pytest-socket"]
 docs = [
     "sphinx!=1.6.6,!=1.6.7,>=1.6.5", # BSD
     "sphinx-rtd-theme>=0.4.3", #MIT
@@ -88,11 +88,18 @@ scripts.test = "pytest {args}"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+addopts = [
+    "-ra", 
+    "--showlocals", 
+    "--strict-markers", 
+    "--strict-config", 
+]
 xfail_strict = true
 filterwarnings = ["error", "ignore::pytest.PytestUnraisableExceptionWarning"]
 log_cli_level = "INFO"
 testpaths = ["tests"]
+asyncio_default_fixture_loop_scope="function"
+asyncio_mode = "auto"
 
 
 [tool.coverage]
