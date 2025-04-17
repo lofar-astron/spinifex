@@ -146,6 +146,7 @@ def test_chapman_format(times):
 
 
 @pytest.mark.asyncio
+@pytest.mark.requires_socket
 async def test_chapman_download(tmpdir, old_time, new_time, test_data_path):
     with pytest.raises(IonexError):
         await ionex_download.download_from_chapman(
@@ -197,6 +198,7 @@ def test_igsiono_format(igsiono_time):
 
 
 @pytest.mark.asyncio
+@pytest.mark.requires_socket
 async def test_igsiono_download(tmpdir, igsiono_time, test_data_path):
     downloaded_files = await ionex_download.download_from_igsiono(
         times=igsiono_time,
@@ -212,6 +214,7 @@ async def test_igsiono_download(tmpdir, igsiono_time, test_data_path):
     downloaded_file.unlink(missing_ok=True)
 
 
+@pytest.mark.requires_socket
 def test_download_ionex_igsiono(tmpdir, igsiono_time, test_data_path):
     downloaded_files = ionex_download.download_ionex(
         server="igsiono",
@@ -232,6 +235,7 @@ def test_download_ionex_igsiono(tmpdir, igsiono_time, test_data_path):
     downloaded_file.unlink(missing_ok=True)
 
 
+@pytest.mark.requires_socket
 def test_download_ionex_chapman(tmpdir, new_time, test_data_path):
     downloaded_files = ionex_download.download_ionex(
         server="chapman",

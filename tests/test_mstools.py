@@ -42,6 +42,8 @@ def test_unzip_worked(unzip_ms: Path):
     assert unzip_ms.exists()
 
 
+# @pytest.mark.requires_socket
+@pytest.mark.allow_hosts(["127.0.0.1"])
 def test_mstools(unzip_ms: Path, test_data_path) -> None:
     cols = get_columns_from_ms(unzip_ms)
     assert "ANTENNA1" in cols
@@ -65,6 +67,7 @@ def test_mstools(unzip_ms: Path, test_data_path) -> None:
     assert "CS002HBA0" in dtec
 
 
+@pytest.mark.requires_socket
 def test_station_selection(unzip_ms: Path, test_data_path) -> None:
     rms = get_rm_from_ms(
         unzip_ms,

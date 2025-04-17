@@ -9,6 +9,21 @@ from aiohttp import web
 
 
 @pytest.fixture
+def is_socket_disabled(pytestconfig):
+    """Check if the socket is disabled."""
+    return pytestconfig.__socket_disabled or pytestconfig.__socket_force_enabled
+
+
+@pytest.fixture(autouse=True)
+def skip_if_socket_disabled(request, is_socket_disabled):
+    """Skip the test if the socket is disabled."""
+    if request.node.get_closest_marker("requires_socket") and is_socket_disabled:
+        pytest.skip(
+            f"Skipped on this test run `{is_socket_disabled=}` but test requires socket."
+        )
+
+
+@pytest.fixture
 def dummy_bytes() -> bytes:
     return b"Example content for testing."
 

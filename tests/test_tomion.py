@@ -43,6 +43,7 @@ def ipp2() -> IPP:
     )
 
 
+@pytest.mark.requires_socket
 def test_ionosphere_tomion(ipp, test_data_path):
     options = parse_iono_kwargs(
         ionospheric_models.tomion,
@@ -56,6 +57,7 @@ def test_ionosphere_tomion(ipp, test_data_path):
         options = parse_iono_kwargs(ionospheric_models.tomion, bad_arg="bad")
 
 
+@pytest.mark.requires_socket
 def test_ionosphere_tomionmultiple_days(ipp2, test_data_path):
     options = parse_iono_kwargs(
         ionospheric_models.tomion,

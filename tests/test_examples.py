@@ -25,6 +25,7 @@ example_notebooks = list(EXAMPLES_DIR.glob("*.ipynb"))
 
 @pytest.mark.filterwarnings("ignore:'datfix' made the change")
 @pytest.mark.parametrize("notebook", example_notebooks, ids=lambda nb: nb.name)
+@pytest.mark.allow_hosts(["127.0.0.1"])
 def test_example_notebook(notebook: Path, tmpdir):
     """Run Jupyter notebook and ensure it executes without errors."""
 
@@ -43,6 +44,7 @@ def test_example_notebook(notebook: Path, tmpdir):
 
 @pytest.mark.filterwarnings("ignore:'datfix' made the change")
 @pytest.mark.parametrize("script", example_scripts, ids=lambda s: s.name)
+@pytest.mark.allow_hosts(["127.0.0.1"])
 def test_example_script(script, tmpdir):
     """Run example script using runpy and ensure it executes without errors."""
     # copy script to temporary directory for write access

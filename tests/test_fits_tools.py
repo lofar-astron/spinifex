@@ -89,6 +89,7 @@ def test_get_freq_from_fits(simple_fits_cube):
 
 
 @pytest.mark.filterwarnings("ignore:'datfix' made the change")
+@pytest.mark.requires_socket
 def test_get_metadata_from_fits(simple_fits_cube):
     simple_metadata = get_metadata_from_fits(fits_path=simple_fits_cube)
     assert simple_metadata.duration.sec == 1800
@@ -108,6 +109,7 @@ def test_get_metadata_from_fits(simple_fits_cube):
 
 
 @pytest.mark.filterwarnings("ignore:'datfix' made the change")
+@pytest.mark.requires_socket
 def test_get_rm_from_fits(simple_fits_cube, tmpdir):
     rm = get_rm_from_fits(
         fits_path=simple_fits_cube,
@@ -118,6 +120,7 @@ def test_get_rm_from_fits(simple_fits_cube, tmpdir):
 
 
 @pytest.mark.filterwarnings("ignore:'datfix' made the change")
+@pytest.mark.requires_socket
 def test_get_integrated_rm_from_fits(simple_fits_cube, tmpdir):
     integrated_rm = get_integrated_rm_from_fits(
         fits_path=simple_fits_cube,
