@@ -482,6 +482,9 @@ class IonexOptions(Options):
     output_directory: Path | None = Field(
         None, description="Output directory for ionex files"
     )
+    correct_uqrg_rms: bool = Field(
+        True, description="Correct overestimated rms of uqr maps"
+    )
 
 
 async def _download_ionex_coro(

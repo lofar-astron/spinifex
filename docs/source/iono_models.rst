@@ -25,6 +25,7 @@ The ionex model comes with the following options:
 * time_resolution : [u.Quantity] Time resolution, by default None, will default to the server time resolution.
 * solution : Solution type, by default "final", must be "final" or "rapid".
 * output_directory : [Path] Output directory path, by default None, will default to "ionex_files" in the current working directory.
+* correct_uqrg_rms : [bool] The rms values for UQR maps are overestimated (see `Zhao et al. <https://link.springer.com/article/10.1007/s00190-021-01487-8>`_), use this flag to correct these. default=True
 
 At the moment three hosts of ionex data are supported:
 
@@ -74,7 +75,7 @@ The ionex_iri model comes with the following options:
 * time_resolution : [u.Quantity] Time resolution, by default None, will default to the server time resolution.
 * solution : Solution type, by default "final", must be "final" or "rapid".
 * output_directory : [Path] Output directory path, by default None, will default to "ionex_files" in the current working directory.
-
+* correct_uqrg_rms : [bool] The rms values for UQR maps are overestimated (see `Zhao et al. <https://link.springer.com/article/10.1007/s00190-021-01487-8>`_), use this flag to correct these. default=True
 
 
 .. _tomion:

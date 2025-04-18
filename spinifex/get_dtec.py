@@ -60,7 +60,7 @@ def _get_dtec(
     density_profile = iono_model(ipp=ipp, options=iono_options)
     return DTEC(
         times=ipp.times,
-        electron_density=density_profile,
+        electron_density=density_profile.electron_density,
         airmass=ipp.airmass,
         height=ipp.loc.height.to(u.km).value,
         loc=ipp.station_loc,
@@ -74,7 +74,7 @@ def _get_dtec_from_altaz(
     height_array: u.Quantity = DEFAULT_IONO_HEIGHT,
     iono_options: O | None = None,
 ) -> DTEC:
-    """get rotation measures for user defined altaz coordinates
+    """get electron densities for user defined altaz coordinates
 
     Parameters
     ----------

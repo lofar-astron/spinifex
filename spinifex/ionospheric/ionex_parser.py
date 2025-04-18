@@ -15,6 +15,7 @@ from numpy.typing import NDArray
 from unlzw3 import unlzw
 
 from spinifex.exceptions import IonexError
+from spinifex.ionospheric.ionex_download import IonexOptions
 from spinifex.times import get_unique_days
 
 
@@ -34,7 +35,7 @@ class IonexData(NamedTuple):
     tec: NDArray[np.float64]
     """array with tecvalues times x lons x lats (TECU)"""
     rms: NDArray[np.float64]
-    """array with rms of tecvalues times x lons x lats (TECU, if available, zeros otherwise)"""
+    """array with rms of tecvalues times x lons x lats (TECU, if available, nan otherwise)"""
 
 
 class IonexHeader(NamedTuple):
@@ -54,14 +55,15 @@ class IonexHeader(NamedTuple):
     """multiplication factor for tec values"""
 
 
-def read_ionex(ionex_filename: Path) -> IonexData:
+def read_ionex(ionex_filename: Path, options: IonexOptions | None = None) -> IonexData:
     """Read and parse a ionex file. Returns a ionex object.
 
     Parameters
     ----------
     ionex_filename : str
-        _description_
-
+        name of the ionex data file
+    options : IonexOptions
+        Options for the ionex model.
     Returns
     -------
     IonexData
@@ -70,15 +72,15 @@ def read_ionex(ionex_filename: Path) -> IonexData:
     """
     if ionex_filename.suffix == ".gz":
         with gzip.open(ionex_filename, "rt", encoding="utf-8") as file_buffer:
-            return _read_ionex_data(file_buffer)
+            return _read_ionex_data(file_buffer, options=options)
 
     if ionex_filename.suffix == ".Z":
         data = unlzw(ionex_filename.read_bytes()).decode("utf-8")
         with io.StringIO(data) as file_buffer:
-            return _read_ionex_data(file_buffer)
+            return _read_ionex_data(file_buffer, options=options)
 
     with ionex_filename.open(encoding="utf-8") as file_buffer:
-        return _read_ionex_data(file_buffer)
+        return _read_ionex_data(file_buffer, options=options)
 
 
 def _read_ionex_header(filep: TextIO) -> IonexHeader:
@@ -229,7 +231,7 @@ def _fill_data_record(
             ]
 
 
-def _read_ionex_data(filep: TextIO) -> IonexData:
+def _read_ionex_data(filep: TextIO, options: IonexOptions | None = None) -> IonexData:
     """This function parses the IONEX file.
     Some fixed structure (like data records being strings of exactly 80 characters) of the file
     is assumed. This structure is described in Schaer and Gurtner (1998).
@@ -238,18 +240,22 @@ def _read_ionex_data(filep: TextIO) -> IonexData:
     ----------
     filep : TextIO
         pointer to an ionex file
+    options : IonexOptions | None, optional
+        options for ionex model, by default None
 
     Returns
     -------
     IonexData
         ionex object
     """
+    if options is None:
+        options = IonexOptions()
     ionex_header = _read_ionex_header(filep)
     tecarray = np.zeros(
         ionex_header.times.shape + ionex_header.lons.shape + ionex_header.lats.shape,
         dtype=float,
     )
-    rmsarray = np.zeros_like(tecarray)
+    rmsarray = np.full(tecarray.shape, np.nan)
     for line in filep:
         # _read_ionex_header should have put the filep at the end of the header
         label = line[60:-1]
@@ -260,6 +266,10 @@ def _read_ionex_data(filep: TextIO) -> IonexData:
         if "START OF RMS MAP" in label:
             timeidx = int(record) - 1
             _fill_data_record(rmsarray, filep, "END OF RMS MAP", timeidx, ionex_header)
+    if options.prefix == "uqr" and options.correct_uqrg_rms:
+        # apply uqr correction zhao et al. (2021)
+        rmsarray = rmsarray - 6
+        rmsarray[rmsarray < 1] = 1
 
     return IonexData(
         lons=ionex_header.lons,

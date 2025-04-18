@@ -29,6 +29,8 @@ class RM(NamedTuple):
 
     rm: NDArray[Any]
     """rotation measures"""
+    rm_error: NDArray[Any]
+    """error on rotation measures"""
     times: Time
     """time axis"""
     b_parallel: NDArray[Any]
@@ -71,17 +73,31 @@ def _get_rm(
     """
     logger.info("Calculating rotation measure")
     density_profile = iono_model(ipp=ipp, options=iono_options)
+
     magnetic_profile = magnetic_model(ipp=ipp)
     b_field_to_rm = -2.62e-6  # TODO: What are the units of this constant?
+
     rm = np.sum(
-        b_field_to_rm * density_profile * magnetic_profile.to(u.nT).value * ipp.airmass,
+        b_field_to_rm
+        * density_profile.electron_density
+        * magnetic_profile.magnetic_field.to(u.nT).value
+        * ipp.airmass,
         axis=1,
     )
+    relative_uncertainty = np.abs(
+        np.sum(density_profile.electron_density_error, axis=1)
+        / np.sum(density_profile.electron_density, axis=1)
+    ) + np.abs(
+        np.sum(magnetic_profile.magnetic_field_error.to(u.nT).value, axis=1)
+        / np.sum(magnetic_profile.magnetic_field.to(u.nT).value, axis=1)
+    )
+    rm_error = relative_uncertainty * np.abs(rm)
     return RM(
         rm=rm,
+        rm_error=rm_error,
         times=ipp.times,
-        b_parallel=magnetic_profile,
-        electron_density=density_profile,
+        b_parallel=magnetic_profile.magnetic_field,
+        electron_density=density_profile.electron_density,
         height=ipp.loc.height.to(u.km).value,
         azimuth=ipp.altaz.az.deg,
         elevation=ipp.altaz.alt.deg,
@@ -93,9 +109,11 @@ def get_average_rm(rm: RM) -> RM:
     profile_weights = np.sum(rm.electron_density, axis=1, keepdims=True)
     return RM(
         rm=rm.rm.mean(),
+        rm_error=np.sqrt(np.mean(rm.rm_error**2)),
         times=rm.times.mean(),
         b_parallel=np.sum(
-            rm.b_parallel * rm.electron_density / profile_weights, axis=1
+            rm.b_parallel * rm.electron_density / profile_weights,
+            axis=1,
         ).mean(),
         electron_density=profile_weights.mean(),
         height=np.sum(rm.height * rm.electron_density / profile_weights, axis=1).mean(),
