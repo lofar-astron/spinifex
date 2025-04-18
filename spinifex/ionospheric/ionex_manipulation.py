@@ -22,6 +22,7 @@ from spinifex.ionospheric.ionex_parser import (
     read_ionex,
     unique_days_from_ionex_files,
 )
+from spinifex.ionospheric.tec_data import ElectronDensity
 from spinifex.times import get_indexlist_unique_days
 
 
@@ -38,6 +39,7 @@ def interpolate_ionex(
     lats: NDArray[np.float64],
     times: Time,
     apply_earth_rotation: float = 1,
+    get_rms: bool = False,
 ) -> NDArray[np.float64]:
     """Interpolate ionex data to a given lon/lat/height grid.
     lons, lats, times all should have the same length
@@ -48,6 +50,7 @@ def interpolate_ionex(
     document). Experiments with high time resolution ROB data show that
     this is not really the case, resulting in strange wavelike structures
     when applying this smart interpolation.
+    TODO: implement smoothing filters for interpolation
 
     Parameters
     ----------
@@ -62,12 +65,16 @@ def interpolate_ionex(
     apply_earth_rotation : float, optional
         specify (with a number between 0 and 1) how much of the earth rotation
         is taken in to account in the interpolation step., by default 1
+    get_rms : bool, optional
+        use rms values instead of tec values
 
     Returns
     -------
     NDArray
         array with interpolated tec values
     """
+    value_array = ionex.rms if get_rms else ionex.tec
+
     timeindex = compute_index_and_weights(ionex.times.mjd, times.mjd)
     latindex = compute_index_and_weights(ionex.lats, lats)
     # take into account earth rotation
@@ -84,52 +91,52 @@ def interpolate_ionex(
         lonindex1 = get_indices_axis(lons, ionex.lons, wrap_unit=360)
         lonindex2 = lonindex1
     tecdata = (
-        ionex.tec[timeindex.idx1, lonindex1.idx1, latindex.idx1]
+        value_array[timeindex.idx1, lonindex1.idx1, latindex.idx1]
         * lonindex1.w1
         * timeindex.w1
         * latindex.w1
     )
     tecdata += (
-        ionex.tec[timeindex.idx1, lonindex1.idx2, latindex.idx1]
+        value_array[timeindex.idx1, lonindex1.idx2, latindex.idx1]
         * lonindex1.w2
         * timeindex.w1
         * latindex.w1
     )
 
     tecdata += (
-        ionex.tec[timeindex.idx2, lonindex2.idx1, latindex.idx1]
+        value_array[timeindex.idx2, lonindex2.idx1, latindex.idx1]
         * lonindex2.w1
         * timeindex.w2
         * latindex.w1
     )
     tecdata += (
-        ionex.tec[timeindex.idx2, lonindex2.idx2, latindex.idx1]
+        value_array[timeindex.idx2, lonindex2.idx2, latindex.idx1]
         * lonindex2.w2
         * timeindex.w2
         * latindex.w1
     )
 
     tecdata += (
-        ionex.tec[timeindex.idx1, lonindex1.idx1, latindex.idx2]
+        value_array[timeindex.idx1, lonindex1.idx1, latindex.idx2]
         * lonindex1.w1
         * timeindex.w1
         * latindex.w2
     )
     tecdata += (
-        ionex.tec[timeindex.idx1, lonindex1.idx2, latindex.idx2]
+        value_array[timeindex.idx1, lonindex1.idx2, latindex.idx2]
         * lonindex1.w2
         * timeindex.w1
         * latindex.w2
     )
 
     tecdata += (
-        ionex.tec[timeindex.idx2, lonindex2.idx1, latindex.idx2]
+        value_array[timeindex.idx2, lonindex2.idx1, latindex.idx2]
         * lonindex2.w1
         * timeindex.w2
         * latindex.w2
     )
     tecdata += (
-        ionex.tec[timeindex.idx2, lonindex2.idx2, latindex.idx2]
+        value_array[timeindex.idx2, lonindex2.idx2, latindex.idx2]
         * lonindex2.w2
         * timeindex.w2
         * latindex.w2
@@ -168,13 +175,19 @@ def get_density_ionex(
         return interpolate_ionex(ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times)
     group_indices = get_indexlist_unique_days(unique_days, ipp.times)
     tec = np.zeros(ipp.loc.shape, dtype=float)
+    electron_density_error = np.full(ipp.loc.shape, np.nan)
     for indices, ionex_file in zip(group_indices, sorted_ionex_paths):
         if not ionex_file.exists():
             msg = f"Ionex file {ionex_file} not found!"
             raise FileNotFoundError(msg)
         u_loc = ipp.loc[indices]
         u_times = ipp.times[indices]
-        ionex = read_ionex(ionex_file)
+        ionex = read_ionex(ionex_file, options=ionex_options)
         tec[indices] = interpolate_ionex(ionex, u_loc.lon.deg, u_loc.lat.deg, u_times)
+        electron_density_error[indices] = interpolate_ionex(
+            ionex, u_loc.lon.deg, u_loc.lat.deg, u_times, get_rms=True
+        )
 
-    return tec
+    return ElectronDensity(
+        electron_density=tec, electron_density_error=electron_density_error
+    )

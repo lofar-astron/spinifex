@@ -16,6 +16,8 @@ from astropy.coordinates import EarthLocation
 from astropy.time import Time
 from spinifex import h5parm_tools as h5pt
 from spinifex.get_rm import RM
+from spinifex.ionospheric.tec_data import ElectronDensity
+from spinifex.magnetic.models import MagneticProfile
 
 
 def test_create_h5parm(tmpdir):
@@ -64,9 +66,14 @@ def test_write_rm_h5parm(tmpdir):
     dwingeloo = EarthLocation(lon=lon, lat=lat, height=0 * u.km)
     rm = RM(
         rm=np.arange(0, 1, 0.1),
+        rm_error=np.arange(0, 1, 0.1) * 0.1,
         times=Time("2025-02-08") + np.arange(10) * u.hr,
-        b_parallel=np.zeros((10, 1)),
-        electron_density=np.zeros((10, 1)),
+        b_parallel=MagneticProfile(
+            magnetic_field=np.zeros((10, 1)), magnetic_field_error=np.zeros((10, 1))
+        ),
+        electron_density=ElectronDensity(
+            electron_density=np.zeros((10, 1)), electron_density_error=np.zeros((10, 1))
+        ),
         height=np.array([350.0]),
         azimuth=np.zeros((10,)),
         elevation=np.zeros((10,)),

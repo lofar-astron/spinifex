@@ -15,6 +15,7 @@ import spinifex.ionospheric.iri_density as iri
 from spinifex.geometry.get_ipp import IPP
 from spinifex.ionospheric.ionex_download import IonexOptions
 from spinifex.ionospheric.ionex_manipulation import get_density_ionex
+from spinifex.ionospheric.tec_data import ElectronDensity
 from spinifex.ionospheric.tomion_parser import TomionOptions, get_density_dual_layer
 from spinifex.logger import logger
 
@@ -30,7 +31,7 @@ class ModelDensityFunction(Protocol, Generic[O_contra]):
         ipp: IPP,
         height: u.Quantity = 350 * u.km,
         options: O_contra | None = None,
-    ) -> NDArray[np.float64]: ...
+    ) -> ElectronDensity: ...
 
 
 @dataclass
@@ -47,7 +48,7 @@ class IonosphericModels:
 
 def get_density_ionex_single_layer(
     ipp: IPP, height: u.Quantity = 350 * u.km, options: IonexOptions | None = None
-) -> NDArray[np.float64]:
+) -> ElectronDensity:
     """gets the ionex files and interpolate values for a single altitude, thin screen assumption
 
     Parameters
@@ -78,19 +79,23 @@ def get_density_ionex_single_layer(
         altaz=ipp.altaz,
         station_loc=ipp.station_loc,
     )
-    result = np.zeros(ipp.loc.shape, dtype=float)
-    result[np.arange(n_times), index] = get_density_ionex(
+    tec = get_density_ionex(
         ipp_single_layer,
         ionex_options=options,
     )
-    return result
+    electron_density = np.zeros(ipp.loc.shape, dtype=float)
+    electron_density[np.arange(n_times), index] = tec.electron_density
+    return ElectronDensity(
+        electron_density=electron_density,
+        electron_density_error=tec.electron_density_error.reshape((-1, 1)),
+    )
 
 
 def get_density_ionex_iri(
     ipp: IPP,
     height: u.Quantity = 350 * u.km,
     options: IonexOptions | None = None,
-) -> NDArray[np.float64]:
+) -> ElectronDensity:
     """gets the ionex files and interpolate values for a single altitude, then multiply with a
     normalised density profile from iri
 
@@ -111,7 +116,10 @@ def get_density_ionex_iri(
     profile = iri.get_profile(ipp)
     tec = get_density_ionex_single_layer(ipp, height=height, options=options)
     # get tec at single altitude
-    return np.array(np.sum(tec, keepdims=True, axis=1) * profile)
+    return ElectronDensity(
+        electron_density=np.sum(tec.electron_density, keepdims=True, axis=1) * profile,
+        electron_density_error=tec.electron_density_error,  # only save the rms  of the single layer
+    )
 
 
 # TODO: move height to IonexOptions
@@ -120,7 +128,10 @@ def get_density_tomion(
 ) -> NDArray[np.float64]:
     logger.warning(f"Unused option {height=}")
     _ = height
-    return get_density_dual_layer(ipp, tomion_options=options)
+    return ElectronDensity(
+        electron_density=get_density_dual_layer(ipp, tomion_options=options),
+        electron_density_error=np.full(ipp.loc.shape, np.nan),
+    )
 
 
 ionospheric_models = IonosphericModels(
