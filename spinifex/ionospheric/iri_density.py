@@ -11,6 +11,8 @@ from PyIRI.main_library import IRI_density_1day
 from spinifex.geometry.get_ipp import IPP
 from spinifex.times import get_unique_days
 
+IRI_HEIGHTS = np.linspace(50, 20000, 100) * u.km
+
 
 def get_profile(ipp: IPP) -> NDArray[np.float32]:
     """Get the normalized electron density profile for all times an altitudes in ipp

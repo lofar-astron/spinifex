@@ -20,7 +20,9 @@ from spinifex.get_rm import (
     _get_rm_from_skycoord,
 )
 from spinifex.ionospheric import ModelDensityFunction
+from spinifex.ionospheric.iri_density import IRI_HEIGHTS
 from spinifex.ionospheric.models import O, parse_iono_kwargs, parse_iono_model
+from spinifex.ionospheric.tomion_parser import TOMION_HEIGHTS
 from spinifex.logger import logger
 from spinifex.magnetic import MagneticFieldFunction
 from spinifex.magnetic.models import parse_magnetic_model
@@ -113,7 +115,6 @@ def get_rm_from_ms(
     ms_path: Path,
     timestep: u.Quantity | None = None,
     use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
-    height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
     iono_model_name: str = "ionex",
     magnetic_model_name: str = "ppigrf",
     **iono_kwargs: Any,
@@ -129,8 +130,6 @@ def get_rm_from_ms(
     use_stations : list[int  |  str] | None, optional
         list of stations (index or name) to use,
         if None use first of the measurement set, by default None
-    height_array : NDArray[np.float64], optional
-        array of ionospheric altitudes, by default DEFAULT_IONO_HEIGHT
     iono_model_name : str, optional
         ionospheric model name, by default "ionex". Must be a supported ionospheric model.
     magnetic_model_name : str, optional
@@ -144,6 +143,11 @@ def get_rm_from_ms(
         dictionary with RM object per station
     """
     iono_model = parse_iono_model(iono_model_name)
+    height_array = DEFAULT_IONO_HEIGHT
+    if iono_model_name == "tomion":
+        height_array = TOMION_HEIGHTS
+    elif iono_model_name == "ionex_iri":
+        height_array = IRI_HEIGHTS
     iono_options = parse_iono_kwargs(iono_model=iono_model, **iono_kwargs)
     magnetic_model = parse_magnetic_model(magnetic_model_name)
     return _get_iono_from_ms(
@@ -177,8 +181,6 @@ def get_dtec_from_ms(
     use_stations : list[int  |  str] | None, optional
         list of stations (index or name) to use,
         if None use first of the measurement set, by default None
-    height_array : NDArray[np.float64], optional
-        array of ionospheric altitudes, by default DEFAULT_IONO_HEIGHT
     iono_model_name : str, optional
         ionospheric model name, by default "ionex". Must be a supported ionospheric model.
     iono_kwargs : dict, optional
@@ -190,6 +192,12 @@ def get_dtec_from_ms(
         dictionary with electron_density_profiles per station
     """
     iono_model = parse_iono_model(iono_model_name)
+    height_array = DEFAULT_IONO_HEIGHT
+    if iono_model_name == "tomion":
+        height_array = TOMION_HEIGHTS
+    elif iono_model_name == "ionex_iri":
+        height_array = IRI_HEIGHTS
+
     iono_options = parse_iono_kwargs(iono_model, **iono_kwargs)
     return _get_iono_from_ms(
         ms_path=ms_path,
