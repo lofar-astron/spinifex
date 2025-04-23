@@ -172,7 +172,13 @@ def get_density_ionex(
     unique_days = unique_days_from_ionex_files(sorted_ionex_paths)
     if not unique_days.shape:
         ionex = read_ionex(sorted_ionex_paths[0])
-        return interpolate_ionex(ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times)
+        tec = interpolate_ionex(ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times)
+        electron_density_error = interpolate_ionex(
+            ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times, get_rms=True
+        )
+        return ElectronDensity(
+            electron_density=tec, electron_density_error=electron_density_error
+        )
     group_indices = get_indexlist_unique_days(unique_days, ipp.times)
     tec = np.zeros(ipp.loc.shape, dtype=float)
     electron_density_error = np.full(ipp.loc.shape, np.nan)
