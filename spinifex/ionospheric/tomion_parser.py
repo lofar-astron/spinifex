@@ -24,6 +24,7 @@ from spinifex.ionospheric.index_tools import (
     get_interpol,
     get_sorted_indices,
 )
+from spinifex.ionospheric.tec_data import ElectronDensity
 from spinifex.logger import logger
 from spinifex.options import Options
 from spinifex.times import get_indexlist_unique_days, get_unique_days
@@ -76,6 +77,8 @@ class TomionData(NamedTuple):
     """heights (km)"""
     tec: NDArray[np.float64]
     """array with voxel tecvalues(TECU)"""
+    stddev: NDArray[np.float64]
+    """array with voxel stddev values(TECU)"""
     h_idx: NDArray[np.int128]
     """array with index of height"""
 
@@ -111,6 +114,7 @@ def _read_tomion(fname: Path) -> TomionData:
     layer_index = tomion_data["k"].value
     # TODO: What are these numbers?
     electron_density = (10.0 / 1.05) * layer_height * tomion_data["value"].value
+    stddev = (10.0 / 1.05) * layer_height * tomion_data["stddev"].value
     available_lat = tomion_data["dec"].value
     available_lon = tomion_data["longitude"].value
     return TomionData(
@@ -121,6 +125,7 @@ def _read_tomion(fname: Path) -> TomionData:
         h=height,
         h_idx=layer_index,
         tec=electron_density,
+        stddev=stddev,
     )
 
 
@@ -284,6 +289,8 @@ def interpolate_tomion(
     lons: NDArray[np.float64],
     lats: NDArray[np.float64],
     times: Time,
+    apply_earth_rotation: float = 1,
+    get_rms: bool = False,
 ) -> NDArray[np.float64]:
     """Interpolate tomion data to the requested lons/lats/times
 
@@ -297,13 +304,18 @@ def interpolate_tomion(
         array of latitudes at the two TOMION_HEIGHTS, shape (2,)
     times : Time
         time
+    apply_earth_rotation : float, optional
+        specify (with a number between 0 and 1) how much of the earth rotation
+        is taken in to account in the interpolation step., by default 1
+    get_rms : bool, optional
+        use rms values instead of tec values
 
     Returns
     -------
     NDArray[np.float64]
         electron density values at two TOMION_HEIGHTS, shape (2,)
     """
-    # TODO: implement apply_earth_rotation
+    value_array = tomion.stddev if get_rms else tomion.tec
     # TODO: implement this function directly for an array of times
     timeindex = compute_index_and_weights(tomion.available_times.mjd, times.mjd)
     time1 = tomion.available_times.mjd[timeindex.idx1]
@@ -319,28 +331,31 @@ def interpolate_tomion(
     tec_hi = []
     tec = np.zeros((2,), dtype=float)
     for lo, tms in zip(layers_lo, timeselect):
+        rot = ((times.mjd - tomion.times.mjd[tms][0]) * 360.0) * apply_earth_rotation
         isorted_low = get_sorted_indices(
-            lon=lons[0],
+            lon=lons[0] + rot,
             lat=lats[0],
             avail_lon=tomion.lons[tms][lo],
             avail_lat=tomion.lats[tms][lo],
         )
         tec_lo.append(
             get_interpol(
-                tomion.tec[tms][lo][isorted_low.indices[:MAX_INTERPOL_POINTS]],
+                value_array[tms][lo][isorted_low.indices[:MAX_INTERPOL_POINTS]],
                 isorted_low.distance[:MAX_INTERPOL_POINTS],
             )
         )
     for hi, tms in zip(layers_hi, timeselect):
+        rot = ((times.mjd - tomion.times.mjd[tms][0]) * 360.0) * apply_earth_rotation
+
         isorted_hi = get_sorted_indices(
-            lon=lons[1],
+            lon=lons[1] + rot,
             lat=lats[1],
             avail_lon=tomion.lons[tms][hi],
             avail_lat=tomion.lats[tms][hi],
         )
         tec_hi.append(
             get_interpol(
-                tomion.tec[tms][hi][isorted_hi.indices[:MAX_INTERPOL_POINTS]],
+                value_array[tms][hi][isorted_hi.indices[:MAX_INTERPOL_POINTS]],
                 isorted_hi.distance[:MAX_INTERPOL_POINTS],
             )
         )
@@ -353,7 +368,7 @@ def interpolate_tomion(
 
 def get_density_dual_layer(
     ipp: IPP, tomion_options: TomionOptions | None = None
-) -> NDArray[np.float64]:
+) -> ElectronDensity:
     """extracts electron densities for the two TOMION_HEIGHTS for all times in ipp. The returned array
     will have zeros every where apart from the two altitudes closest to TOMION_HEIGHTS
 
@@ -366,9 +381,8 @@ def get_density_dual_layer(
 
     Returns
     -------
-    NDArray[np.float64]
-        array with electron densities shape (ipp.loc.shape). The array will only have values at the
-        altitudes closest to the TOMION_HEIGHTS and zeros everywhere else.
+    ElectronDensity
+        object with arrays of tec  and tec_rms values for every entry in ipp
 
     Raises
     ------
@@ -382,6 +396,7 @@ def get_density_dual_layer(
     ]
     selected_ipp = ipp.loc[:, h_index]
     tec = np.zeros(ipp.loc.shape, dtype=float)
+    tec_error = np.zeros(ipp.loc.shape, dtype=float)
     unique_days = get_unique_days(times=ipp.times)
     sorted_tomion_paths = get_tomion_paths(
         unique_days=unique_days,
@@ -400,5 +415,12 @@ def get_density_dual_layer(
             tec[ippi, h_index] = interpolate_tomion(
                 tomion, u_loc[idxi].lon.deg, u_loc[idxi].lat.deg, u_times[idxi]
             )
+            tec_error[ippi, h_index] = interpolate_tomion(
+                tomion,
+                u_loc[idxi].lon.deg,
+                u_loc[idxi].lat.deg,
+                u_times[idxi],
+                get_rms=True,
+            )
 
-    return tec
+    return ElectronDensity(electron_density=tec, electron_density_error=tec_error)

@@ -128,9 +128,10 @@ def get_density_tomion(
 ) -> NDArray[np.float64]:
     logger.warning(f"Unused option {height=}")
     _ = height
+    tec = get_density_dual_layer(ipp, tomion_options=options)
     return ElectronDensity(
-        electron_density=get_density_dual_layer(ipp, tomion_options=options),
-        electron_density_error=np.full(ipp.loc.shape, np.nan),
+        electron_density=tec.electron_density,
+        electron_density_error=tec.electron_density_error,
     )
 
 

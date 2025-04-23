@@ -146,7 +146,7 @@ def interpolate_ionex(
 
 def get_density_ionex(
     ipp: IPP, ionex_options: IonexOptions | None = None
-) -> NDArray[np.float64]:
+) -> ElectronDensity:
     """read ionex files and interpolate values to ipp locations/times
 
     Parameters
@@ -158,8 +158,8 @@ def get_density_ionex(
 
     Returns
     -------
-    NDArray
-        array with tec values for every entry in ipp
+    ElectronDensity
+        object with arrays of tec  and tec_rms values for every entry in ipp
 
     Raises
     ------
