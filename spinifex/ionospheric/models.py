@@ -29,7 +29,6 @@ class ModelDensityFunction(Protocol, Generic[O_contra]):
     def __call__(
         self,
         ipp: IPP,
-        height: u.Quantity = 350 * u.km,
         options: O_contra | None = None,
     ) -> ElectronDensity: ...
 
