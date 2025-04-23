@@ -485,6 +485,9 @@ class IonexOptions(Options):
     correct_uqrg_rms: bool = Field(
         True, description="Correct overestimated rms of uqr maps"
     )
+    height: u.Quantity = Field(
+        350 * u.km, description="altitude of single layer ionosphere"
+    )
 
 
 async def _download_ionex_coro(

@@ -15,8 +15,8 @@ import spinifex.ionospheric.iri_density as iri
 from spinifex.geometry.get_ipp import IPP
 from spinifex.ionospheric.ionex_download import IonexOptions
 from spinifex.ionospheric.ionex_manipulation import get_density_ionex
-from spinifex.ionospheric.tec_data import ElectronDensity
-from spinifex.ionospheric.tomion_parser import TomionOptions, get_density_dual_layer
+from spinifex.ionospheric.tec_data import ElectronDensity, TomionOptions
+from spinifex.ionospheric.tomion_parser import get_density_dual_layer
 from spinifex.logger import logger
 
 O = TypeVar("O", IonexOptions, TomionOptions)  # noqa: E741
@@ -47,7 +47,7 @@ class IonosphericModels:
 
 
 def get_density_ionex_single_layer(
-    ipp: IPP, height: u.Quantity = 350 * u.km, options: IonexOptions | None = None
+    ipp: IPP, options: IonexOptions | None = None
 ) -> ElectronDensity:
     """gets the ionex files and interpolate values for a single altitude, thin screen assumption
 
@@ -55,8 +55,6 @@ def get_density_ionex_single_layer(
     ----------
     ipp : IPP
         ionospheric piercepoints
-    height : u.Quantity, optional
-        altitude of the thin screen, by default 350*u.km
     ionex_options: IonexOptions | None, optional
         options for the ionospheric model, by default None
 
@@ -66,9 +64,12 @@ def get_density_ionex_single_layer(
         interpolated vTEC values at ipp, zeros everywhere apart from the altitude
         closest to the specified height
     """
+    if options is None:
+        options = IonexOptions()
+
     n_times = ipp.times.shape[0]  # we assume time is first axis
     index = np.argmin(
-        np.abs(ipp.loc.height.to(u.km).value - height.to(u.km).value), axis=1
+        np.abs(ipp.loc.height.to(u.km).value - options.height.to(u.km).value), axis=1
     )
     single_layer_loc = EarthLocation(ipp.loc[np.arange(n_times), index])
     ipp_single_layer = IPP(
@@ -93,7 +94,6 @@ def get_density_ionex_single_layer(
 
 def get_density_ionex_iri(
     ipp: IPP,
-    height: u.Quantity = 350 * u.km,
     options: IonexOptions | None = None,
 ) -> ElectronDensity:
     """gets the ionex files and interpolate values for a single altitude, then multiply with a
@@ -114,7 +114,7 @@ def get_density_ionex_iri(
         interpolated vTEC values at ipp
     """
     profile = iri.get_profile(ipp)
-    tec = get_density_ionex_single_layer(ipp, height=height, options=options)
+    tec = get_density_ionex_single_layer(ipp, options=options)
     # get tec at single altitude
     return ElectronDensity(
         electron_density=np.sum(tec.electron_density, keepdims=True, axis=1) * profile,
@@ -124,10 +124,8 @@ def get_density_ionex_iri(
 
 # TODO: move height to IonexOptions
 def get_density_tomion(
-    ipp: IPP, height: u.Quantity = 350 * u.km, options: TomionOptions | None = None
+    ipp: IPP, options: TomionOptions | None = None
 ) -> NDArray[np.float64]:
-    logger.warning(f"Unused option {height=}")
-    _ = height
     tec = get_density_dual_layer(ipp, tomion_options=options)
     return ElectronDensity(
         electron_density=tec.electron_density,

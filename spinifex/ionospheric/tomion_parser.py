@@ -13,7 +13,6 @@ import numpy as np
 from astropy.table import Table
 from astropy.time import Time
 from numpy.typing import NDArray
-from pydantic import Field
 
 from spinifex.asyncio_wrapper import sync_wrapper
 from spinifex.download import download_or_copy_url
@@ -24,9 +23,8 @@ from spinifex.ionospheric.index_tools import (
     get_interpol,
     get_sorted_indices,
 )
-from spinifex.ionospheric.tec_data import ElectronDensity
+from spinifex.ionospheric.tec_data import ElectronDensity, TomionOptions
 from spinifex.logger import logger
-from spinifex.options import Options
 from spinifex.times import get_indexlist_unique_days, get_unique_days
 
 TOMOION_FORMAT_DICT: dict[str, Any] = {
@@ -52,14 +50,6 @@ TOMOION_FORMAT_DICT: dict[str, Any] = {
 }
 MAX_INTERPOL_POINTS: int = 4  # number of points used for lon/lat interpolation
 TOMION_HEIGHTS: u.Quantity = np.array([450, 1150]) * u.km
-
-
-class TomionOptions(Options):
-    """Options for tomion model"""
-
-    output_directory: Path | None = Field(
-        None, description="Output directory for tomion files"
-    )
 
 
 class TomionData(NamedTuple):
