@@ -73,10 +73,28 @@ def test_ionosphere_tomionmultiple_days(ipp2):
 
 def test_constants():
     # Previous constants from first implementation
-    tomion_format = (
-        "mjd index value stddev type number_of_observations height ra dec i j k \
-        label longitude lst year doy month dom".split()
-    )
+    tomion_format = [
+        "mjd",
+        "index",
+        "value",
+        "stddev",
+        "type",
+        "number_of_observations",
+        "height",
+        "ra",
+        "dec",
+        "i",
+        "j",
+        "k",
+        "label",
+        "longitude",
+        "lst",
+        "year",
+        "doy",
+        "month",
+        "dom",
+    ]
+
     data_types = [
         float,
         int,

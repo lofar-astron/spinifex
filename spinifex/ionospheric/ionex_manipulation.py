@@ -173,13 +173,13 @@ def get_density_ionex(
     sorted_ionex_paths = _download_ionex(times=ipp.times, options=ionex_options)
     # also download data for next day, to remove midnight jumps
     sorted_next_day_paths = (
-        _download_ionex(times=ipp.times + 1 * u.day, options=ionex_options)
-        if ionex_options.remove_midnight_jump
+        _download_ionex(times=ipp.times + 1 * u.day, options=ionex_options)  # type: ignore[assignment]
+        if ionex_options.remove_midnight_jumps
         else [
             None,
         ]
-        * len(sorted_ionex_paths)
-    )  # type: ignore[assignment]
+        * len(sorted_ionex_paths)  # type: ignore[assignment]
+    )
     unique_days = unique_days_from_ionex_files(sorted_ionex_paths)
     if not unique_days.shape:
         ionex = read_ionex(
