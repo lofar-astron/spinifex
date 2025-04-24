@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import NamedTuple, list
+from typing import NamedTuple
 
 import astropy.units as u
 import numpy as np
