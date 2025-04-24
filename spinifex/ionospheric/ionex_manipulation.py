@@ -176,7 +176,7 @@ def get_density_ionex(
         _download_ionex(times=ipp.times + 1 * u.day, options=ionex_options)
         if ionex_options.remove_midnight_jumps
         else [
-            None,  # type: ignore[assignment]
+            None,  # type: ignore[list-item]
         ]
         * len(sorted_ionex_paths)
     )
