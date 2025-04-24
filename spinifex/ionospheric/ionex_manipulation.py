@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import NamedTuple, cast
+from typing import NamedTuple
 
 import astropy.units as u
 import numpy as np
@@ -173,20 +172,14 @@ def get_density_ionex(
     # TODO: apply_earth_rotation as option
     sorted_ionex_paths = _download_ionex(times=ipp.times, options=ionex_options)
     # also download data for next day, to remove midnight jumps
-    sorted_next_day_paths: list[Path | None] = (
-        cast(
-            list[Path | None],
-            _download_ionex(times=ipp.times + 1 * u.day, options=ionex_options),
-        )
-        if ionex_options.remove_midnight_jumps
-        else cast(
-            list[Path | None],
-            [
-                None,
-            ]
-            * len(sorted_ionex_paths),
-        )
-    )
+    sorted_next_day_paths = (
+        _download_ionex(times=ipp.times + 1 * u.day, options=ionex_options)
+        if ionex_options.remove_midnight_jump
+        else [
+            None,
+        ]
+        * len(sorted_ionex_paths)
+    )  # type: ignore[assignment]
     unique_days = unique_days_from_ionex_files(sorted_ionex_paths)
     if not unique_days.shape:
         ionex = read_ionex(
