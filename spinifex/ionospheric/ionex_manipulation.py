@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
+import astropy.units as u
 import numpy as np
 from astropy.time import Time
 from numpy.typing import NDArray
@@ -166,12 +167,24 @@ def get_density_ionex(
     FileNotFoundError
         if ionex file cannot be downloaded
     """
+    if ionex_options is None:
+        ionex_options = IonexOptions()
     # TODO: apply_earth_rotation as option
     sorted_ionex_paths = _download_ionex(times=ipp.times, options=ionex_options)
-
+    # also download data for next day, to remove midnight jumps
+    sorted_next_day_paths = (
+        _download_ionex(times=ipp.times + 1 * u.day, options=ionex_options)
+        if ionex_options.remove_midnight_jumps
+        else [
+            None,
+        ]
+        * len(sorted_ionex_paths)
+    )
     unique_days = unique_days_from_ionex_files(sorted_ionex_paths)
     if not unique_days.shape:
-        ionex = read_ionex(sorted_ionex_paths[0])
+        ionex = read_ionex(
+            sorted_ionex_paths[0], sorted_next_day_paths[0], options=ionex_options
+        )
         tec = interpolate_ionex(ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times)
         electron_density_error = interpolate_ionex(
             ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times, get_rms=True
@@ -182,13 +195,15 @@ def get_density_ionex(
     group_indices = get_indexlist_unique_days(unique_days, ipp.times)
     tec = np.zeros(ipp.loc.shape, dtype=float)
     electron_density_error = np.full(ipp.loc.shape, np.nan)
-    for indices, ionex_file in zip(group_indices, sorted_ionex_paths):
+    for indices, ionex_file, next_day_file in zip(
+        group_indices, sorted_ionex_paths, sorted_next_day_paths
+    ):
         if not ionex_file.exists():
             msg = f"Ionex file {ionex_file} not found!"
             raise FileNotFoundError(msg)
         u_loc = ipp.loc[indices]
         u_times = ipp.times[indices]
-        ionex = read_ionex(ionex_file, options=ionex_options)
+        ionex = read_ionex(ionex_file, next_day_file, options=ionex_options)
         tec[indices] = interpolate_ionex(ionex, u_loc.lon.deg, u_loc.lat.deg, u_times)
         electron_density_error[indices] = interpolate_ionex(
             ionex, u_loc.lon.deg, u_loc.lat.deg, u_times, get_rms=True
