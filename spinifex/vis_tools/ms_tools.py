@@ -166,7 +166,6 @@ def get_dtec_from_ms(
     ms_path: Path,
     timestep: u.Quantity | None = None,
     use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
-    height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
     iono_model_name: str = "ionex",
     **iono_kwargs: Any,
 ) -> dict[str, NDArray]:
@@ -355,10 +354,10 @@ def cli_get_rm_h5parm_from_ms(args: argparse.Namespace) -> None:
     solset_name: str | None = args.solset_name
     soltab_name: str | None = args.soltab_name
     add_to_existing_solset: bool = args.add_to_existing_solset
+    iono_model_name: str | None = args.iono_model_name
 
     rm_dict = get_rm_from_ms(
-        ms_path=ms_path,
-        use_stations="all",
+        ms_path=ms_path, use_stations="all", iono_model_name=iono_model_name
     )
     h5parm_tools.write_rm_to_h5parm(
         rm_dict,
@@ -375,10 +374,10 @@ def cli_get_dtec_h5parm_from_ms(args: argparse.Namespace) -> None:
     solset_name: str | None = args.solset_name
     soltab_name: str | None = args.soltab_name
     add_to_existing_solset: bool = args.add_to_existing_solset
+    iono_model_name: str | None = args.iono_model_name
 
     dtec = get_dtec_from_ms(
-        ms_path=ms_path,
-        use_stations="all",
+        ms_path=ms_path, use_stations="all", iono_model_name=iono_model_name
     )
     h5parm_tools.write_tec_to_h5parm(
         dtec,

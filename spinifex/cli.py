@@ -27,6 +27,9 @@ def get_parser():
         help="Measurement set for which the RM values should be calculated.",
     )
     parser_rm.add_argument(
+        "--iono-model-name", type=str, default="ionex", help="iono mode name"
+    )
+    parser_rm.add_argument(
         "--solset-name",
         type=str,
         help="Solset name. Default: create a new one based on first existing sol###",
@@ -58,6 +61,9 @@ def get_parser():
         "ms",
         type=Path,
         help="Measurement set for which the tec values should be calculated.",
+    )
+    parser_tec.add_argument(
+        "--iono-model-name", type=str, default="ionex", help="iono mode name"
     )
     parser_tec.add_argument(
         "--solset-name",
