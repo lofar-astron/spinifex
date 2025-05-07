@@ -84,5 +84,5 @@ tomion
 ---------------------
 The 2 layer ionospheric model provided by UPC-IonSat. This tomographic model is slower, but tends to give more stable results in long term pulsar observations.
 See e.g. `Porayko, N. et al <https://link.springer.com/article/10.1007/s00190-023-01806-1>`_. Detailed information on the tomion fitting can be found
-`here <_static/tomion_doc.pdf>`_. Note that from March 2022 the tomion files have high (15 minute) time resolution. Before that date only the 2 hour resolution data is 
+`here <_static/tomion_doc.pdf>`_. Note that from March 2022 the tomion files have high (15 minute) time resolution. Before that date only the 2 hour resolution data is
 available, resulting in lower accuracy.
