@@ -50,7 +50,7 @@ TOMOION_FORMAT_DICT: dict[str, Any] = {
     "dom": int,
 }
 MAX_INTERPOL_POINTS: int = 4  # number of points used for lon/lat interpolation
-TOMION_HEIGHTS: u.Quantity = [450, 1150] * u.km
+TOMION_HEIGHTS: u.Quantity = np.array([450, 1150]) * u.km
 
 
 class TomionOptions(Options):

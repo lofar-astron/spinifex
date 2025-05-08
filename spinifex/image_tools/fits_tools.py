@@ -15,10 +15,9 @@ from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.io import fits
 from astropy.time import Time, TimeDelta
 from astropy.wcs import WCS
-from numpy.typing import NDArray
 
 from spinifex.exceptions import FITSHeaderError
-from spinifex.get_rm import DEFAULT_IONO_HEIGHT, RM, get_rm_from_skycoord
+from spinifex.get_rm import RM, get_rm_from_skycoord
 from spinifex.image_tools.image_tools import IntegratedRM, get_integrated_rm
 from spinifex.logger import logger
 
@@ -113,7 +112,6 @@ def get_metadata_from_fits(fits_path: Path) -> FITSMetaData:
 def get_rm_from_fits(
     fits_path: Path,
     timestep: u.Quantity = 15 * u.min,
-    height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
     iono_model_name: str = "ionex",
     magnetic_model_name: str = "ppigrf",
     **iono_kwargs: Any,
@@ -126,8 +124,6 @@ def get_rm_from_fits(
         Path to FITS file
     timestep : u.Quantity, optional
         Time step to evaluate time-dependant RM, by default 15*u.min
-    height_array : NDArray[np.float64], optional
-        Height of ionosphere, by default DEFAULT_IONO_HEIGHT
     iono_model_name : str, optional
         ionospheric model name, by default "ionex". Must be a supported ionospheric model.
     magnetic_model_name : str, optional
@@ -154,7 +150,6 @@ def get_rm_from_fits(
         loc=fits_metadata.location,
         times=times,
         source=fits_metadata.source,
-        height_array=height_array,
         iono_model_name=iono_model_name,
         magnetic_model_name=magnetic_model_name,
         **iono_kwargs,
@@ -199,7 +194,6 @@ def get_freq_from_fits(fits_path: Path) -> u.Quantity:
 def get_integrated_rm_from_fits(
     fits_path: Path,
     timestep: u.Quantity = 15 * u.min,
-    height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
     iono_model_name: str = "ionex",
     magnetic_model_name: str = "ppigrf",
     **iono_kwargs: Any,
@@ -212,8 +206,6 @@ def get_integrated_rm_from_fits(
         Path to FITS file
     timestep : u.Quantity, optional
         Timestep to use for computing time-dependent RM, by default 15*u.min
-    height_array : NDArray[np.float64], optional
-        altitudes, by default DEFAULT_IONO_HEIGHT
     iono_model_name : str, optional
         ionospheric model name, by default "ionex". Must be a supported ionospheric model.
     magnetic_model_name : str, optional
@@ -231,7 +223,6 @@ def get_integrated_rm_from_fits(
     time_dep_rm = get_rm_from_fits(
         fits_path=fits_path,
         timestep=timestep,
-        height_array=height_array,
         iono_model_name=iono_model_name,
         magnetic_model_name=magnetic_model_name,
         **iono_kwargs,
