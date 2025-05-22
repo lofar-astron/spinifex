@@ -25,7 +25,7 @@ from spinifex.ionospheric.models import O, parse_iono_kwargs, parse_iono_model
 from spinifex.ionospheric.tomion_parser import TOMION_HEIGHTS
 from spinifex.logger import logger
 from spinifex.magnetic import MagneticFieldFunction
-from spinifex.magnetic.models import parse_magnetic_model
+from spinifex.magnetic.models import magnetic_models, parse_magnetic_model
 
 try:
     from casacore.tables import table as _casacore_table
@@ -217,7 +217,7 @@ def _get_iono_from_ms(
     use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
     height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
     iono_options: O | None = None,
-    magnetic_model: MagneticFieldFunction | None = None,
+    magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
 ) -> dict[str, RM] | dict[str, NDArray]:
     """Get ionospheric values for a measurement set
 
