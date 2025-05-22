@@ -488,6 +488,10 @@ class IonexOptions(Options):
     height: u.Quantity = Field(
         350 * u.km, description="altitude of single layer ionosphere"
     )
+    remove_midnight_jumps: bool = Field(
+        True,
+        description="mitigate midnight jumps in the ionex files by inserting the data of the next day",
+    )
 
 
 async def _download_ionex_coro(
@@ -603,6 +607,9 @@ async def download_ionex_coro(
         time_resolution=time_resolution,
         solution=solution,
         output_directory=output_directory,
+        correct_uqrg_rms=False,
+        height=350 * u.km,
+        remove_midnight_jumps=False,
     )
 
     return await _download_ionex_coro(times, options)
