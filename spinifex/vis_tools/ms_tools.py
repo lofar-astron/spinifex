@@ -115,7 +115,7 @@ def get_rm_from_ms(
     ms_path: Path,
     timestep: u.Quantity | None = None,
     use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
-    iono_model_name: str = "ionex",
+    iono_model_name: str | None = None,
     magnetic_model_name: str = "ppigrf",
     **iono_kwargs: Any,
 ) -> dict[str, RM]:
@@ -142,6 +142,9 @@ def get_rm_from_ms(
     dict[str, RM]
         dictionary with RM object per station
     """
+    if iono_model_name is None:
+        iono_model_name = "ionex"
+
     iono_model = parse_iono_model(iono_model_name)
     height_array = DEFAULT_IONO_HEIGHT
     if iono_model_name == "tomion":
@@ -166,7 +169,7 @@ def get_dtec_from_ms(
     ms_path: Path,
     timestep: u.Quantity | None = None,
     use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
-    iono_model_name: str = "ionex",
+    iono_model_name: str | None = None,
     **iono_kwargs: Any,
 ) -> dict[str, NDArray]:
     """Get rotation measures for a measurement set
@@ -190,6 +193,10 @@ def get_dtec_from_ms(
     dict[str, NDArray]
         dictionary with electron_density_profiles per station
     """
+
+    if iono_model_name is None:
+        iono_model_name = "ionex"
+
     iono_model = parse_iono_model(iono_model_name)
     height_array = DEFAULT_IONO_HEIGHT
     if iono_model_name == "tomion":
