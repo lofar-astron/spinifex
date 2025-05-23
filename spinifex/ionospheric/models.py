@@ -13,9 +13,8 @@ from pydantic import ValidationError
 
 import spinifex.ionospheric.iri_density as iri
 from spinifex.geometry.get_ipp import IPP
-from spinifex.ionospheric.ionex_download import IonexOptions
 from spinifex.ionospheric.ionex_manipulation import get_density_ionex
-from spinifex.ionospheric.tec_data import ElectronDensity, TomionOptions
+from spinifex.ionospheric.tec_data import ElectronDensity, IonexOptions, TomionOptions
 from spinifex.ionospheric.tomion_parser import get_density_dual_layer
 from spinifex.logger import logger
 
