@@ -4,72 +4,29 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from enum import Enum
 from pathlib import Path
-from typing import Literal
 
 import astropy.units as u
 from astropy.time import Time
-from pydantic import Field
 
 from spinifex.asyncio_wrapper import sync_wrapper
 from spinifex.download import download_or_copy_url
 from spinifex.exceptions import IonexError, TimeResolutionError
+from spinifex.ionospheric.tec_data import (
+    CENTER_NAMES,
+    DEFAULT_TIME_RESOLUTIONS,
+    NAME_SWITCH_WEEK,
+    SOLUTION,
+    IonexOptions,
+    Servers,
+)
 from spinifex.logger import logger
-from spinifex.options import Options
 from spinifex.times import get_gps_week, get_unique_days
 
 # We need to support downloading from the following sources:
 # "cddis.nasa.gov": cddis_nasa_gov,
 # "chapman.upc.es": chapman_upc_es
 # "igsiono.uwm.edu.pl": igsiono_uwm_edu_pl
-
-CENTER_NAMES = {
-    "cod",
-    "esa",
-    "igs",
-    "jpl",
-    "upc",
-    "irt",
-    "uqr",
-}
-DEFAULT_TIME_RESOLUTIONS: dict[str, u.Quantity] = {
-    "cod": 1 * u.hour,
-    "esa": 2 * u.hour,
-    "igs": 2 * u.hour,
-    "jpl": 2 * u.hour,
-    "upc": 2 * u.hour,
-    "irt": 2 * u.hour,
-    "uqr": 15 * u.min,  # Chapman only provides 15 minute resolution right now
-}
-
-
-class Servers(str, Enum):
-    CDDIS = ("cddis", "https://cddis.nasa.gov/archive/gnss/products/ionex")
-    CHAPMAN = ("chapman", "http://chapman.upc.es/tomion/rapid")
-    IGSIONO = ("igsiono", "ftp://igs-final.man.olsztyn.pl")
-
-    def __new__(cls, value: str, _url: str) -> Servers:
-        obj = str.__new__(cls, value)
-        obj._value_ = value
-        obj._url = _url  # type: ignore[attr-defined]
-        return obj
-
-    @property
-    def url(self) -> str:
-        return str(self._url)  # type: ignore[attr-defined]
-
-    @classmethod
-    def get_url(cls, server: Servers) -> str:
-        return str(server.url)  # Retrieve URL given an Enum value
-
-
-assert set(DEFAULT_TIME_RESOLUTIONS.keys()) == CENTER_NAMES, (
-    "Time resolutions must be defined for all analysis centres"
-)
-NAME_SWITCH_WEEK = 2238  # GPS Week where the naming convention changed
-
-SOLUTION = Literal["final", "rapid"]
 
 
 def new_cddis_format(
@@ -467,26 +424,6 @@ async def download_from_igsiono(
     return await asyncio.gather(*coros)
 
 
-class IonexOptions(Options):
-    """Options for ionex model"""
-
-    server: Servers = Field(
-        Servers.CHAPMAN, description="Server to download ionex files from"
-    )
-    prefix: str = Field("uqr", description="Analysis centre prefix")
-    url_stem: str | None = Field(None, description="URL stem")
-    time_resolution: u.Quantity | None = Field(
-        None, description="Time resolution for ionex files"
-    )
-    solution: SOLUTION = Field("final", description="Solution type")
-    output_directory: Path | None = Field(
-        None, description="Output directory for ionex files"
-    )
-    correct_uqrg_rms: bool = Field(
-        True, description="Correct overestimated rms of uqr maps"
-    )
-
-
 async def _download_ionex_coro(
     times: Time,
     options: IonexOptions | None = None,
@@ -600,6 +537,9 @@ async def download_ionex_coro(
         time_resolution=time_resolution,
         solution=solution,
         output_directory=output_directory,
+        correct_uqrg_rms=False,
+        height=350 * u.km,
+        remove_midnight_jumps=False,
     )
 
     return await _download_ionex_coro(times, options)

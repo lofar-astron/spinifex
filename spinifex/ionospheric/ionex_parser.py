@@ -15,7 +15,7 @@ from numpy.typing import NDArray
 from unlzw3 import unlzw
 
 from spinifex.exceptions import IonexError
-from spinifex.ionospheric.ionex_download import IonexOptions
+from spinifex.ionospheric.tec_data import IonexOptions
 from spinifex.times import get_unique_days
 
 
@@ -55,13 +55,19 @@ class IonexHeader(NamedTuple):
     """multiplication factor for tec values"""
 
 
-def read_ionex(ionex_filename: Path, options: IonexOptions | None = None) -> IonexData:
+def read_ionex(
+    ionex_filename: Path,
+    next_day_ionex_filename: Path | None = None,
+    options: IonexOptions | None = None,
+) -> IonexData:
     """Read and parse a ionex file. Returns a ionex object.
 
     Parameters
     ----------
     ionex_filename : str
         name of the ionex data file
+    next_day_ionex_filename : str| None
+        name of the ionex data file for the next day (to remove midnight jumps)
     options : IonexOptions
         Options for the ionex model.
     Returns
@@ -72,15 +78,63 @@ def read_ionex(ionex_filename: Path, options: IonexOptions | None = None) -> Ion
     """
     if ionex_filename.suffix == ".gz":
         with gzip.open(ionex_filename, "rt", encoding="utf-8") as file_buffer:
-            return _read_ionex_data(file_buffer, options=options)
+            ionex = _read_ionex_data(file_buffer, options=options)
 
-    if ionex_filename.suffix == ".Z":
+    elif ionex_filename.suffix == ".Z":
         data = unlzw(ionex_filename.read_bytes()).decode("utf-8")
         with io.StringIO(data) as file_buffer:
-            return _read_ionex_data(file_buffer, options=options)
+            ionex = _read_ionex_data(file_buffer, options=options)
+    else:
+        with ionex_filename.open(encoding="utf-8") as file_buffer:
+            ionex = _read_ionex_data(file_buffer, options=options)
+    if next_day_ionex_filename is not None:
+        if next_day_ionex_filename.suffix == ".gz":
+            with gzip.open(
+                next_day_ionex_filename, "rt", encoding="utf-8"
+            ) as file_buffer:
+                next_day_ionex = _read_ionex_data(file_buffer, options=options)
 
-    with ionex_filename.open(encoding="utf-8") as file_buffer:
-        return _read_ionex_data(file_buffer, options=options)
+        elif next_day_ionex_filename.suffix == ".Z":
+            data = unlzw(next_day_ionex_filename.read_bytes()).decode("utf-8")
+            with io.StringIO(data) as file_buffer:
+                next_day_ionex = _read_ionex_data(file_buffer, options=options)
+        else:
+            with next_day_ionex_filename.open(encoding="utf-8") as file_buffer:
+                next_day_ionex = _read_ionex_data(file_buffer, options=options)
+        ionex = _replace_midnight_data(ionex, next_day_ionex)
+
+    return ionex
+
+
+def _replace_midnight_data(ionex: IonexData, next_day_ionex: IonexData) -> IonexData:
+    """mtigate jumps in tec value at midnight by inserting the tec value of the next day
+
+    Parameters
+    ----------
+    ionex : IonexData
+        ionex data object
+    next_day_ionex : IonexData
+        ionex data of the next day
+
+    Returns
+    -------
+    IonexData
+        ionex data object with the data of last timeslot replaced by the data of the next day
+    """
+    tec = ionex.tec
+    tec_error = ionex.rms
+    tmidx = np.where(np.isclose(ionex.times.mjd - next_day_ionex.times.mjd[0], 0, 1e-6))
+    tec[tmidx] = next_day_ionex.tec[0]
+    tec_error[tmidx] = next_day_ionex.rms[0]
+    return IonexData(
+        tec=tec,
+        rms=tec_error,
+        lons=ionex.lons,
+        lats=ionex.lats,
+        dims=ionex.dims,
+        h=ionex.h,
+        times=ionex.times,
+    )
 
 
 def _read_ionex_header(filep: TextIO) -> IonexHeader:

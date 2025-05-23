@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
+import astropy.units as u
 import numpy as np
 from astropy.time import Time
 from numpy.typing import NDArray
@@ -14,7 +15,6 @@ from spinifex.ionospheric.index_tools import (
     get_indices_axis,
 )
 from spinifex.ionospheric.ionex_download import (
-    IonexOptions,
     _download_ionex,
 )
 from spinifex.ionospheric.ionex_parser import (
@@ -22,7 +22,7 @@ from spinifex.ionospheric.ionex_parser import (
     read_ionex,
     unique_days_from_ionex_files,
 )
-from spinifex.ionospheric.tec_data import ElectronDensity
+from spinifex.ionospheric.tec_data import ElectronDensity, IonexOptions
 from spinifex.times import get_indexlist_unique_days
 
 
@@ -146,7 +146,7 @@ def interpolate_ionex(
 
 def get_density_ionex(
     ipp: IPP, ionex_options: IonexOptions | None = None
-) -> NDArray[np.float64]:
+) -> ElectronDensity:
     """read ionex files and interpolate values to ipp locations/times
 
     Parameters
@@ -158,31 +158,51 @@ def get_density_ionex(
 
     Returns
     -------
-    NDArray
-        array with tec values for every entry in ipp
+    ElectronDensity
+        object with arrays of tec  and tec_rms values for every entry in ipp
 
     Raises
     ------
     FileNotFoundError
         if ionex file cannot be downloaded
     """
+    if ionex_options is None:
+        ionex_options = IonexOptions()
     # TODO: apply_earth_rotation as option
     sorted_ionex_paths = _download_ionex(times=ipp.times, options=ionex_options)
-
+    # also download data for next day, to remove midnight jumps
+    sorted_next_day_paths = (
+        _download_ionex(times=ipp.times + 1 * u.day, options=ionex_options)
+        if ionex_options.remove_midnight_jumps
+        else [
+            None,  # type: ignore[list-item]
+        ]
+        * len(sorted_ionex_paths)
+    )
     unique_days = unique_days_from_ionex_files(sorted_ionex_paths)
     if not unique_days.shape:
-        ionex = read_ionex(sorted_ionex_paths[0])
-        return interpolate_ionex(ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times)
+        ionex = read_ionex(
+            sorted_ionex_paths[0], sorted_next_day_paths[0], options=ionex_options
+        )
+        tec = interpolate_ionex(ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times)
+        electron_density_error = interpolate_ionex(
+            ionex, ipp.loc.lon.deg, ipp.loc.lat.deg, ipp.times, get_rms=True
+        )
+        return ElectronDensity(
+            electron_density=tec, electron_density_error=electron_density_error
+        )
     group_indices = get_indexlist_unique_days(unique_days, ipp.times)
     tec = np.zeros(ipp.loc.shape, dtype=float)
     electron_density_error = np.full(ipp.loc.shape, np.nan)
-    for indices, ionex_file in zip(group_indices, sorted_ionex_paths):
+    for indices, ionex_file, next_day_file in zip(
+        group_indices, sorted_ionex_paths, sorted_next_day_paths
+    ):
         if not ionex_file.exists():
             msg = f"Ionex file {ionex_file} not found!"
             raise FileNotFoundError(msg)
         u_loc = ipp.loc[indices]
         u_times = ipp.times[indices]
-        ionex = read_ionex(ionex_file, options=ionex_options)
+        ionex = read_ionex(ionex_file, next_day_file, options=ionex_options)
         tec[indices] = interpolate_ionex(ionex, u_loc.lon.deg, u_loc.lat.deg, u_times)
         electron_density_error[indices] = interpolate_ionex(
             ionex, u_loc.lon.deg, u_loc.lat.deg, u_times, get_rms=True
