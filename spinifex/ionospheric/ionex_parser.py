@@ -15,7 +15,7 @@ from numpy.typing import NDArray
 from unlzw3 import unlzw
 
 from spinifex.exceptions import IonexError
-from spinifex.ionospheric.ionex_download import IonexOptions
+from spinifex.ionospheric.tec_data import IonexOptions
 from spinifex.times import get_unique_days
 
 

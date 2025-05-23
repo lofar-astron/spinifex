@@ -15,7 +15,6 @@ from spinifex.ionospheric.index_tools import (
     get_indices_axis,
 )
 from spinifex.ionospheric.ionex_download import (
-    IonexOptions,
     _download_ionex,
 )
 from spinifex.ionospheric.ionex_parser import (
@@ -23,7 +22,7 @@ from spinifex.ionospheric.ionex_parser import (
     read_ionex,
     unique_days_from_ionex_files,
 )
-from spinifex.ionospheric.tec_data import ElectronDensity
+from spinifex.ionospheric.tec_data import ElectronDensity, IonexOptions
 from spinifex.times import get_indexlist_unique_days
 
 
