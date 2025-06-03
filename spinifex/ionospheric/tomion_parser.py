@@ -48,8 +48,10 @@ TOMOION_FORMAT_DICT: dict[str, Any] = {
     "month": int,
     "dom": int,
 }
-MAX_INTERPOL_POINTS: int = 4  # number of points used for lon/lat interpolation
-TOMION_HEIGHTS: u.Quantity = np.array([450, 1150]) * u.km
+MAX_INTERPOL_POINTS: int = 8  # number of points used for lon/lat interpolation
+TOMION_HEIGHTS: u.Quantity = (
+    np.array([450, 1150]) * u.km
+)  # These are the default heights in the tomion files
 
 
 class TomionData(NamedTuple):
@@ -320,8 +322,8 @@ def interpolate_tomion(
     tec_lo = []
     tec_hi = []
     tec = np.zeros((2,), dtype=float)
-    for lo, tms in zip(layers_lo, timeselect):
-        rot = ((times.mjd - tomion.times.mjd[tms][0]) * 360.0) * apply_earth_rotation
+    for lo, tms, time_tomion in zip(layers_lo, timeselect, [time1, time2]):
+        rot = ((times.mjd - time_tomion) * 360.0) * apply_earth_rotation
         isorted_low = get_sorted_indices(
             lon=lons[0] + rot,
             lat=lats[0],
@@ -334,8 +336,8 @@ def interpolate_tomion(
                 isorted_low.distance[:MAX_INTERPOL_POINTS],
             )
         )
-    for hi, tms in zip(layers_hi, timeselect):
-        rot = ((times.mjd - tomion.times.mjd[tms][0]) * 360.0) * apply_earth_rotation
+    for hi, tms, time_tomion in zip(layers_hi, timeselect, [time1, time2]):
+        rot = ((times.mjd - time_tomion) * 360.0) * apply_earth_rotation
 
         isorted_hi = get_sorted_indices(
             lon=lons[1] + rot,

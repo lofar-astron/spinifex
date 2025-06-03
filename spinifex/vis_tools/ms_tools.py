@@ -25,7 +25,7 @@ from spinifex.ionospheric.models import O, parse_iono_kwargs, parse_iono_model
 from spinifex.ionospheric.tomion_parser import TOMION_HEIGHTS
 from spinifex.logger import logger
 from spinifex.magnetic import MagneticFieldFunction
-from spinifex.magnetic.models import parse_magnetic_model
+from spinifex.magnetic.models import magnetic_models, parse_magnetic_model
 
 try:
     from casacore.tables import table as _casacore_table
@@ -115,7 +115,7 @@ def get_rm_from_ms(
     ms_path: Path,
     timestep: u.Quantity | None = None,
     use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
-    iono_model_name: str = "ionex",
+    iono_model_name: str | None = None,
     magnetic_model_name: str = "ppigrf",
     **iono_kwargs: Any,
 ) -> dict[str, RM]:
@@ -142,6 +142,9 @@ def get_rm_from_ms(
     dict[str, RM]
         dictionary with RM object per station
     """
+    if iono_model_name is None:
+        iono_model_name = "ionex"
+
     iono_model = parse_iono_model(iono_model_name)
     height_array = DEFAULT_IONO_HEIGHT
     if iono_model_name == "tomion":
@@ -166,8 +169,7 @@ def get_dtec_from_ms(
     ms_path: Path,
     timestep: u.Quantity | None = None,
     use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
-    height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
-    iono_model_name: str = "ionex",
+    iono_model_name: str | None = None,
     **iono_kwargs: Any,
 ) -> dict[str, NDArray]:
     """Get rotation measures for a measurement set
@@ -191,6 +193,10 @@ def get_dtec_from_ms(
     dict[str, NDArray]
         dictionary with electron_density_profiles per station
     """
+
+    if iono_model_name is None:
+        iono_model_name = "ionex"
+
     iono_model = parse_iono_model(iono_model_name)
     height_array = DEFAULT_IONO_HEIGHT
     if iono_model_name == "tomion":
@@ -218,7 +224,7 @@ def _get_iono_from_ms(
     use_stations: list[int] | list[str] | Literal["all", "average"] = "average",
     height_array: NDArray[np.float64] = DEFAULT_IONO_HEIGHT,
     iono_options: O | None = None,
-    magnetic_model: MagneticFieldFunction | None = None,
+    magnetic_model: MagneticFieldFunction = magnetic_models.ppigrf,
 ) -> dict[str, RM] | dict[str, NDArray]:
     """Get ionospheric values for a measurement set
 
@@ -355,10 +361,10 @@ def cli_get_rm_h5parm_from_ms(args: argparse.Namespace) -> None:
     solset_name: str | None = args.solset_name
     soltab_name: str | None = args.soltab_name
     add_to_existing_solset: bool = args.add_to_existing_solset
+    iono_model_name: str | None = args.iono_model_name
 
     rm_dict = get_rm_from_ms(
-        ms_path=ms_path,
-        use_stations="all",
+        ms_path=ms_path, use_stations="all", iono_model_name=iono_model_name
     )
     h5parm_tools.write_rm_to_h5parm(
         rm_dict,
@@ -375,10 +381,10 @@ def cli_get_dtec_h5parm_from_ms(args: argparse.Namespace) -> None:
     solset_name: str | None = args.solset_name
     soltab_name: str | None = args.soltab_name
     add_to_existing_solset: bool = args.add_to_existing_solset
+    iono_model_name: str | None = args.iono_model_name
 
     dtec = get_dtec_from_ms(
-        ms_path=ms_path,
-        use_stations="all",
+        ms_path=ms_path, use_stations="all", iono_model_name=iono_model_name
     )
     h5parm_tools.write_tec_to_h5parm(
         dtec,
