@@ -92,7 +92,7 @@ def create_solset(h5file: h5py.File, solset_name: str | None = None) -> h5py.Dat
         shape=(1,),
         maxshape=(None,),
         chunks=True,
-        dtype=[("name", "S16"), ("dir", "<f4", (2,))],
+        dtype=[("name", "S64"), ("dir", "<f4", (2,))],
     )
     return solset
 
