@@ -54,6 +54,8 @@ def get_ipp_from_skycoord(
     """
     # Note: at the moment we calculate ipp per station. I think this is ok,
     # but maybe we need to include a many stations option
+    if not times.shape:
+        times = Time(np.array([times.mjd]), format="mjd")
     aa = AltAz(location=loc, obstime=times)
     altaz = source.transform_to(aa)
     return get_ipp_from_altaz(loc, altaz, height_array)
