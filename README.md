@@ -38,7 +38,7 @@ spinifex  --help
 
 ## Documentation
 
-<div style="text-align:center"><img src="_static/altaz_example.png" width="300" height="300" />
+<div style="text-align:center"><img src="_static/altaz_example.png" width="364" height="300" />
 <br />
 <i>Example of RM output as function of azimuth and zenith angle</i>
 </div>
