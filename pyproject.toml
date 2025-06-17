@@ -71,7 +71,7 @@ casacore = ["python-casacore"]
 
 [project.urls]
 Homepage = "https://git.astron.nl/RD/spinifex"
-"Bug Tracker" = "https://git.astron.nl/RD/spinifex/-/issues"
+"Bug Tracker" = "https://github.com/lofar-astron/spinifex/issues"
 Changelog = "https://git.astron.nl/RD/spinifex/-/releases"
 
 [project.scripts]
