@@ -73,6 +73,10 @@ casacore = ["python-casacore"]
 Homepage = "https://git.astron.nl/RD/spinifex"
 "Bug Tracker" = "https://github.com/lofar-astron/spinifex/issues"
 Changelog = "https://git.astron.nl/RD/spinifex/-/releases"
+source = "https://git.astron.nl/RD/spinifex"
+documentation = "https://spinifex.readthedocs.io"
+github = "https://github.com/lofar-astron/spinifex"
+gitlab = "https://git.astron.nl/RD/spinifex"
 
 [project.scripts]
 spinifex = "spinifex.cli:main"
