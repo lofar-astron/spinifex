@@ -147,7 +147,7 @@ def _get_rm_from_altaz(
         ionospheric model, by default ionospheric_models.ionex
     magnetic_model : MagneticFieldFunction, optional
         geomagnetic model, by default magnetic_models.ppigrf
-    iono_kwargs : dict
+    iono_options: Options
         keyword arguments for the ionospheric model
 
     Returns
