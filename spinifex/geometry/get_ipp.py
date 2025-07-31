@@ -154,14 +154,14 @@ def _get_ipp_simple(
     """
     logger.info("Calculating ionospheric piercepoints")
     c_value = R_earth**2 - (R_earth + height_array) ** 2
-    b_value = u.Quantity(loc.geocentric) @ los_dir.cartesian.xyz
+    b_value = u.Quantity(loc.geocentric) @ los_dir.cartesian.xyz.value
     b_value = b_value[:, np.newaxis]
     alphas = -b_value + np.sqrt(b_value**2 - c_value)
     ipp = (
         u.Quantity(loc.geocentric)[:, np.newaxis, np.newaxis]
-        + alphas * los_dir.cartesian.xyz[:, :, np.newaxis]
+        + alphas * los_dir.cartesian.xyz.value[:, :, np.newaxis]
     )
-    inv_airmass = np.einsum("ijk,ij->jk", ipp, los_dir.cartesian.xyz)
+    inv_airmass = np.einsum("ijk,ij->jk", ipp, los_dir.cartesian.xyz.value)
     inv_airmass /= R_earth + height_array  # normalized
     airmass = (
         1.0 / inv_airmass.decompose().value
