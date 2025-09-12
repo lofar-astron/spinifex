@@ -103,7 +103,7 @@ def get_indices_axis(
 
 
 def _get_weights(
-    goal: NDArray[float],
+    goal: NDArray[np.float64],
     index1: NDArray[np.int64],
     index2: NDArray[np.int64],
     selection: NDArray[np.float64],

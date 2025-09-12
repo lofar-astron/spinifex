@@ -15,7 +15,10 @@ import spinifex.ionospheric.iri_density as iri
 from spinifex.geometry.get_ipp import IPP
 from spinifex.ionospheric.ionex_manipulation import get_density_ionex
 from spinifex.ionospheric.tec_data import ElectronDensity, IonexOptions, TomionOptions
-from spinifex.ionospheric.tomion_parser import get_density_dual_layer
+from spinifex.ionospheric.tomion_parser import (
+    get_density_dual_layer,
+    get_density_profile,
+)
 from spinifex.logger import logger
 
 O = TypeVar("O", IonexOptions, TomionOptions)  # noqa: E741
@@ -42,6 +45,7 @@ class IonosphericModels:
     ionex: ModelDensityFunction[IonexOptions]
     ionex_iri: ModelDensityFunction[IonexOptions]
     tomion: ModelDensityFunction[TomionOptions]
+    tomion_dual: ModelDensityFunction[TomionOptions]
 
 
 def get_density_ionex_single_layer(
@@ -120,8 +124,17 @@ def get_density_ionex_iri(
     )
 
 
-# TODO: move height to IonexOptions
 def get_density_tomion(
+    ipp: IPP, options: TomionOptions | None = None
+) -> NDArray[np.float64]:
+    tec = get_density_profile(ipp, tomion_options=options)
+    return ElectronDensity(
+        electron_density=tec.electron_density,
+        electron_density_error=tec.electron_density_error,
+    )
+
+
+def get_density_tomion_dual(
     ipp: IPP, options: TomionOptions | None = None
 ) -> NDArray[np.float64]:
     tec = get_density_dual_layer(ipp, tomion_options=options)
@@ -135,6 +148,7 @@ ionospheric_models = IonosphericModels(
     ionex=get_density_ionex_single_layer,
     ionex_iri=get_density_ionex_iri,
     tomion=get_density_tomion,
+    tomion_dual=get_density_tomion_dual,
 )
 
 

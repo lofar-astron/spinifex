@@ -86,6 +86,10 @@ class IonexOptions(Options):
         True,
         description="mitigate midnight jumps in the ionex files by inserting the data of the next day",
     )
+    apply_earth_rotation: float = Field(
+        1,
+        description="Apply Earth rotation correction when interpolating between times",
+    )
 
 
 class TomionOptions(Options):
@@ -93,6 +97,10 @@ class TomionOptions(Options):
 
     output_directory: Path | None = Field(
         None, description="Output directory for tomion files"
+    )
+    apply_earth_rotation: float = Field(
+        1,
+        description="Apply Earth rotation correction when interpolating between times",
     )
 
 
