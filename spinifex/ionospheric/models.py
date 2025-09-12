@@ -8,7 +8,6 @@ from typing import Any, Generic, Protocol, TypeVar, cast
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import EarthLocation
-from numpy.typing import NDArray
 from pydantic import ValidationError
 
 import spinifex.ionospheric.iri_density as iri
@@ -126,7 +125,7 @@ def get_density_ionex_iri(
 
 def get_density_tomion(
     ipp: IPP, options: TomionOptions | None = None
-) -> NDArray[np.float64]:
+) -> ElectronDensity:
     tec = get_density_profile(ipp, tomion_options=options)
     return ElectronDensity(
         electron_density=tec.electron_density,
@@ -136,7 +135,7 @@ def get_density_tomion(
 
 def get_density_tomion_dual(
     ipp: IPP, options: TomionOptions | None = None
-) -> NDArray[np.float64]:
+) -> ElectronDensity:
     tec = get_density_dual_layer(ipp, tomion_options=options)
     return ElectronDensity(
         electron_density=tec.electron_density,
@@ -184,7 +183,7 @@ def parse_iono_kwargs(iono_model: ModelDensityFunction[O], **kwargs: Any) -> O:
                 f"Using ionospheric model {iono_model} with options {ionex_options}"
             )
             return cast(O, ionex_options)  # type: ignore[redundant-cast]
-        if iono_model == ionospheric_models.tomion:
+        if iono_model in (ionospheric_models.tomion, ionospheric_models.tomion_dual):
             tomion_options = TomionOptions(**kwargs)
             logger.info(
                 f"Using ionospheric model {iono_model} with options {tomion_options}"

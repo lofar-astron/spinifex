@@ -31,7 +31,7 @@ def get_parser():
         type=str,
         default="ionex",
         help="iono mode name",
-        choices=["ionex", "ionex_iri", "tomion"],
+        choices=["ionex", "ionex_iri", "tomion", "tomion_dual"],
     )
     parser_rm.add_argument(
         "--solset-name",
@@ -71,7 +71,7 @@ def get_parser():
         type=str,
         default="ionex",
         help="iono mode name",
-        choices=["ionex", "ionex_iri", "tomion"],
+        choices=["ionex", "ionex_iri", "tomion", "tomion_dual"],
     )
     parser_tec.add_argument(
         "--solset-name",

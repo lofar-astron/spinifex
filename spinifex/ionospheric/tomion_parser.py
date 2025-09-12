@@ -336,8 +336,8 @@ def interpolate_tomion_profile(
     layers_lo = [tomion.h_idx[timeselect1] == 1, tomion.h_idx[timeselect2] == 1]
     layers_hi = [tomion.h_idx[timeselect1] == 2, tomion.h_idx[timeselect2] == 2]
     # get lon,lat idx for these
-    tec_lo = []
-    tec_hi = []
+    tec_lo: list[Any] = []
+    tec_hi: list[Any] = []
     tec = np.zeros(heights.shape, dtype=float)
     for lo, tms, time_tomion in zip(layers_lo, timeselect, [time1, time2]):
         rot = ((times.mjd - time_tomion) * 360.0) * apply_earth_rotation
