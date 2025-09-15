@@ -22,7 +22,7 @@ from spinifex.get_rm import (
 from spinifex.ionospheric import ModelDensityFunction
 from spinifex.ionospheric.iri_density import IRI_HEIGHTS
 from spinifex.ionospheric.models import O, parse_iono_kwargs, parse_iono_model
-from spinifex.ionospheric.tomion_parser import TOMION_HEIGHTS
+from spinifex.ionospheric.tomion_parser import TOMION_HEIGHTS, TOMION_PROFILE_HEIGHTS
 from spinifex.logger import logger
 from spinifex.magnetic import MagneticFieldFunction
 from spinifex.magnetic.models import magnetic_models, parse_magnetic_model
@@ -148,6 +148,8 @@ def get_rm_from_ms(
     iono_model = parse_iono_model(iono_model_name)
     height_array = DEFAULT_IONO_HEIGHT
     if iono_model_name == "tomion":
+        height_array = TOMION_PROFILE_HEIGHTS
+    elif iono_model_name == "tomion_dual":
         height_array = TOMION_HEIGHTS
     elif iono_model_name == "ionex_iri":
         height_array = IRI_HEIGHTS
@@ -200,10 +202,11 @@ def get_dtec_from_ms(
     iono_model = parse_iono_model(iono_model_name)
     height_array = DEFAULT_IONO_HEIGHT
     if iono_model_name == "tomion":
+        height_array = TOMION_PROFILE_HEIGHTS
+    elif iono_model_name == "tomion_dual":
         height_array = TOMION_HEIGHTS
     elif iono_model_name == "ionex_iri":
         height_array = IRI_HEIGHTS
-
     iono_options = parse_iono_kwargs(iono_model, **iono_kwargs)
     return _get_iono_from_ms(
         ms_path=ms_path,

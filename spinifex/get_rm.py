@@ -293,6 +293,8 @@ def get_rm_from_skycoord(
     height_array = DEFAULT_IONO_HEIGHT
     if iono_model_name == "tomion":
         height_array = TOMION_PROFILE_HEIGHTS
+    elif iono_model_name == "tomion_dual":
+        height_array = TOMION_HEIGHTS
     elif iono_model_name == "ionex_iri":
         height_array = IRI_HEIGHTS
     iono_options = parse_iono_kwargs(iono_model=iono_model, **iono_kwargs)
