@@ -42,6 +42,12 @@ def get_parser():
         "--soltab-name", type=str, help="Soltab name. Default: rotationmeasure"
     )
     parser_rm.add_argument(
+        "--timestep",
+        type=int,
+        help="Timestep in seconds for which independent model calculations are done. "
+        "Default: use time resolution of the measurement set",
+    )
+    parser_rm.add_argument(
         "-o",
         "--h5parm",
         default="rotationmeasure.h5",
@@ -80,6 +86,12 @@ def get_parser():
     )
     parser_tec.add_argument(
         "--soltab-name", type=str, help="Soltab name. Default: tec###"
+    )
+    parser_tec.add_argument(
+        "--timestep",
+        type=int,
+        help="Timestep in seconds for which independent model calculations are done. "
+        "Default: use time resolution of the measurement set",
     )
     parser_tec.add_argument(
         "-o",

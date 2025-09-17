@@ -362,9 +362,15 @@ def cli_get_rm_h5parm_from_ms(args: argparse.Namespace) -> None:
     soltab_name: str | None = args.soltab_name
     add_to_existing_solset: bool = args.add_to_existing_solset
     iono_model_name: str | None = args.iono_model_name
+    timestep: int | None = args.timestep
 
+    if timestep:
+        timestep = timestep * u.s
     rm_dict = get_rm_from_ms(
-        ms_path=ms_path, use_stations="all", iono_model_name=iono_model_name
+        ms_path=ms_path,
+        use_stations="all",
+        iono_model_name=iono_model_name,
+        timestep=timestep,
     )
     h5parm_tools.write_rm_to_h5parm(
         rm_dict,
@@ -382,9 +388,14 @@ def cli_get_dtec_h5parm_from_ms(args: argparse.Namespace) -> None:
     soltab_name: str | None = args.soltab_name
     add_to_existing_solset: bool = args.add_to_existing_solset
     iono_model_name: str | None = args.iono_model_name
-
+    timestep: int | None = args.timestep
+    if timestep:
+        timestep = timestep * u.s
     dtec = get_dtec_from_ms(
-        ms_path=ms_path, use_stations="all", iono_model_name=iono_model_name
+        ms_path=ms_path,
+        use_stations="all",
+        iono_model_name=iono_model_name,
+        timestep=timestep,
     )
     h5parm_tools.write_tec_to_h5parm(
         dtec,
