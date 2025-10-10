@@ -82,7 +82,8 @@ def get_ipp_from_altaz(
     """
     if not altaz.obstime.shape or altaz.obstime.shape != altaz.az.shape:
         altaz = _make_dimensions_match(altaz)
-    los_dir = altaz.transform_to(ITRS(obstime=altaz.obstime))
+    los_dir = altaz.transform_to(ITRS(obstime=altaz.obstime, location=altaz.location))
+    # force los_dir to be unit dimensionless vector
     ipp, airmass = _get_ipp_simple(height_array=height_array, loc=loc, los_dir=los_dir)
     return IPP(
         loc=EarthLocation.from_geocentric(*ipp),
@@ -154,12 +155,16 @@ def _get_ipp_simple(
     """
     logger.info("Calculating ionospheric piercepoints")
     c_value = R_earth**2 - (R_earth + height_array) ** 2
-    b_value = u.Quantity(loc.geocentric) @ los_dir.cartesian.xyz.value
+    los_vector = los_dir.cartesian.xyz.value
+    los_vector /= np.linalg.norm(los_vector, axis=0)
+    if len(los_vector.shape) == 1:
+        los_vector = los_vector[:, np.newaxis]  # make sure b_values is an array
+    b_value = u.Quantity(loc.geocentric) @ los_vector
     b_value = b_value[:, np.newaxis]
     alphas = -b_value + np.sqrt(b_value**2 - c_value)
     ipp = (
         u.Quantity(loc.geocentric)[:, np.newaxis, np.newaxis]
-        + alphas * los_dir.cartesian.xyz.value[:, :, np.newaxis]
+        + alphas * los_vector[:, :, np.newaxis]
     )
     inv_airmass = np.einsum("ijk,ij->jk", ipp, los_dir.cartesian.xyz.value)
     inv_airmass /= R_earth + height_array  # normalized
