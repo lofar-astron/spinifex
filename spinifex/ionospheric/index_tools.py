@@ -233,13 +233,16 @@ def get_sorted_indices(
     if avail_lon.shape != avail_lat.shape:
         msg = f"shapes of longitudes {avail_lon.shape} and lattiudes {avail_lat.shape} need to be equal"
         raise ArrayShapeError(msg)
-    # some messed up thinking here
-    distance = (
-        wrap_around_zero(avail_lon - lon, wrap_unit) ** 2
+    # distance is more of a weight based on distance than the actual distance
+    # maps = SkyCoord(ra=avail_lon * u.deg, dec=avail_lat * u.deg, frame="icrs")
+    # goal = SkyCoord(ra=lon * u.deg, dec=lat * u.deg, frame="icrs")
+    # distance = goal.separation(maps)  # THis gives the correct distance but is very slow
+    distance = np.sqrt(
+        (wrap_around_zero(avail_lon - lon, wrap_unit) * np.cos(np.radians(lat))) ** 2
         + wrap_around_zero(avail_lat - lat, wrap_unit) ** 2
     )
-    sorted_idx = np.argsort(distance)
-    return SortedIndices(indices=sorted_idx, distance=distance[sorted_idx])
+    sorted_idx = np.argsort(distance.value)
+    return SortedIndices(indices=sorted_idx, distance=distance.value[sorted_idx])
 
 
 def get_interpol(data: NDArray[np.float64], dist: NDArray[np.float64]) -> float:

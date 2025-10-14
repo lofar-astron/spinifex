@@ -48,7 +48,7 @@ TOMOION_FORMAT_DICT: dict[str, Any] = {
     "month": int,
     "dom": int,
 }
-MAX_INTERPOL_POINTS: int = 8  # number of points used for lon/lat interpolation
+MAX_INTERPOL_POINTS: int = 2  # number of points used for lon/lat interpolation
 # estimated electron density and its std. dev. for each illuminated voxels, given in meters of GPS L1-L2 / km.
 # The scaling factor to obtain the mean voxel electron density in m^(-3), is:
 # f = (10/1.05)*1e16/1e3 m^(-3) / (meters_L1-L2/km) = 9.52381e+13 m^(-3) / (meters_L1-L2/km)
@@ -58,7 +58,7 @@ CONVERSION_FACTOR: float = (10 / 1.05) * 680
 TOMION_HEIGHTS: u.Quantity = (
     np.array([450, 1130]) * u.km
 )  # These are the default heights in the tomion files
-TOMION_PROFILE_HEIGHTS: u.Quantity = np.linspace(110, 1470, 20) * u.km
+TOMION_PROFILE_HEIGHTS: u.Quantity = np.linspace(110, 1470, 70) * u.km
 
 
 class TomionData(NamedTuple):
