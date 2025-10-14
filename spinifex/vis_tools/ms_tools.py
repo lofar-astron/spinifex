@@ -108,8 +108,12 @@ def get_average_location(location: EarthLocation) -> EarthLocation:
     EarthLocation
         first location
     """
-    logger.warning("Using first location from list of locations - not a true average!")
-    return location[0]
+
+    return EarthLocation(
+        x=location.x.mean(),
+        y=location.y.mean(),
+        z=location.z.mean(),
+    )
 
 
 def get_rm_from_ms(
