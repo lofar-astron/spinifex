@@ -221,9 +221,33 @@ async def download_from_cddis(
     """
     unique_days: Time = get_unique_days(times)
 
+    # As reported by @cplee on github:
+    # See https://github.com/lofar-astron/spinifex/issues/1
+    # > the naming convention changed for JPL on 2023 day 219 onwards
+    # > (i.e. the second day of GPS week 2274).
+    # > It also changed on 2023 day 212 for some reason.
+    # > In pseudo-code, this is something like
+    #
+    # >>> if (year == 2023 and dayofyear == 212) or (year == 2023 and dayofyear > 218) or (year > 2023):
+    # >>>   use new cddis format
+    # >>> else:
+    # >>>   use old cddis format
+
     coros = []
     for day in unique_days:
-        if get_gps_week(day) >= NAME_SWITCH_WEEK:
+        if prefix.lower() == "jpl":
+            day_datetime: datetime = day.to_datetime()
+            if (
+                (day_datetime.year == 2023 and day_datetime.timetuple().tm_yday == 212)
+                or (
+                    day_datetime.year == 2023 and day_datetime.timetuple().tm_yday > 218
+                )
+                or (day_datetime.year > 2023)
+            ):
+                formatter = new_cddis_format
+            else:
+                formatter = old_cddis_format
+        elif get_gps_week(day) >= NAME_SWITCH_WEEK:
             formatter = new_cddis_format
         else:
             formatter = old_cddis_format
