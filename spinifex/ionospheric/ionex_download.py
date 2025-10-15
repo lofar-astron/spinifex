@@ -189,6 +189,50 @@ def old_cddis_format(
     return f"{url_stem}/{directory_name}/{file_name}"
 
 
+def should_use_new_cddis_format(
+    day: Time,
+    prefix: str,
+) -> bool:
+    """Determine if the new CDDIS format should be used.
+
+    Parameters
+    ----------
+    day : Time
+        Day to pull from CDDIS.
+    prefix : str
+        Analysis centre prefix.
+
+    Returns
+    -------
+    bool
+        Whether the new format should be used
+    """
+    # As reported by @cplee on github:
+    # See https://github.com/lofar-astron/spinifex/issues/1
+    # > the naming convention changed for JPL on 2023 day 219 onwards
+    # > (i.e. the second day of GPS week 2274).
+    # > It also changed on 2023 day 212 for some reason.
+    # > In pseudo-code, this is something like
+    #
+    # >>> if (year == 2023 and dayofyear == 212) or (year == 2023 and dayofyear > 218) or (year > 2023):
+    # >>>   use new cddis format
+    # >>> else:
+    # >>>   use old cddis format
+
+    if prefix.lower() == "jpl":
+        day_datetime = day.to_datetime()
+        year = day_datetime.year
+        day_of_year = day_datetime.timetuple().tm_yday
+
+        # New format started on day 212 of 2023, but reverted until day 219
+        if year > 2023:
+            return True
+        return bool(year == 2023 and (day_of_year == 212 or day_of_year > 218))
+
+    # This is the condition as documented by CDDIS
+    return bool(get_gps_week(day) >= NAME_SWITCH_WEEK)
+
+
 async def download_from_cddis(
     times: Time,
     prefix: str = "cod",
@@ -221,36 +265,13 @@ async def download_from_cddis(
     """
     unique_days: Time = get_unique_days(times)
 
-    # As reported by @cplee on github:
-    # See https://github.com/lofar-astron/spinifex/issues/1
-    # > the naming convention changed for JPL on 2023 day 219 onwards
-    # > (i.e. the second day of GPS week 2274).
-    # > It also changed on 2023 day 212 for some reason.
-    # > In pseudo-code, this is something like
-    #
-    # >>> if (year == 2023 and dayofyear == 212) or (year == 2023 and dayofyear > 218) or (year > 2023):
-    # >>>   use new cddis format
-    # >>> else:
-    # >>>   use old cddis format
-
     coros = []
     for day in unique_days:
-        if prefix.lower() == "jpl":
-            day_datetime: datetime = day.to_datetime()
-            if (
-                (day_datetime.year == 2023 and day_datetime.timetuple().tm_yday == 212)
-                or (
-                    day_datetime.year == 2023 and day_datetime.timetuple().tm_yday > 218
-                )
-                or (day_datetime.year > 2023)
-            ):
-                formatter = new_cddis_format
-            else:
-                formatter = old_cddis_format
-        elif get_gps_week(day) >= NAME_SWITCH_WEEK:
-            formatter = new_cddis_format
-        else:
-            formatter = old_cddis_format
+        formatter = (
+            new_cddis_format
+            if should_use_new_cddis_format(day, prefix)
+            else old_cddis_format
+        )
         url = formatter(
             day,
             prefix=prefix,
@@ -259,7 +280,6 @@ async def download_from_cddis(
             solution=solution,
         )
         coros.append(download_or_copy_url(url, output_directory=output_directory))
-
     return await asyncio.gather(*coros)
 
 
