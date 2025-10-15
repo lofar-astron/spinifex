@@ -31,6 +31,7 @@ try:
     from casacore.tables import table as _casacore_table
     from casacore.tables import taql
 except ImportError as e:
+    logger.error(e)
     MSG = "casacore is not installed! To operate on MeasurementSets, install spinifex[casacore]."
     raise ImportError(MSG) from e
 
