@@ -29,21 +29,25 @@ DEFAULT_IONO_HEIGHT = np.array([450.0]) * u.km
 class RM(NamedTuple):
     """object with all rotation measures"""
 
-    rm: NDArray[Any]
+    rm: NDArray[np.floating[Any]]
     """rotation measures"""
-    rm_error: NDArray[Any]
+    rm_error: NDArray[np.floating[Any]]
     """error on rotation measures"""
     times: Time
     """time axis"""
-    b_parallel: NDArray[Any]
-    """parallel magnetic field"""
-    electron_density: NDArray[Any]
-    """electron content"""
-    height: NDArray[Any]
+    b_parallel: NDArray[np.floating[Any]]
+    """parallel magnetic field (nT)"""
+    b_parallel_error: NDArray[np.floating[Any]]
+    """parallel magnetic field uncertainty (nT)"""
+    electron_density: NDArray[np.floating[Any]]
+    """electron density (TECU)"""
+    electron_density_error: NDArray[np.floating[Any]]
+    """electron density uncertainty (TECU)"""
+    height: NDArray[np.floating[Any]]
     """array of altitudes (km)"""
-    azimuth: NDArray[Any]
+    azimuth: NDArray[np.floating[Any]]
     """array of azimuths (degrees)"""
-    elevation: NDArray[Any]
+    elevation: NDArray[np.floating[Any]]
     """array of elevation (degrees)"""
     loc: EarthLocation
     """observer location"""
@@ -98,8 +102,10 @@ def _get_rm(
         rm=rm,
         rm_error=rm_error,
         times=ipp.times,
-        b_parallel=magnetic_profile.magnetic_field,
+        b_parallel=magnetic_profile.magnetic_field.to(u.nT).value,
+        b_parallel_error=magnetic_profile.magnetic_field_error.to(u.nT).value,
         electron_density=density_profile.electron_density,
+        electron_density_error=density_profile.electron_density_error,
         height=ipp.loc.height.to(u.km).value,
         azimuth=ipp.altaz.az.deg,
         elevation=ipp.altaz.alt.deg,
@@ -108,17 +114,35 @@ def _get_rm(
 
 
 def get_average_rm(rm: RM) -> RM:
+    """Get the average values from an RM object
+
+    Parameters
+    ----------
+    rm : RM
+        Time-varying RM
+
+    Returns
+    -------
+    RM
+        Time-averaged RM
+    """
     profile_weights = np.sum(rm.electron_density, axis=1, keepdims=True)
+    weights = rm.electron_density / profile_weights
     return RM(
         rm=rm.rm.mean(),
         rm_error=np.sqrt(np.mean(rm.rm_error**2)),
         times=rm.times.mean(),
         b_parallel=np.sum(
-            rm.b_parallel * rm.electron_density / profile_weights,
+            rm.b_parallel * weights,
             axis=1,
         ).mean(),
+        b_parallel_error=np.sqrt(
+            np.mean(np.sum((weights * rm.b_parallel_error) ** 2, axis=1))
+        ),
         electron_density=profile_weights.mean(),
-        height=np.sum(rm.height * rm.electron_density / profile_weights, axis=1).mean(),
+        electron_density_error=profile_weights.squeeze().std(ddof=1)
+        / np.sqrt(profile_weights.size),
+        height=np.sum(rm.height * weights, axis=1).mean(),
         azimuth=np.degrees(np.angle(np.sum(np.exp(1.0j * np.radians(rm.azimuth))))),
         elevation=rm.elevation.mean(),
         loc=rm.loc,
