@@ -167,7 +167,7 @@ def _get_ipp_simple(
         u.Quantity(loc.geocentric)[:, np.newaxis, np.newaxis]
         + alphas * los_vector[:, :, np.newaxis]
     )
-    inv_airmass = np.einsum("ijk,ij->jk", ipp, los_dir.cartesian.xyz.value)
+    inv_airmass = np.einsum("ijk,ij->jk", ipp, los_vector)
     inv_airmass /= R_earth + height_array  # normalized
     airmass = (
         1.0 / inv_airmass.decompose().value
