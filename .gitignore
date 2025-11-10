@@ -178,3 +178,4 @@ ionex_files/*
 docs/source/examples/test.MS/*
 docs/source/examples/ionex_files/*
 docs/source/examples/test.MS/*
+.vscode/settings.json
