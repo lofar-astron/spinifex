@@ -34,7 +34,7 @@ class MagneticModels:
     ppigrf: MagneticFieldFunction
 
 
-def get_ppigrf_magnetic_field(ipp: IPP) -> u.Quantity:
+def get_ppigrf_magnetic_field(ipp: IPP) -> MagneticProfile:
     """Get the magnetic field at a given EarthLocation"""
 
     RMS_E = 87

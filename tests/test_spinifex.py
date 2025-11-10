@@ -56,6 +56,10 @@ def test_get_rm_solar():
             prefix="cod",
             server="cddis",
         )
-        assert isinstance(rm.rm, np.ndarray)
-        assert rm.rm.shape == times.shape
-        assert np.isclose(rm.rm[0], 0.2784, 0.001)
+        assert isinstance(rm.rm, np.ndarray), f"RM array is wrong type {type(rm.rm)=}"
+        assert rm.rm.shape == times.shape, (
+            f"RM array is wrong shape. Got {rm.rm.shape=}, expected {times.shape}"
+        )
+        assert np.isclose(rm.rm[0], 0.2784, 0.001), (
+            f"First RM value is wrong. Got {rm.rm[0]=}, expected ~0.2784"
+        )

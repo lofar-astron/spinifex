@@ -64,16 +64,21 @@ def test_write_rm_h5parm(tmpdir):
     lon = 6.367 * u.deg
     lat = 52.833 * u.deg
     dwingeloo = EarthLocation(lon=lon, lat=lat, height=0 * u.km)
+    density_profile = ElectronDensity(
+        electron_density=np.zeros((10, 1)), electron_density_error=np.zeros((10, 1))
+    )
+    magnetic_profile = MagneticProfile(
+        magnetic_field=np.zeros((10, 1)) * u.nanotesla,
+        magnetic_field_error=np.zeros((10, 1)) * u.nanotesla,
+    )
     rm = RM(
         rm=np.arange(0, 1, 0.1),
         rm_error=np.arange(0, 1, 0.1) * 0.1,
         times=Time("2025-02-08") + np.arange(10) * u.hr,
-        b_parallel=MagneticProfile(
-            magnetic_field=np.zeros((10, 1)), magnetic_field_error=np.zeros((10, 1))
-        ),
-        electron_density=ElectronDensity(
-            electron_density=np.zeros((10, 1)), electron_density_error=np.zeros((10, 1))
-        ),
+        b_parallel=magnetic_profile.magnetic_field.to(u.nT).value,
+        b_parallel_error=magnetic_profile.magnetic_field_error.to(u.nT).value,
+        electron_density=density_profile.electron_density,
+        electron_density_error=density_profile.electron_density_error,
         height=np.array([350.0]),
         azimuth=np.zeros((10,)),
         elevation=np.zeros((10,)),

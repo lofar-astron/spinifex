@@ -98,7 +98,9 @@ def create_solset(h5file: h5py.File, solset_name: str | None = None) -> h5py.Dat
 
 
 def add_antenna_info(
-    solset: h5py.Dataset, antenna_names: NDArray[Any], antenna_pos: NDArray[Any]
+    solset: h5py.Dataset,
+    antenna_names: NDArray[np.floating[Any]],
+    antenna_pos: NDArray[np.floating[Any]],
 ) -> None:
     """Add antenna metadata to a solset
 
@@ -106,9 +108,9 @@ def add_antenna_info(
     ----------
     solset : h5py.Dataset
         A solset in an h5parm
-    antenna_names : NDArray[Any]
+    antenna_names : NDArray[np.floating[Any]]
         array with antenna names
-    antenna_pos : NDArray[Any]
+    antenna_pos : NDArray[np.floating[Any]]
         array ant x 3 with ITRF antenna positions
     """
     ant_meta = solset["antenna"]
@@ -120,7 +122,9 @@ def add_antenna_info(
 
 
 def add_source_info(
-    solset: h5py.Dataset, source_names: NDArray[Any], source_dirs: NDArray[Any]
+    solset: h5py.Dataset,
+    source_names: NDArray[np.str_],
+    source_dirs: NDArray[np.floating[Any]],
 ) -> None:
     """Add source metadata to a solset
 
@@ -128,9 +132,9 @@ def add_source_info(
     ----------
     solset : h5py.Dataset
         A solset in an h5parm
-    source_names : NDArray[Any]
+    source_names : NDArray[np.str_]
         array with source names
-    source_dirs : NDArray[Any]
+    source_dirs : NDArray[np.floating[Any]]
         array source x 2 with Ra,DEC directions of the sources
     """
     source_meta = solset["source"]
@@ -144,8 +148,8 @@ def add_source_info(
 def add_soltab(
     solset: h5py.Dataset,
     soltab_type: str,
-    val: NDArray[Any],
-    weight: NDArray[Any],
+    val: NDArray[np.floating[Any]],
+    weight: NDArray[np.floating[Any]],
     soltab_axes: list[Any],
     axes_values: dict[str, Any],
     soltab_name: str | None = None,
@@ -158,9 +162,9 @@ def add_soltab(
         solset
     soltab_type : str
         type of the solutions
-    val : NDArray[Any]
+    val : NDArray[np.floating[Any]]
         array with solutions values, must match the shape of the axes
-    weight : NDArray[Any]
+    weight : NDArray[np.floating[Any]]
         array of weights, must match the shape of val
     soltab_axes : list
         ordered list of axes as they are defined for val/wegiht

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, NamedTuple
 
 import astropy.units as u
+import numpy as np
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from astropy.time import Time
 from numpy.typing import NDArray
@@ -27,11 +28,13 @@ class DTEC(NamedTuple):
 
     times: Time
     """time axis"""
-    electron_density: NDArray[Any]
-    """electron content"""
-    airmass: NDArray[Any]
+    electron_density: NDArray[np.floating[Any]]
+    """electron density (TECU)"""
+    electron_density_error: NDArray[np.floating[Any]]
+    """electron density uncertainty (TECU)"""
+    airmass: NDArray[np.floating[Any]]
     """conversion from vertical to slant TEC"""
-    height: NDArray[Any]
+    height: NDArray[np.floating[Any]]
     """array of altitudes (km)"""
     loc: EarthLocation
     """observer location"""
@@ -63,6 +66,7 @@ def _get_dtec(
     return DTEC(
         times=ipp.times,
         electron_density=density_profile.electron_density,
+        electron_density_error=density_profile.electron_density_error,
         airmass=ipp.airmass,
         height=ipp.loc.height.to(u.km).value,
         loc=ipp.station_loc,
