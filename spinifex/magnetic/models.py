@@ -69,7 +69,9 @@ def get_ppigrf_magnetic_field(ipp: IPP) -> MagneticProfile:
 
         # project to LOS
         los = ipp.los[indices][:, np.newaxis]
-        b_par[indices] = los.x * b_itrs.x + los.y * b_itrs.y + los.z * b_itrs.z
+        b_par[indices] = (
+            los[:, :, 0] * b_itrs.x + los[:, :, 1] * b_itrs.y + los[:, :, 2] * b_itrs.z
+        )
         b_par[indices] *= b_magn
         # magnitude along LOS,
 

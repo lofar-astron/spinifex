@@ -21,8 +21,8 @@ class IPP(NamedTuple):
     """location of the piercepoints, dimension: times x altitudes. All altitudes are assumed to be equal"""
     times: Time
     """array of times"""
-    los: SkyCoord
-    """Line of sight direction in ITRS coordinates"""
+    los: NDArray[np.float64]
+    """Line of sight direction in ITRS coordinates, normalized"""
     airmass: NDArray[np.float64]
     """airmass factor to convert to slant values"""
     altaz: AltAz
@@ -84,12 +84,15 @@ def get_ipp_from_altaz(
         altaz = _make_dimensions_match(altaz)
     los_dir = altaz.transform_to(ITRS(obstime=altaz.obstime, location=altaz.location))
     # force los_dir to be unit dimensionless vector
-
-    ipp, airmass = _get_ipp_simple(height_array=height_array, loc=loc, los_dir=los_dir)
+    los_vector = los_dir.cartesian.xyz.value
+    los_vector /= np.linalg.norm(los_vector, axis=0)
+    ipp, airmass = _get_ipp_simple(
+        height_array=height_array, loc=loc, los_dir=los_vector
+    )
     return IPP(
         loc=EarthLocation.from_geocentric(*ipp),
         times=altaz.obstime,
-        los=los_dir,
+        los=los_vector.T,
         airmass=airmass,
         altaz=altaz,
         station_loc=loc,
@@ -156,18 +159,16 @@ def _get_ipp_simple(
     """
     logger.info("Calculating ionospheric piercepoints")
     c_value = R_earth**2 - (R_earth + height_array) ** 2
-    los_vector = los_dir.cartesian.xyz.value
-    los_vector /= np.linalg.norm(los_vector, axis=0)
-    if len(los_vector.shape) == 1:
-        los_vector = los_vector[:, np.newaxis]  # make sure b_values is an array
-    b_value = u.Quantity(loc.geocentric) @ los_vector
+    if len(los_dir.shape) == 1:
+        los_dir = los_dir[:, np.newaxis]  # make sure b_values is an array
+    b_value = u.Quantity(loc.geocentric) @ los_dir
     b_value = b_value[:, np.newaxis]
     alphas = -b_value + np.sqrt(b_value**2 - c_value)
     ipp = (
         u.Quantity(loc.geocentric)[:, np.newaxis, np.newaxis]
-        + alphas * los_vector[:, :, np.newaxis]
+        + alphas * los_dir[:, :, np.newaxis]
     )
-    inv_airmass = np.einsum("ijk,ij->jk", ipp, los_dir.cartesian.xyz.value)
+    inv_airmass = np.einsum("ijk,ij->jk", ipp, los_dir)
     inv_airmass /= R_earth + height_array  # normalized
     airmass = (
         1.0 / inv_airmass.decompose().value
