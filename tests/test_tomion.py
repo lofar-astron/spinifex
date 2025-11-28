@@ -6,7 +6,11 @@ from importlib import resources
 
 from astropy.utils import iers
 from spinifex.ionospheric.models import parse_iono_kwargs
-from spinifex.ionospheric.tomion_parser import TOMOION_FORMAT_DICT
+from spinifex.ionospheric.tomion_parser import (
+    TOMION_FORMAT_DICT,
+    _read_tomion,
+    interpolate_tomion_profile,
+)
 
 iers.conf.auto_download = False
 
@@ -60,6 +64,21 @@ def test_ionosphere_tomion(ipp):
             options = parse_iono_kwargs(ionospheric_models.tomion, bad_arg="bad")
 
 
+def test_ionosphere_tomion_dual(ipp):
+    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
+        options = parse_iono_kwargs(
+            ionospheric_models.tomion_dual,
+            output_directory=datapath,
+        )
+        tec = ionospheric_models.tomion_dual(ipp, options=options)
+        assert tec.electron_density.shape == ipp.loc.shape
+        assert tec.electron_density_error.shape == ipp.loc.shape
+
+        # Test bad arguments
+        with pytest.raises(TypeError):
+            options = parse_iono_kwargs(ionospheric_models.tomion_dual, bad_arg="bad")
+
+
 def test_ionosphere_tomionmultiple_days(ipp2):
     with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
         options = parse_iono_kwargs(
@@ -69,6 +88,27 @@ def test_ionosphere_tomionmultiple_days(ipp2):
         tec = ionospheric_models.tomion(ipp2, options=options)
         assert tec.electron_density.shape == ipp2.loc.shape
         assert tec.electron_density_error.shape == ipp2.loc.shape
+
+
+def test_interpolate_tomion_profile():
+    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
+        testdata = datapath / "NeFull.2024169.gz"
+    tomion = _read_tomion(testdata)
+    data = interpolate_tomion_profile(
+        tomion=tomion,
+        lats=np.array([52.0, 53.0, 54.0]),
+        lons=np.array([6.0, 6.1, 6.2]),
+        heights=np.array([600.0, 800.0, 1000.0]) * u.km,
+        times=tomion.available_times[10] + 3.3 * u.min,
+    )
+    assert data.shape == (3,)
+
+
+def test_read_tomion():
+    with resources.as_file(resources.files("spinifex.data.tests")) as datapath:
+        testdata = datapath / "NeFull.2024169.gz"
+    tomion = _read_tomion(testdata)
+    assert tomion.available_times.shape == (110,)
 
 
 def test_constants():
@@ -117,5 +157,5 @@ def test_constants():
         int,
     ]
 
-    assert list(TOMOION_FORMAT_DICT.keys()) == tomion_format
-    assert list(TOMOION_FORMAT_DICT.values()) == data_types
+    assert list(TOMION_FORMAT_DICT.keys()) == tomion_format
+    assert list(TOMION_FORMAT_DICT.values()) == data_types

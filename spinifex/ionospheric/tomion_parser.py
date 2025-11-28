@@ -27,7 +27,7 @@ from spinifex.ionospheric.tec_data import ElectronDensity, TomionOptions
 from spinifex.logger import logger
 from spinifex.times import get_indexlist_unique_days, get_unique_days
 
-TOMOION_FORMAT_DICT: dict[str, Any] = {
+TOMION_FORMAT_DICT: dict[str, Any] = {
     "mjd": float,
     "index": int,
     "value": float,
@@ -48,7 +48,7 @@ TOMOION_FORMAT_DICT: dict[str, Any] = {
     "month": int,
     "dom": int,
 }
-MAX_INTERPOL_POINTS: int = 8  # number of points used for lon/lat interpolation
+MAX_INTERPOL_POINTS: int = 1  # number of points used for lon/lat interpolation
 # estimated electron density and its std. dev. for each illuminated voxels, given in meters of GPS L1-L2 / km.
 # The scaling factor to obtain the mean voxel electron density in m^(-3), is:
 # f = (10/1.05)*1e16/1e3 m^(-3) / (meters_L1-L2/km) = 9.52381e+13 m^(-3) / (meters_L1-L2/km)
@@ -58,7 +58,7 @@ CONVERSION_FACTOR: float = (10 / 1.05) * 680
 TOMION_HEIGHTS: u.Quantity = (
     np.array([450, 1130]) * u.km
 )  # These are the default heights in the tomion files
-TOMION_PROFILE_HEIGHTS: u.Quantity = np.linspace(110, 1470, 20) * u.km
+TOMION_PROFILE_HEIGHTS: u.Quantity = np.linspace(110, 1470, 70) * u.km
 
 
 class TomionData(NamedTuple):
@@ -99,7 +99,7 @@ def _read_tomion(fname: Path) -> TomionData:
         tomion_data = Table.read(
             fname,
             format="ascii",
-            names=list(TOMOION_FORMAT_DICT.keys()),
+            names=list(TOMION_FORMAT_DICT.keys()),
         )
     except Exception as e:
         msg = f"Could not read tomion file {fname}"
@@ -179,7 +179,7 @@ def _tomion_format(time: Time) -> tuple[str, str]:
     dtime: datetime = time.to_datetime()
     doy = time.datetime.timetuple().tm_yday
     # YYYY/DDD_YYMMDD.15min/.bias_dens
-    nefull_name = f"NeFull.{dtime.year:04d}{doy:03d}"
+    nefull_name = f"NeFull.{dtime.year:04d}{doy:03d}.gz"
     yy = f"{dtime.year:02d}"[-2:]
     file_name = f"bias_dens.0001.{dtime.year:04d}{doy:03d}.gz"
     directory_name = f"{dtime.year:04d}/{doy:03d}_{yy}{dtime.month:02d}{dtime.day:02d}.15min/.bias_dens"
@@ -226,6 +226,8 @@ async def _download_tomion_file(
         output_directory = tomion_options.output_directory
 
     output_file = output_directory / nefull_name
+    if output_file.suffix != ".gz":
+        output_file = Path(output_file.as_posix() + ".gz")
 
     if output_file.exists():
         msg = f"File {output_file} already exists. Skipping download."
@@ -266,10 +268,11 @@ async def _extract_nefull(
     Path
         pointer to the nefull file
     """
-    with gzip.open(tomion_file, "rt") as f_in, output_file.open("w") as f_out:
+    with gzip.open(tomion_file, "rt") as f_in, gzip.open(output_file, "wt") as f_out:
         for line in f_in:
             if search_term in line:
                 f_out.write(line)
+
     # Verify data was written correctly
     if Path.exists(output_file) and Path(output_file).stat().st_size > 0:
         msg = f"Extraction successful! Output saved in {output_file}"
@@ -279,6 +282,69 @@ async def _extract_nefull(
 
     msg = f"Could not convert {tomion_file} to {output_file}"
     raise TomionError(msg)
+
+
+def _get_interpolated_value_for_two_times(
+    time: Time,
+    lon: float,
+    lat: float,
+    tomion_times: list[Time],
+    time_select: list[np.ndarray],
+    layer_select: list[np.ndarray],
+    tomion: TomionData,
+    get_rms: bool = False,
+    apply_earth_rotation: float = 1,
+    max_interpol_points: int = MAX_INTERPOL_POINTS,
+) -> list[np.ndarray]:
+    """helper function to get interpolated tec at two times
+
+    Parameters
+    ----------
+    time : Time
+        requested time
+    lon : float
+        lons of piercepoint
+    lat : float
+        lats of pierpoint
+    tomion_times : list[Time]
+        the two times in the tomion data
+    time_select : list[np.ndarray]
+        indices of the two times in the tomion data
+    layer_select : list[np.ndarray]
+        indices of the selected layer for the two times in the tomion data
+    tomion : TomionData
+        data object
+    get_rms : bool, optional
+        get erroro instead of values, by default False
+    apply_earth_rotation : float, optional
+        correct for earth rotation, by default 1
+    max_interpol_points : int, optional
+        number of spatial points to interpolate over, by default MAX_INTERPOL_POINTS
+
+    Returns
+    -------
+    list[np.ndarray]
+        tec values for all piercepoints at two different times
+    """
+    value_array = tomion.stddev if get_rms else tomion.tec
+    tec_list = []
+    for layer, tms, time_tomion in zip(layer_select, time_select, tomion_times):
+        rot = ((time.mjd - time_tomion) * 360.0) * apply_earth_rotation
+        isorted = get_sorted_indices(
+            lon=lon + rot,
+            lat=lat,
+            avail_lon=tomion.lons[tms][layer],
+            avail_lat=tomion.lats[tms][layer],
+        )
+        tec_list.append(
+            get_interpol(
+                value_array[tms][layer][isorted.indices[:max_interpol_points]],
+                isorted.distance[:max_interpol_points],
+            )
+            if max_interpol_points > 1
+            else value_array[tms][layer][isorted.indices[0]]
+        )
+    return tec_list
 
 
 def interpolate_tomion_profile(
@@ -314,7 +380,7 @@ def interpolate_tomion_profile(
     Returns
     -------
     NDArray[np.float64]
-        electron density values at two TOMION_HEIGHTS, shape (2,)
+        electron density values at TOMION_HEIGHT_PROFILE
     """
     h_index = np.array(
         [
@@ -324,64 +390,55 @@ def interpolate_tomion_profile(
     )  # 0 or 1
     lo_index = np.where(h_index == 0)[0]
     hi_index = np.where(h_index == 1)[0]
-    value_array = tomion.stddev if get_rms else tomion.tec
     # TODO: implement this function directly for an array of times
+    # get the closest times of the tomion map and the inverse time distance weights
     timeindex = compute_index_and_weights(tomion.available_times.mjd, times.mjd)
-    time1 = tomion.available_times.mjd[timeindex.idx1]
-    time2 = tomion.available_times.mjd[timeindex.idx2]
-    timeselect1 = tomion.times.mjd == time1
-    timeselect2 = tomion.times.mjd == time2
-    timeselect = [timeselect1, timeselect2]
+    time1 = tomion.available_times.mjd[
+        timeindex.idx1
+    ]  # actual tomion time of first index
+    time2 = tomion.available_times.mjd[
+        timeindex.idx2
+    ]  # actual tomion time of second index
+    timeselect1 = tomion.times.mjd == time1  # indices with time1 in the tomion data
+    timeselect2 = tomion.times.mjd == time2  # indices with time2 in the tomion data
     # get data for two layers for two times
     layers_lo = [tomion.h_idx[timeselect1] == 1, tomion.h_idx[timeselect2] == 1]
     layers_hi = [tomion.h_idx[timeselect1] == 2, tomion.h_idx[timeselect2] == 2]
-    # get lon,lat idx for these
-    tec_lo: list[Any] = []
-    tec_hi: list[Any] = []
     tec = np.zeros(heights.shape, dtype=float)
-    for lo, tms, time_tomion in zip(layers_lo, timeselect, [time1, time2]):
-        rot = ((times.mjd - time_tomion) * 360.0) * apply_earth_rotation
-        tec_lo.append([])
-        for h_idx in lo_index:
-            isorted_low = get_sorted_indices(
-                lon=lons[h_idx] + rot,
-                lat=lats[h_idx],
-                avail_lon=tomion.lons[tms][lo],
-                avail_lat=tomion.lats[tms][lo],
-            )
-            tec_lo[-1].append(
-                get_interpol(
-                    value_array[tms][lo][isorted_low.indices[:max_interpol_points]],
-                    isorted_low.distance[:max_interpol_points],
-                )
-            )
-    for hi, tms, time_tomion in zip(layers_hi, timeselect, [time1, time2]):
-        rot = ((times.mjd - time_tomion) * 360.0) * apply_earth_rotation
-        tec_hi.append([])
-        for h_idx in hi_index:
-            isorted_hi = get_sorted_indices(
-                lon=lons[h_idx] + rot,
-                lat=lats[h_idx],
-                avail_lon=tomion.lons[tms][hi],
-                avail_lat=tomion.lats[tms][hi],
-            )
-            tec_hi[-1].append(
-                get_interpol(
-                    value_array[tms][hi][isorted_hi.indices[:max_interpol_points]],
-                    isorted_hi.distance[:max_interpol_points],
-                )
-            )
-    tec_lo = np.array(tec_lo)
-    tec_hi = np.array(tec_hi)
     weight_lo = 1.0 / lo_index.shape[0]  # scale with number of cells
     weight_hi = 1.0 / hi_index.shape[0]  # scale with number of cells
-    tec[lo_index] = (
-        tec_lo[0] * timeindex.w1[0] + tec_lo[1] * timeindex.w2[0]
-    ) * weight_lo
-    tec[hi_index] = (
-        tec_hi[0] * timeindex.w1[0] + tec_hi[1] * timeindex.w2[0]
-    ) * weight_hi
-
+    for h_idx in lo_index:
+        tec_lo = _get_interpolated_value_for_two_times(
+            time=times,
+            lon=lons[h_idx],
+            lat=lats[h_idx],
+            tomion_times=[time1, time2],
+            time_select=[timeselect1, timeselect2],
+            layer_select=layers_lo,
+            tomion=tomion,
+            get_rms=get_rms,
+            apply_earth_rotation=apply_earth_rotation,
+            max_interpol_points=max_interpol_points,
+        )
+        tec[h_idx] = (
+            tec_lo[0] * timeindex.w1[0] + tec_lo[1] * timeindex.w2[0]
+        ) * weight_lo  # time distance weighted TEC
+    for h_idx in hi_index:
+        tec_hi = _get_interpolated_value_for_two_times(
+            time=times,
+            lon=lons[h_idx],
+            lat=lats[h_idx],
+            tomion_times=[time1, time2],
+            time_select=[timeselect1, timeselect2],
+            layer_select=layers_hi,
+            tomion=tomion,
+            get_rms=get_rms,
+            apply_earth_rotation=apply_earth_rotation,
+            max_interpol_points=max_interpol_points,
+        )
+        tec[h_idx] = (
+            tec_hi[0] * timeindex.w1[0] + tec_hi[1] * timeindex.w2[0]
+        ) * weight_hi  # time distance weighted TEC
     return tec
 
 
@@ -418,51 +475,41 @@ def interpolate_tomion_dual(
         electron density values at two TOMION_HEIGHTS, shape (2,)
     """
 
-    value_array = tomion.stddev if get_rms else tomion.tec
     # TODO: implement this function directly for an array of times
     timeindex = compute_index_and_weights(tomion.available_times.mjd, times.mjd)
     time1 = tomion.available_times.mjd[timeindex.idx1]
     time2 = tomion.available_times.mjd[timeindex.idx2]
     timeselect1 = tomion.times.mjd == time1
     timeselect2 = tomion.times.mjd == time2
-    timeselect = [timeselect1, timeselect2]
     # get data for two layers for two times
     layers_lo = [tomion.h_idx[timeselect1] == 1, tomion.h_idx[timeselect2] == 1]
     layers_hi = [tomion.h_idx[timeselect1] == 2, tomion.h_idx[timeselect2] == 2]
     # get lon,lat idx for these
-    tec_lo = []
-    tec_hi = []
+    tec_lo = _get_interpolated_value_for_two_times(
+        time=times,
+        lon=lons[0],
+        lat=lats[0],
+        tomion_times=[time1, time2],
+        time_select=[timeselect1, timeselect2],
+        layer_select=layers_lo,
+        tomion=tomion,
+        get_rms=get_rms,
+        apply_earth_rotation=apply_earth_rotation,
+        max_interpol_points=max_interpol_points,
+    )
+    tec_hi = _get_interpolated_value_for_two_times(
+        time=times,
+        lon=lons[1],
+        lat=lats[1],
+        tomion_times=[time1, time2],
+        time_select=[timeselect1, timeselect2],
+        layer_select=layers_hi,
+        tomion=tomion,
+        get_rms=get_rms,
+        apply_earth_rotation=apply_earth_rotation,
+        max_interpol_points=max_interpol_points,
+    )
     tec = np.zeros((2,), dtype=float)
-    for lo, tms, time_tomion in zip(layers_lo, timeselect, [time1, time2], strict=True):
-        rot = ((times.mjd - time_tomion) * 360.0) * apply_earth_rotation
-        isorted_low = get_sorted_indices(
-            lon=lons[0] + rot,
-            lat=lats[0],
-            avail_lon=tomion.lons[tms][lo],
-            avail_lat=tomion.lats[tms][lo],
-        )
-        tec_lo.append(
-            get_interpol(
-                value_array[tms][lo][isorted_low.indices[:max_interpol_points]],
-                isorted_low.distance[:max_interpol_points],
-            )
-        )
-    for hi, tms, time_tomion in zip(layers_hi, timeselect, [time1, time2], strict=True):
-        rot = ((times.mjd - time_tomion) * 360.0) * apply_earth_rotation
-
-        isorted_hi = get_sorted_indices(
-            lon=lons[1] + rot,
-            lat=lats[1],
-            avail_lon=tomion.lons[tms][hi],
-            avail_lat=tomion.lats[tms][hi],
-        )
-        tec_hi.append(
-            get_interpol(
-                value_array[tms][hi][isorted_hi.indices[:max_interpol_points]],
-                isorted_hi.distance[:max_interpol_points],
-            )
-        )
-
     tec[0] = tec_lo[0] * timeindex.w1[0] + tec_lo[1] * timeindex.w2[0]
     tec[1] = tec_hi[0] * timeindex.w1[0] + tec_hi[1] * timeindex.w2[0]
 
