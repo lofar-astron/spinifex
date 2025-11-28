@@ -26,6 +26,8 @@ The ionex model comes with the following options:
 * solution : Solution type, by default "final", must be "final" or "rapid".
 * output_directory : [Path] Output directory path, by default None, will default to "ionex_files" in the current working directory.
 * correct_uqrg_rms : [bool] The rms values for UQR maps are overestimated (see `Zhao et al. <https://link.springer.com/article/10.1007/s00190-021-01487-8>`_), use this flag to correct these. default=True
+* apply_earth_rotation : [float] Apply Earth rotation correction when interpolating between times. Can be a fractional correction. Defaults to 1.
+* remove_midnight_jumps: [bool] Reads data of consecutive days to mitigate the jump in TEC between days. Default is True.
 
 At the moment three hosts of ionex data are supported:
 
@@ -76,13 +78,27 @@ The ionex_iri model comes with the following options:
 * solution : Solution type, by default "final", must be "final" or "rapid".
 * output_directory : [Path] Output directory path, by default None, will default to "ionex_files" in the current working directory.
 * correct_uqrg_rms : [bool] The rms values for UQR maps are overestimated (see `Zhao et al. <https://link.springer.com/article/10.1007/s00190-021-01487-8>`_), use this flag to correct these. default=True
-
+* apply_earth_rotation : [float] Apply Earth rotation correction when interpolating between times. Can be a fractional correction. Defaults to 1.
+* remove_midnight_jumps: [bool] Reads data of consecutive days to mitigate the jump in TEC between days. Default is True.
 
 .. _tomion:
 
 tomion
 ---------------------
-The 2 layer ionospheric model provided by UPC-IonSat. This tomographic model is slower, but tends to give more stable results in long term pulsar observations.
+Based on the 2 layer ionospheric model provided by UPC-IonSat. This tomographic model is slower, but tends to give more stable results in long term pulsar observations.
 See e.g. `Porayko, N. et al <https://link.springer.com/article/10.1007/s00190-023-01806-1>`_. Detailed information on the tomion fitting can be found
 `here <_static/tomion_doc.pdf>`_. Note that from March 2022 the tomion files have high (15 minute) time resolution. Before that date only the 2 hour resolution data is
-available, resulting in lower accuracy.
+available, resulting in lower accuracy. A full profile with 70 points between lower (110 km) and higher (1400 km) end of the model is used.
+
+
+.. _tomion_dual:
+
+tomion_dual
+---------------------
+The 2 layer ionospheric model provided by UPC-IonSat. For this mode only the vortices at the 2 nominal altitudes (450 km and 1140 km) as provided by tomion are used. Experimental mode.
+
+
+The  tomion and tomion_dual model come with the following options:
+
+* output_directory : [Path] Output directory path, by default None, will default to "ionex_files" in the current working directory.
+* apply_earth_rotation : [float] Apply Earth rotation correction when interpolating between times. Can be a fractional correction. Defaults to 1.
