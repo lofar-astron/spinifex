@@ -80,7 +80,7 @@ class IonexOptions(Options):
         True, description="Correct overestimated rms of uqr maps"
     )
     height: u.Quantity = Field(
-        350 * u.km, description="altitude of single layer ionosphere"
+        450 * u.km, description="altitude of single layer ionosphere"
     )
     remove_midnight_jumps: bool = Field(
         True,
