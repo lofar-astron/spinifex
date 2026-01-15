@@ -105,7 +105,7 @@ def get_density_ionex_iri(
     ipp : IPP
         ionospheric piercepoints
     height : u.Quantity, optional
-        altitude of the thin screen, by default 350*u.km
+        altitude of the thin screen, by default 450*u.km
     ionex_options: IonexOptions | None, optional
         options for the ionospheric model, by default None
 

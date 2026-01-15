@@ -41,8 +41,8 @@ def get_profile(ipp: IPP) -> NDArray[np.float32]:
         aalt = altitudes[indices]  # iri input array of heights
 
         hidx = np.argmin(
-            np.abs(aalt - 350), axis=1
-        )  # use lon lat closest to altitude of 350 km for profile
+            np.abs(aalt - 450), axis=1
+        )  # use lon lat closest to altitude of 450 km for profile
         alon = longitudes[indices, hidx]  # iri input array of longitudes
         alat = latitudes[indices, hidx]  # iri input array of latitude
         ahr = ipp.times[indices].ymdhms.hour

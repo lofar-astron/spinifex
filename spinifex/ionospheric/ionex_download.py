@@ -582,7 +582,7 @@ async def download_ionex_coro(
         solution=solution,
         output_directory=output_directory,
         correct_uqrg_rms=False,
-        height=350 * u.km,
+        height=450 * u.km,
         remove_midnight_jumps=False,
     )
 
