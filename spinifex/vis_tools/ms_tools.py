@@ -122,7 +122,6 @@ def get_average_location(locations: EarthLocation) -> EarthLocation:
     )
 
 
-
 def get_rm_from_ms(
     ms_path: Path,
     timestep: u.Quantity | None = None,
