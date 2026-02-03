@@ -93,9 +93,8 @@ def get_columns_from_ms(ms_path: Path) -> list[str]:
         return list(my_ms.colnames())
 
 
-def get_average_location(location: EarthLocation) -> EarthLocation:
-    # TODO; implement correctly in NE plane
-    """Get first location from N locations
+def get_average_location(locations: EarthLocation) -> EarthLocation:
+    """Get mean location from locations
 
 
     Parameters
@@ -106,14 +105,22 @@ def get_average_location(location: EarthLocation) -> EarthLocation:
     Returns
     -------
     EarthLocation
-        first location
+        mean location
     """
-
-    return EarthLocation(
-        x=location.x.mean(),
-        y=location.y.mean(),
-        z=location.z.mean(),
+    centroid = EarthLocation.from_geocentric(
+        x=locations.x.mean(),
+        y=locations.y.mean(),
+        z=locations.z.mean(),
     )
+
+    lon, lat, _ = centroid.to_geodetic()
+    height = locations.to_geodetic().height.mean()
+    return EarthLocation.from_geodetic(
+        lon=lon,
+        lat=lat,
+        height=height,
+    )
+
 
 
 def get_rm_from_ms(
