@@ -322,7 +322,7 @@ def interpolate_tomion(
     tec_lo = []
     tec_hi = []
     tec = np.zeros((2,), dtype=float)
-    for lo, tms, time_tomion in zip(layers_lo, timeselect, [time1, time2]):
+    for lo, tms, time_tomion in zip(layers_lo, timeselect, [time1, time2], strict=True):
         rot = ((times.mjd - time_tomion) * 360.0) * apply_earth_rotation
         isorted_low = get_sorted_indices(
             lon=lons[0] + rot,
@@ -336,7 +336,7 @@ def interpolate_tomion(
                 isorted_low.distance[:MAX_INTERPOL_POINTS],
             )
         )
-    for hi, tms, time_tomion in zip(layers_hi, timeselect, [time1, time2]):
+    for hi, tms, time_tomion in zip(layers_hi, timeselect, [time1, time2], strict=True):
         rot = ((times.mjd - time_tomion) * 360.0) * apply_earth_rotation
 
         isorted_hi = get_sorted_indices(
@@ -396,7 +396,7 @@ def get_density_dual_layer(
     )
 
     group_indices = get_indexlist_unique_days(unique_days, ipp.times)
-    for indices, tomion_file in zip(group_indices, sorted_tomion_paths):
+    for indices, tomion_file in zip(group_indices, sorted_tomion_paths, strict=True):
         if not tomion_file.exists():
             msg = f"Tomion file {tomion_file} not found!"
             raise FileNotFoundError(msg)

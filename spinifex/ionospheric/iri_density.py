@@ -48,7 +48,7 @@ def get_profile(ipp: IPP) -> NDArray[np.float32]:
         ahr = ipp.times[indices].ymdhms.hour
         # IRI_density_1day treats lon/lat and hr as two separate arrays with independent lengths
         # I do not see another solution than to loop
-        for itime, tmidx in zip(range(ahr.shape[0]), index_nr):
+        for itime, tmidx in zip(range(ahr.shape[0]), index_nr, strict=True):
             _, _, _, _, _, _, edpi = IRI_density_1day(
                 year,
                 month,
