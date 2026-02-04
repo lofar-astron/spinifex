@@ -58,6 +58,7 @@ class IonexHeader(NamedTuple):
 def read_ionex(
     ionex_filename: Path,
     next_day_ionex_filename: Path | None = None,
+    concatenate: bool = False,
     options: IonexOptions | None = None,
 ) -> IonexData:
     """Read and parse a ionex file. Returns a ionex object.
@@ -101,12 +102,13 @@ def read_ionex(
         else:
             with next_day_ionex_filename.open(encoding="utf-8") as file_buffer:
                 next_day_ionex = _read_ionex_data(file_buffer, options=options)
-        ionex = _replace_midnight_data(ionex, next_day_ionex)
-
+        ionex = _replace_midnight_data(ionex, next_day_ionex, concatenate=concatenate)
     return ionex
 
 
-def _replace_midnight_data(ionex: IonexData, next_day_ionex: IonexData) -> IonexData:
+def _replace_midnight_data(
+    ionex: IonexData, next_day_ionex: IonexData, concatenate: bool = False
+) -> IonexData:
     """mtigate jumps in tec value at midnight by inserting the tec value of the next day
 
     Parameters
@@ -115,7 +117,8 @@ def _replace_midnight_data(ionex: IonexData, next_day_ionex: IonexData) -> Ionex
         ionex data object
     next_day_ionex : IonexData
         ionex data of the next day
-
+    concatenate: bool
+        concatenate the data of two days, default=False
     Returns
     -------
     IonexData
@@ -126,6 +129,15 @@ def _replace_midnight_data(ionex: IonexData, next_day_ionex: IonexData) -> Ionex
     tmidx = np.where(np.isclose(ionex.times.mjd - next_day_ionex.times.mjd[0], 0, 1e-6))
     tec[tmidx] = next_day_ionex.tec[0]
     tec_error[tmidx] = next_day_ionex.rms[0]
+    times = ionex.times
+    if concatenate:
+        tec = np.concatenate((tec[:-1], next_day_ionex.tec), axis=0)
+        tec_error = np.concatenate((tec_error[:-1], next_day_ionex.rms), axis=0)
+        times = Time(
+            np.concatenate((ionex.times.mjd[:-1], next_day_ionex.times.mjd)),
+            format="mjd",
+        )
+
     return IonexData(
         tec=tec,
         rms=tec_error,
@@ -133,7 +145,7 @@ def _replace_midnight_data(ionex: IonexData, next_day_ionex: IonexData) -> Ionex
         lats=ionex.lats,
         dims=ionex.dims,
         h=ionex.h,
-        times=ionex.times,
+        times=times,
     )
 
 
