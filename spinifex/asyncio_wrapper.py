@@ -3,17 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-import sys
 from collections.abc import Coroutine
 from functools import wraps
-from typing import Callable, TypeVar
+from typing import Callable, ParamSpec, TypeVar
 
 import nest_asyncio
-
-if sys.version_info < (3, 10):
-    from typing_extensions import ParamSpec
-else:
-    from typing import ParamSpec
 
 P = ParamSpec("P")
 T = TypeVar("T")
