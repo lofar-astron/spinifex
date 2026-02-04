@@ -116,7 +116,7 @@ def add_antenna_info(
     ant_meta = solset["antenna"]
     ant_meta.resize((len(antenna_names),))
     for antenna_number, (antenna_name, pos) in enumerate(
-        zip(antenna_names, antenna_pos)
+        zip(antenna_names, antenna_pos, strict=True)
     ):
         ant_meta[antenna_number] = (antenna_name, pos)
 
@@ -140,7 +140,7 @@ def add_source_info(
     source_meta = solset["source"]
     source_meta.resize((len(source_names),))
     for source_number, (source_name, source_dir) in enumerate(
-        zip(source_names, source_dirs)
+        zip(source_names, source_dirs, strict=True)
     ):
         source_meta[source_number] = (source_name, source_dir)
 

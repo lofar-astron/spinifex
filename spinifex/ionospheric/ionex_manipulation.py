@@ -195,7 +195,7 @@ def get_density_ionex(
     tec = np.zeros(ipp.loc.shape, dtype=float)
     electron_density_error = np.full(ipp.loc.shape, np.nan)
     for indices, ionex_file, next_day_file in zip(
-        group_indices, sorted_ionex_paths, sorted_next_day_paths
+        group_indices, sorted_ionex_paths, sorted_next_day_paths, strict=True
     ):
         if not ionex_file.exists():
             msg = f"Ionex file {ionex_file} not found!"

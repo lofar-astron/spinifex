@@ -141,7 +141,7 @@ def test_chapman_format(times):
         "2024/032_240201.15min/uqrg0320.24i.Z",
         "2025/001_250101.15min/uqrg0010.25i.Z",
     ]
-    for time, expected_url in zip(times, expected_urls):
+    for time, expected_url in zip(times, expected_urls, strict=False):
         url = ionex_download.chapman_format(time, url_stem=base_url)
         assert url == f"{base_url}/{expected_url}"
 
@@ -180,7 +180,9 @@ async def test_chapman_download(tmpdir, old_time, new_time):
     n_lines_tructed = len(expected_data) - 1  # Last line is truncated
 
     # Compare first 49 lines of the downloaded file
-    for i, (line1, line2) in enumerate(zip(downloaded_data, expected_data)):
+    for i, (line1, line2) in enumerate(
+        zip(downloaded_data, expected_data, strict=True)
+    ):
         if i == n_lines_tructed:
             break
         assert line1 == line2
@@ -266,7 +268,9 @@ def test_download_ionex_chapman(tmpdir, new_time):
     n_lines_tructed = len(expected_data) - 1  # Last line is truncated
 
     # Compare first 49 lines of the downloaded file
-    for i, (line1, line2) in enumerate(zip(downloaded_data, expected_data)):
+    for i, (line1, line2) in enumerate(
+        zip(downloaded_data, expected_data, strict=True)
+    ):
         if i == n_lines_tructed:
             break
         assert line1 == line2
