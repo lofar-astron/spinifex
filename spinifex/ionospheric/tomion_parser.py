@@ -328,7 +328,9 @@ def _get_interpolated_value_for_two_times(
     """
     value_array = tomion.stddev if get_rms else tomion.tec
     tec_list = []
-    for layer, tms, time_tomion in zip(layer_select, time_select, tomion_times):
+    for layer, tms, time_tomion in zip(
+        layer_select, time_select, tomion_times, strict=True
+    ):
         rot = ((time.mjd - time_tomion) * 360.0) * apply_earth_rotation
         isorted = get_sorted_indices(
             lon=lon + rot,
@@ -618,7 +620,7 @@ def get_density_profile(
     )
 
     group_indices = get_indexlist_unique_days(unique_days, ipp.times)
-    for indices, tomion_file in zip(group_indices, sorted_tomion_paths):
+    for indices, tomion_file in zip(group_indices, sorted_tomion_paths, strict=True):
         if not tomion_file.exists():
             msg = f"Tomion file {tomion_file} not found!"
             raise FileNotFoundError(msg)
