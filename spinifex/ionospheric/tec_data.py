@@ -80,11 +80,15 @@ class IonexOptions(Options):
         True, description="Correct overestimated rms of uqr maps"
     )
     height: u.Quantity = Field(
-        350 * u.km, description="altitude of single layer ionosphere"
+        450 * u.km, description="altitude of single layer ionosphere"
     )
     remove_midnight_jumps: bool = Field(
         True,
         description="mitigate midnight jumps in the ionex files by inserting the data of the next day",
+    )
+    apply_earth_rotation: float = Field(
+        1,
+        description="Apply Earth rotation correction when interpolating between times",
     )
 
 
@@ -93,6 +97,10 @@ class TomionOptions(Options):
 
     output_directory: Path | None = Field(
         None, description="Output directory for tomion files"
+    )
+    apply_earth_rotation: float = Field(
+        1,
+        description="Apply Earth rotation correction when interpolating between times",
     )
 
 

@@ -8,14 +8,16 @@ from typing import Any, Generic, Protocol, TypeVar, cast
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import EarthLocation
-from numpy.typing import NDArray
 from pydantic import ValidationError
 
 import spinifex.ionospheric.iri_density as iri
 from spinifex.geometry.get_ipp import IPP
 from spinifex.ionospheric.ionex_manipulation import get_density_ionex
 from spinifex.ionospheric.tec_data import ElectronDensity, IonexOptions, TomionOptions
-from spinifex.ionospheric.tomion_parser import get_density_dual_layer
+from spinifex.ionospheric.tomion_parser import (
+    get_density_dual_layer,
+    get_density_profile,
+)
 from spinifex.logger import logger
 
 O = TypeVar("O", IonexOptions, TomionOptions)  # noqa: E741
@@ -42,6 +44,7 @@ class IonosphericModels:
     ionex: ModelDensityFunction[IonexOptions]
     ionex_iri: ModelDensityFunction[IonexOptions]
     tomion: ModelDensityFunction[TomionOptions]
+    tomion_dual: ModelDensityFunction[TomionOptions]
 
 
 def get_density_ionex_single_layer(
@@ -102,7 +105,7 @@ def get_density_ionex_iri(
     ipp : IPP
         ionospheric piercepoints
     height : u.Quantity, optional
-        altitude of the thin screen, by default 350*u.km
+        altitude of the thin screen, by default 450*u.km
     ionex_options: IonexOptions | None, optional
         options for the ionospheric model, by default None
 
@@ -120,10 +123,19 @@ def get_density_ionex_iri(
     )
 
 
-# TODO: move height to IonexOptions
 def get_density_tomion(
     ipp: IPP, options: TomionOptions | None = None
-) -> NDArray[np.float64]:
+) -> ElectronDensity:
+    tec = get_density_profile(ipp, tomion_options=options)
+    return ElectronDensity(
+        electron_density=tec.electron_density,
+        electron_density_error=tec.electron_density_error,
+    )
+
+
+def get_density_tomion_dual(
+    ipp: IPP, options: TomionOptions | None = None
+) -> ElectronDensity:
     tec = get_density_dual_layer(ipp, tomion_options=options)
     return ElectronDensity(
         electron_density=tec.electron_density,
@@ -135,6 +147,7 @@ ionospheric_models = IonosphericModels(
     ionex=get_density_ionex_single_layer,
     ionex_iri=get_density_ionex_iri,
     tomion=get_density_tomion,
+    tomion_dual=get_density_tomion_dual,
 )
 
 
@@ -170,7 +183,7 @@ def parse_iono_kwargs(iono_model: ModelDensityFunction[O], **kwargs: Any) -> O:
                 f"Using ionospheric model {iono_model} with options {ionex_options}"
             )
             return cast(O, ionex_options)  # type: ignore[redundant-cast]
-        if iono_model == ionospheric_models.tomion:
+        if iono_model in (ionospheric_models.tomion, ionospheric_models.tomion_dual):
             tomion_options = TomionOptions(**kwargs)
             logger.info(
                 f"Using ionospheric model {iono_model} with options {tomion_options}"

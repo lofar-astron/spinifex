@@ -19,7 +19,7 @@ from spinifex.ionospheric.models import (
     parse_iono_kwargs,
     parse_iono_model,
 )
-from spinifex.ionospheric.tomion_parser import TOMION_HEIGHTS
+from spinifex.ionospheric.tomion_parser import TOMION_HEIGHTS, TOMION_PROFILE_HEIGHTS
 from spinifex.logger import logger
 
 
@@ -137,6 +137,8 @@ def get_dtec_from_altaz(
     iono_model = parse_iono_model(iono_model_name)
     height_array = DEFAULT_IONO_HEIGHT
     if iono_model_name == "tomion":
+        height_array = TOMION_PROFILE_HEIGHTS
+    elif iono_model_name == "tomion_dual":
         height_array = TOMION_HEIGHTS
     elif iono_model_name == "ionex_iri":
         height_array = IRI_HEIGHTS
@@ -225,6 +227,8 @@ def get_dtec_from_skycoord(
     iono_model = parse_iono_model(iono_model_name)
     height_array = DEFAULT_IONO_HEIGHT
     if iono_model_name == "tomion":
+        height_array = TOMION_PROFILE_HEIGHTS
+    elif iono_model_name == "tomion_dual":
         height_array = TOMION_HEIGHTS
     elif iono_model_name == "ionex_iri":
         height_array = IRI_HEIGHTS
