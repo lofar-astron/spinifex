@@ -6,6 +6,7 @@ from typing import Any
 import astropy.units as u
 import h5py
 import numpy as np
+from astropy.coordinates import SkyCoord
 from numpy.typing import NDArray
 
 from spinifex.get_dtec import DTEC
@@ -288,6 +289,8 @@ def write_rm_to_h5parm(
     solset_name: str | None = None,
     soltab_name: str | None = None,
     add_to_existing_solset: bool = False,
+    source_name: str = "phase_center",
+    source_dir: SkyCoord | None = None,
 ) -> None:
     """writes a dictionary of RM values per station to a new or existing h5parm file
 
@@ -312,13 +315,21 @@ def write_rm_to_h5parm(
     """
     create_empty_h5parm(h5parm_name=h5parm_name)
     station_names, station_pos = _get_station_metadata(rms)
+    if source_dir is None:
+        source_dir = SkyCoord(350.0 * u.deg, 50.0 * u.deg)
     with h5py.File(h5parm_name, "a") as h5parm:
         if solset_name is not None and solset_name in h5parm and add_to_existing_solset:
             solset = h5parm[solset_name]
         else:
             solset = create_solset(h5parm, solset_name=solset_name)
             add_antenna_info(solset, station_names, station_pos)
-
+            add_source_info(
+                solset,
+                [
+                    source_name,
+                ],
+                [np.array((source_dir.ra.rad, source_dir.dec.rad))],
+            )
         soltab_axes = ["ant", "time"]
         axes_values = {}
         ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
@@ -326,7 +337,15 @@ def write_rm_to_h5parm(
         axes_values["time"] = (
             rms[station_names[0]].times.mjd * 24 * 3600.0
         )  # mjd in seconds?
-        rm_values = np.array([rms[stname].rm for stname in station_names])
+        axes_values["dir"] = np.array(
+            [
+                source_name,
+            ],
+            dtype=ant_dtype,
+        )
+        rm_values = np.array([rms[stname].rm for stname in station_names])[
+            ..., np.newaxis
+        ]  # extra axis for dir
         weights = np.ones(rm_values.shape, dtype=bool)
         weights[np.isnan(rm_values)] = 0
         add_soltab(
@@ -346,6 +365,8 @@ def write_tec_to_h5parm(
     solset_name: str | None = None,
     soltab_name: str | None = None,
     add_to_existing_solset: bool = False,
+    source_name: str = "phase_center",
+    source_dir: SkyCoord | None = None,
 ) -> None:
     """writes a dictionary of RM values per station to a new or existing h5parm file
 
@@ -370,26 +391,41 @@ def write_tec_to_h5parm(
     """
     create_empty_h5parm(h5parm_name=h5parm_name)
     station_names, station_pos = _get_station_metadata(dtec)
+    if source_dir is None:
+        source_dir = SkyCoord(350.0 * u.deg, 50.0 * u.deg)
     with h5py.File(h5parm_name, "a") as h5parm:
         if solset_name is not None and solset_name in h5parm and add_to_existing_solset:
             solset = h5parm[solset_name]
         else:
             solset = create_solset(h5parm, solset_name=solset_name)
             add_antenna_info(solset, station_names, station_pos)
+            add_source_info(
+                solset,
+                [
+                    source_name,
+                ],
+                [np.array((source_dir.ra.rad, source_dir.dec.rad))],
+            )
 
-        soltab_axes = ["ant", "time"]
+        soltab_axes = ["ant", "time", "dir"]
         axes_values = {}
         ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
         axes_values["ant"] = np.array(station_names, dtype=ant_dtype)
         axes_values["time"] = (
             dtec[station_names[0]].times.mjd * 24 * 3600.0
         )  # mjd in seconds?
+        axes_values["dir"] = np.array(
+            [
+                source_name,
+            ],
+            dtype=ant_dtype,
+        )
         dtec_values = np.array(
             [
                 np.sum(dtec[stname].electron_density * dtec[stname].airmass, axis=-1)
                 for stname in station_names
             ]
-        )
+        )[..., np.newaxis]  # extra axis for dir
         weights = np.ones(dtec_values.shape, dtype=bool)
         weights[np.isnan(dtec_values)] = 0
         add_soltab(
