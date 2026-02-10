@@ -380,6 +380,7 @@ def cli_get_rm_h5parm_from_ms(args: argparse.Namespace) -> None:
 
     if timestep:
         timestep = timestep * u.s
+    ms_metadata = get_metadata_from_ms(ms_path)
     rm_dict = get_rm_from_ms(
         ms_path=ms_path,
         use_stations="all",
@@ -392,6 +393,8 @@ def cli_get_rm_h5parm_from_ms(args: argparse.Namespace) -> None:
         solset_name=solset_name,
         soltab_name=soltab_name,
         add_to_existing_solset=add_to_existing_solset,
+        source_name="phase_center",
+        source_pos=ms_metadata.source,
     )
 
 
@@ -405,6 +408,7 @@ def cli_get_dtec_h5parm_from_ms(args: argparse.Namespace) -> None:
     timestep: int | None = args.timestep
     if timestep:
         timestep = timestep * u.s
+    ms_metadata = get_metadata_from_ms(ms_path)
     dtec = get_dtec_from_ms(
         ms_path=ms_path,
         use_stations="all",
@@ -417,4 +421,6 @@ def cli_get_dtec_h5parm_from_ms(args: argparse.Namespace) -> None:
         solset_name=solset_name,
         soltab_name=soltab_name,
         add_to_existing_solset=add_to_existing_solset,
+        source_name="phase_center",
+        source_pos=ms_metadata.source,
     )
