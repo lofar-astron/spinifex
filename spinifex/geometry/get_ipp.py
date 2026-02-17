@@ -109,8 +109,12 @@ def _xyz_to_lonlat_spherical(
 ) -> tuple[u.Quantity, u.Quantity]:
     """Convert geocentric XYZ to geodetic lon/lat using spherical model."""
     # Extract meters
-    if hasattr(x, "unit"):
-        x_m, y_m, z_m = x.to(u.m).value, y.to(u.m).value, z.to(u.m).value
+    if type(x) is u.Quantity:
+        x_m = x.to(u.m).value
+    if type(y) is u.Quantity:
+        y_m = y.to(u.m).value
+    if type(z) is u.Quantity:
+        z_m = z.to(u.m).value
     else:
         x_m, y_m, z_m = x, y, z
 
