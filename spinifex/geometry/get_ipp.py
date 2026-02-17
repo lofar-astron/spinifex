@@ -90,7 +90,9 @@ def get_ipp_from_altaz(
         height_array=height_array, loc=loc, los_dir=los_vector
     )
     lon, lat = _xyz_to_lonlat_spherical(*ipp)
-    heights_broadcast = np.broadcast_to(np.atleast_1d(height_array), lon.shape)
+    heights_broadcast = (
+        np.broadcast_to(np.atleast_1d(height_array), lon.shape) * height_array.unit
+    )
     ipploc = EarthLocation.from_geodetic(lon, lat, heights_broadcast)
     return IPP(
         loc=ipploc,
@@ -102,7 +104,9 @@ def get_ipp_from_altaz(
     )
 
 
-def _xyz_to_lonlat_spherical(x, y, z):
+def _xyz_to_lonlat_spherical(
+    x: u.Quantity | float, y: u.Quantity | float, z: u.Quantity | float
+) -> tuple[u.Quantity, u.Quantity]:
     """Convert geocentric XYZ to geodetic lon/lat using spherical model."""
     # Extract meters
     if hasattr(x, "unit"):
