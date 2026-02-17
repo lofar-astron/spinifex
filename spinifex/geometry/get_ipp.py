@@ -89,13 +89,35 @@ def get_ipp_from_altaz(
     ipp, airmass = _get_ipp_simple(
         height_array=height_array, loc=loc, los_dir=los_vector
     )
+    lon, lat = _xyz_to_lonlat_spherical(*ipp)
+    heights_broadcast = np.broadcast_to(np.atleast_1d(height_array), lon.shape)
+    ipploc = EarthLocation.from_geodetic(lon, lat, heights_broadcast)
     return IPP(
-        loc=EarthLocation.from_geocentric(*ipp),
+        loc=ipploc,
         times=altaz.obstime,
         los=los_vector.T,
         airmass=airmass,
         altaz=altaz,
         station_loc=loc,
+    )
+
+
+def _xyz_to_lonlat_spherical(x, y, z):
+    """Convert geocentric XYZ to geodetic lon/lat using spherical model."""
+    # Extract meters
+    if hasattr(x, "unit"):
+        x_m, y_m, z_m = x.to(u.m).value, y.to(u.m).value, z.to(u.m).value
+    else:
+        x_m, y_m, z_m = x, y, z
+
+    # Spherical conversion
+    lon_rad = np.arctan2(y_m, x_m)
+    r_m = np.sqrt(x_m**2 + y_m**2 + z_m**2)
+    lat_rad = np.arcsin(np.clip(z_m / r_m, -1, 1))
+
+    return (
+        np.rad2deg(lon_rad) * u.deg,
+        np.rad2deg(lat_rad) * u.deg,
     )
 
 
