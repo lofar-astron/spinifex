@@ -73,7 +73,6 @@ def get_density_ionex_single_layer(
         np.abs(ipp_height_above_surface - options.height.to(u.km).value), axis=1
     )
     ipp_single_layer = IPP(
-        loc=None,
         lon=ipp.lon[:, index],
         lat=ipp.lat[:, index],
         height=ipp.height[:, index],
