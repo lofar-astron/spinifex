@@ -186,15 +186,15 @@ def get_density_ionex(
         )
         tec = interpolate_ionex(
             ionex,
-            ipp.lon.deg,
-            ipp.lat.deg,
+            ipp.lon.to(u.deg).value,
+            ipp.lat.to(u.deg).value,
             ipp.times,
             apply_earth_rotation=ionex_options.apply_earth_rotation,
         )
         electron_density_error = interpolate_ionex(
             ionex,
-            ipp.lon.deg,
-            ipp.lat.deg,
+            ipp.lon.to(u.deg).value,
+            ipp.lat.to(u.deg).value,
             ipp.times,
             get_rms=True,
             apply_earth_rotation=ionex_options.apply_earth_rotation,
@@ -217,15 +217,15 @@ def get_density_ionex(
         ionex = read_ionex(ionex_file, next_day_file, options=ionex_options)
         tec[indices] = interpolate_ionex(
             ionex,
-            u_lon.deg,
-            u_lat.deg,
+            u_lon.to(u.deg).value,
+            u_lat.to(u.deg).value,
             u_times,
             apply_earth_rotation=ionex_options.apply_earth_rotation,
         )
         electron_density_error[indices] = interpolate_ionex(
             ionex,
-            u_lon.deg,
-            u_lat.deg,
+            u_lon.to(u.deg).value,
+            u_lat.to(u.deg).value,
             u_times,
             get_rms=True,
             apply_earth_rotation=ionex_options.apply_earth_rotation,

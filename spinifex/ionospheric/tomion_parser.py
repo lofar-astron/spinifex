@@ -562,8 +562,8 @@ def get_density_dual_layer(
         if not tomion_file.exists():
             msg = f"Tomion file {tomion_file} not found!"
             raise FileNotFoundError(msg)
-        u_lon = ipp.lon[indices, h_index]
-        u_lat = ipp.lat[indices, h_index]
+        u_lon = ipp.lon[:, h_index][indices]
+        u_lat = ipp.lat[:, h_index][indices]
         u_times = ipp.times[indices]
         tomion = _read_tomion(tomion_file)
         for idxi, ippi in enumerate(np.arange(tec.shape[0])[indices]):

@@ -91,9 +91,9 @@ def get_ppigrf_magnetic_field(ipp: IPP) -> MagneticProfile:
         indices = np.floor(ipp.times.mjd) == np.floor(u_day.mjd)
         # loc = ipp.loc[indices]
         b_r, b_theta, b_phi = igrf_gc(
-            theta=ipp.lat.to(u.deg).value,
-            phi=ipp.lon.to(u.deg).value,
-            h=ipp.height.to(u.km).value,  # geocentric radius in km
+            theta=ipp.lat.to(u.deg).value[indices],
+            phi=ipp.lon.to(u.deg).value[indices],
+            r=ipp.height.to(u.km).value[indices],  # geocentric radius in km
             date=u_day.to_datetime(),
         )
         # ppigrf adds an extra axis for time, we remove it by taking the first element
@@ -105,7 +105,11 @@ def get_ppigrf_magnetic_field(ipp: IPP) -> MagneticProfile:
         relative_uncertainty[indices] = rms / b_magn
 
         b_x, b_y, b_z = _transform_b_gc_to_itrs(
-            b_r, b_theta, b_phi, ipp.lon.rad, ipp.lat.rad
+            b_r,
+            b_theta,
+            b_phi,
+            ipp.lon.to(u.rad).value[indices],
+            ipp.lat.to(u.rad).value[indices],
         )
 
         # project to LOS
