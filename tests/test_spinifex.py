@@ -61,5 +61,5 @@ def test_get_rm_solar():
             f"RM array is wrong shape. Got {rm.rm.shape=}, expected {times.shape}"
         )
         assert np.isclose(rm.rm[0], 0.2820, 0.001), (
-            f"First RM value is wrong. Got {rm.rm[0]=}, expected ~0.2784"
+            f"First RM value is wrong. Got {rm.rm[0]=}, expected ~0.2820"
         )

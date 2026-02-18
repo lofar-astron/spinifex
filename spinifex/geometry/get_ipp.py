@@ -90,10 +90,10 @@ def get_ipp_from_altaz(
         height_array=height_array, loc=loc, los_dir=los_vector
     )
     lon, lat = _xyz_to_lonlat_spherical(*[i.to(u.m).value for i in ipp])
-    heights_broadcast = (
-        np.broadcast_to(np.atleast_1d(height_array), lon.shape) * height_array.unit
-    )
-    ipploc = EarthLocation.from_geodetic(lon, lat, heights_broadcast)
+    # heights_broadcast = (
+    #    np.broadcast_to(np.atleast_1d(height_array), lon.shape) * height_array.unit
+    # )
+    ipploc = EarthLocation.from_geodetic(lon, lat, height_array)  # TOO slow
     return IPP(
         loc=ipploc,
         times=altaz.obstime,
