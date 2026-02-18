@@ -81,7 +81,7 @@ def get_ppigrf_magnetic_field(ipp: IPP) -> MagneticProfile:
     # constants from https://geomag.bgs.ac.uk/research/modelling/IGRF.html
 
     unique_days = get_unique_days(ipp.times)
-    b_par = np.zeros(ipp.loc.shape, dtype=float)
+    b_par = np.zeros(ipp.lon.shape, dtype=float)
     relative_uncertainty = np.zeros_like(b_par)
 
     # ppigrf uses proper geodetic coordinates,

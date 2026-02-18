@@ -18,8 +18,6 @@ R_EARTH_MEAN = 6371.0 * u.km
 class IPP(NamedTuple):
     """Ionospheric Piercepoints"""
 
-    loc: EarthLocation
-    """location of the piercepoints, dimension: times x altitudes. All altitudes are assumed to be equal"""
     lon: u.Quantity
     """longitude on a spherical Earth approximation"""
     lat: u.Quantity
@@ -52,7 +50,6 @@ def get_ipp_from_itrs(
     # ipploc = EarthLocation.from_geodetic(lon, lat, height_array)  # TOO slow
     altaz = los_dir.transform_to(AltAz(obstime=times, location=loc))
     return IPP(
-        loc=None,
         lon=lon,
         lat=lat,
         height=radius,
