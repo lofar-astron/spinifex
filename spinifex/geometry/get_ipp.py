@@ -121,7 +121,7 @@ def get_ipp_from_altaz(
 
 def _xyz_to_lonlat_spherical(
     x_m: float, y_m: float, z_m: float
-) -> tuple[u.Quantity, u.Quantity]:
+) -> tuple[u.Quantity, u.Quantity, u.Quantity]:
     """Convert geocentric XYZ to geodetic lon/lat/radius using spherical model."""
     lon_rad = np.arctan2(y_m, x_m)
     r_m = np.sqrt(x_m**2 + y_m**2 + z_m**2)
