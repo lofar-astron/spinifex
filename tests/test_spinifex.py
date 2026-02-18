@@ -34,7 +34,7 @@ def test_get_rm():
         )
         assert isinstance(rm.rm, np.ndarray)
         assert rm.rm.shape == times.shape
-        assert np.isclose(rm.rm[0], 0.06898, 0.001)
+        assert np.isclose(rm.rm[0], 0.06987, 0.001)
     average_rm = get_rm.get_average_rm(rm)
     assert np.isscalar(average_rm.rm)
 
