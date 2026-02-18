@@ -34,7 +34,7 @@ class MagneticModels:
 
 
 def _transform_b_gc_to_itrs(
-    b_r: float, b_theta: float, b_phi, lon: float, lat: float
+    b_r: float, b_theta: float, b_phi: float, lon: float, lat: float
 ) -> tuple[float, float, float]:
     """Helper function to transform local b_field in geocentric angles to itrs x y z
 
