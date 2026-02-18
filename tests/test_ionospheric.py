@@ -59,9 +59,9 @@ def test_get_ionosphere(ipp):
     assert ionex.tec.shape == (25, 73, 71)
 
     tec = ionospheric_models.ionex(ipp)
-    assert tec.electron_density.shape == ipp.loc.shape
+    assert tec.electron_density.shape == ipp.lon.shape
     tec = ionospheric_models.ionex_iri(ipp)
-    assert tec.electron_density.shape == ipp.loc.shape
+    assert tec.electron_density.shape == ipp.lon.shape
 
 
 def test_read_zcompressed():
@@ -79,8 +79,8 @@ def test_ionosphere_ionex(ipp):
         iono_kwargs["server"] = "cddis"
         options = parse_iono_kwargs(ionospheric_models.ionex, **iono_kwargs)
         tec = ionospheric_models.ionex(ipp, options=options)
-        assert tec.electron_density.shape == ipp.loc.shape
-        assert tec.electron_density_error.shape[0] == ipp.loc.shape[0]
+        assert tec.electron_density.shape == ipp.lon.shape
+        assert tec.electron_density_error.shape[0] == ipp.lon.shape[0]
 
         # Test bad arguments
         with pytest.raises(TypeError):
@@ -95,8 +95,8 @@ def test_ionosphere_ionex_multiple_days(ipp2):
         iono_kwargs["server"] = "cddis"
         options = parse_iono_kwargs(ionospheric_models.ionex, **iono_kwargs)
         tec = ionospheric_models.ionex(ipp2, options=options)
-        assert tec.electron_density.shape == ipp2.loc.shape
-        assert tec.electron_density_error.shape[0] == ipp2.loc.shape[0]
+        assert tec.electron_density.shape == ipp2.lon.shape
+        assert tec.electron_density_error.shape[0] == ipp2.lon.shape[0]
 
 
 def test_unique_days():

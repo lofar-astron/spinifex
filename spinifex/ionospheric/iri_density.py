@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 from PyIRI import coeff_dir
 from PyIRI.main_library import IRI_density_1day
 
-from spinifex.geometry.get_ipp import IPP
+from spinifex.geometry.get_ipp import IPP, R_EARTH_MEAN
 from spinifex.times import get_unique_days
 
 IRI_HEIGHTS = np.linspace(50, 20000, 100) * u.km
@@ -28,10 +28,10 @@ def get_profile(ipp: IPP) -> NDArray[np.float32]:
         normalied density profile per time
     """
     unique_days = get_unique_days(times=ipp.times)
-    edp = np.zeros(ipp.loc.shape, dtype=float)  # electron density profile
-    altitudes = ipp.loc.height.to(u.km).value
-    longitudes = ipp.loc.lon.deg
-    latitudes = ipp.loc.lat.deg
+    edp = np.zeros(ipp.lon.shape, dtype=float)  # electron density profile
+    altitudes = (ipp.height - R_EARTH_MEAN).to(u.km).value
+    longitudes = ipp.lon.deg
+    latitudes = ipp.lat.deg
     f107 = 100
     ccir_or_ursi = 0
     for u_day in unique_days:

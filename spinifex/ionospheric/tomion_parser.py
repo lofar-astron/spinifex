@@ -17,7 +17,7 @@ from numpy.typing import NDArray
 from spinifex.asyncio_wrapper import sync_wrapper
 from spinifex.download import download_or_copy_url
 from spinifex.exceptions import TomionError
-from spinifex.geometry import IPP
+from spinifex.geometry import IPP, R_EARTH_MEAN
 from spinifex.ionospheric.index_tools import (
     compute_index_and_weights,
     get_interpol,
@@ -370,7 +370,7 @@ def interpolate_tomion_profile(
     lats : NDArray[np.float64]
         array of latitudes at the ipp heights, shape (heights,)
     heights : u.Quantity
-        array of heights
+        array of heights above Earth surface (so make sure the ipp.height is corrected for R_EARTH)
     times : Time
         time
     apply_earth_rotation : float, optional
@@ -544,14 +544,13 @@ def get_density_dual_layer(
     if tomion_options is None:
         tomion_options = TomionOptions()
     # TODO: no need to go through all the burden, just make sure that the ipps are correct for this model?
-
+    ipp_heights_above_surface = (ipp.height[0] - R_EARTH_MEAN).to(u.km).value
     h_index = [
-        np.argmin(np.abs(ipp.loc[0].height.to(u.km).value - h.to(u.km).value))
+        np.argmin(np.abs(ipp_heights_above_surface - h.to(u.km).value))
         for h in TOMION_HEIGHTS
     ]
-    selected_ipp = ipp.loc[:, h_index]
-    tec = np.zeros(ipp.loc.shape, dtype=float)
-    tec_error = np.zeros(ipp.loc.shape, dtype=float)
+    tec = np.zeros(ipp.lon.shape, dtype=float)
+    tec_error = np.zeros(ipp.lon.shape, dtype=float)
     unique_days = get_unique_days(times=ipp.times)
     sorted_tomion_paths = get_tomion_paths(
         unique_days=unique_days,
@@ -563,21 +562,22 @@ def get_density_dual_layer(
         if not tomion_file.exists():
             msg = f"Tomion file {tomion_file} not found!"
             raise FileNotFoundError(msg)
-        u_loc = selected_ipp[indices]
+        u_lon = ipp.lon[indices, h_index]
+        u_lat = ipp.lat[indices, h_index]
         u_times = ipp.times[indices]
         tomion = _read_tomion(tomion_file)
         for idxi, ippi in enumerate(np.arange(tec.shape[0])[indices]):
             tec[ippi, h_index] = interpolate_tomion_dual(
                 tomion,
-                u_loc[idxi].lon.deg,
-                u_loc[idxi].lat.deg,
+                u_lon[idxi].deg,
+                u_lat[idxi].deg,
                 u_times[idxi],
                 apply_earth_rotation=tomion_options.apply_earth_rotation,
             )
             tec_error[ippi, h_index] = interpolate_tomion_dual(
                 tomion,
-                u_loc[idxi].lon.deg,
-                u_loc[idxi].lat.deg,
+                u_lon[idxi].deg,
+                u_lat[idxi].deg,
                 u_times[idxi],
                 get_rms=True,
                 apply_earth_rotation=tomion_options.apply_earth_rotation,
@@ -611,8 +611,8 @@ def get_density_profile(
     if tomion_options is None:
         tomion_options = TomionOptions()
 
-    tec = np.zeros(ipp.loc.shape, dtype=float)
-    tec_error = np.zeros(ipp.loc.shape, dtype=float)
+    tec = np.zeros(ipp.lon.shape, dtype=float)
+    tec_error = np.zeros(ipp.lon.shape, dtype=float)
     unique_days = get_unique_days(times=ipp.times)
     sorted_tomion_paths = get_tomion_paths(
         unique_days=unique_days,
@@ -624,24 +624,26 @@ def get_density_profile(
         if not tomion_file.exists():
             msg = f"Tomion file {tomion_file} not found!"
             raise FileNotFoundError(msg)
-        u_loc = ipp.loc[indices]
+        u_lon = ipp.lon[indices]
+        u_lat = ipp.lat[indices]
+        u_h = ipp.height[indices] - R_EARTH_MEAN
         u_times = ipp.times[indices]
         tomion = _read_tomion(tomion_file)
 
         for idxi, ippi in enumerate(np.arange(tec.shape[0])[indices]):
             tec[ippi, :] = interpolate_tomion_profile(
                 tomion,
-                u_loc[idxi].lon.deg,
-                u_loc[idxi].lat.deg,
-                u_loc[idxi].height,
+                u_lon[idxi].deg,
+                u_lat[idxi].deg,
+                u_h[idxi],
                 u_times[idxi],
                 apply_earth_rotation=tomion_options.apply_earth_rotation,
             )
             tec_error[ippi, :] = interpolate_tomion_profile(
                 tomion,
-                u_loc[idxi].lon.deg,
-                u_loc[idxi].lat.deg,
-                u_loc[idxi].height,
+                u_lon[idxi].deg,
+                u_lat[idxi].deg,
+                u_h[idxi],
                 u_times[idxi],
                 get_rms=True,
                 apply_earth_rotation=tomion_options.apply_earth_rotation,

@@ -7,8 +7,7 @@ from typing import NamedTuple, Protocol
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import ITRS, AltAz
-from ppigrf import igrf
+from ppigrf import igrf_gc
 
 from spinifex.geometry.get_ipp import IPP
 from spinifex.times import get_unique_days
@@ -34,6 +33,44 @@ class MagneticModels:
     ppigrf: MagneticFieldFunction
 
 
+def _transform_b_gc_to_itrs(
+    b_r: float, b_theta: float, b_phi, lon: float, lat: float
+) -> tuple[float]:
+    """Helper function to transform local b_field in geocentric angles to itrs x y z
+
+    Parameters
+    ----------
+    b_r : float
+        radial b
+    b_theta : float
+        latitude b
+    b_phi : float
+        longitude b
+    lon : float
+        longitude of ipp (radians)
+    lat : float
+        latitude of ipp (radians)
+
+    Returns
+    -------
+    tuple[float]
+        x, y, z direction (not normalized) of b_field
+    """
+    theta_rad = np.pi / 2 - lat  # colatitude
+    sin_theta = np.sin(theta_rad)
+    cos_theta = np.cos(theta_rad)
+    sin_phi = np.sin(lon)
+    cos_phi = np.cos(lon)
+
+    b_x = sin_theta * cos_phi * b_r + cos_theta * cos_phi * b_theta - sin_phi * b_phi
+
+    b_y = sin_theta * sin_phi * b_r + cos_theta * sin_phi * b_theta + cos_phi * b_phi
+
+    b_z = cos_theta * b_r - sin_theta * b_theta
+
+    return b_x, b_y, b_z
+
+
 def get_ppigrf_magnetic_field(ipp: IPP) -> MagneticProfile:
     """Get the magnetic field at a given EarthLocation"""
 
@@ -46,33 +83,34 @@ def get_ppigrf_magnetic_field(ipp: IPP) -> MagneticProfile:
     unique_days = get_unique_days(ipp.times)
     b_par = np.zeros(ipp.loc.shape, dtype=float)
     relative_uncertainty = np.zeros_like(b_par)
+
+    # ppigrf uses proper geodetic coordinates,
+    # use Br, Btheta, Bphi = ppigrf.igrf_gc(r, theta, phi, date)
+
     for u_day in unique_days:
         indices = np.floor(ipp.times.mjd) == np.floor(u_day.mjd)
-        loc = ipp.loc[indices]
-        b_e, b_n, b_u = igrf(
-            lon=loc.lon.deg,
-            lat=loc.lat.deg,
-            h=loc.height.to(u.km).value,
+        # loc = ipp.loc[indices]
+        b_r, b_theta, b_phi = igrf_gc(
+            theta=ipp.lat.deg,
+            phi=ipp.lon.deg,
+            h=ipp.height.to(u.km).value,  # geocentric radius in km
             date=u_day.to_datetime(),
         )
         # ppigrf adds an extra axis for time, we remove it by taking the first element
-        b_magn = np.sqrt(b_e**2 + b_n**2 + b_u**2)[0]
+        b_magn = np.sqrt(b_r**2 + b_theta**2 + b_phi**2)[0]
         # relative uncertainty is 1/2 of the relative uncertainty (rms / b_magn**2) of the
         # sum of individual uncertainties of the squares (2 * rms_<enu> * b_<enu>)
-        # multiply by b_magn to get absolute value
-        rms = (RMS_E * b_e + RMS_N * b_n + RMS_U * b_u) / (b_magn)
+        # multiply by b_par to get absolute value
+        rms = (RMS_E * b_phi + RMS_N * b_theta + RMS_U * b_r) / (b_magn)
         relative_uncertainty[indices] = rms / b_magn
-        b_az = np.arctan2(b_e, b_n)
-        b_el = np.arctan2(b_u, np.sqrt(b_n**2 + b_e**2))
-        b_altaz = AltAz(az=b_az[0] * u.rad, alt=b_el[0] * u.rad, location=loc)
-        b_itrs = b_altaz.transform_to(ITRS())
+
+        b_x, b_y, b_z = _transform_b_gc_to_itrs(
+            b_r, b_theta, b_phi, ipp.lon.rad, ipp.lat.rad
+        )
 
         # project to LOS
         los = ipp.los[indices][:, np.newaxis]
-        b_par[indices] = (
-            los[:, :, 0] * b_itrs.x + los[:, :, 1] * b_itrs.y + los[:, :, 2] * b_itrs.z
-        )
-        b_par[indices] *= b_magn
+        b_par[indices] = los[:, :, 0] * b_x + los[:, :, 1] * b_y + los[:, :, 2] * b_z
         # magnitude along LOS,
 
     return MagneticProfile(

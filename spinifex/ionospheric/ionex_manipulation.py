@@ -186,15 +186,15 @@ def get_density_ionex(
         )
         tec = interpolate_ionex(
             ionex,
-            ipp.loc.lon.deg,
-            ipp.loc.lat.deg,
+            ipp.lon.deg,
+            ipp.lat.deg,
             ipp.times,
             apply_earth_rotation=ionex_options.apply_earth_rotation,
         )
         electron_density_error = interpolate_ionex(
             ionex,
-            ipp.loc.lon.deg,
-            ipp.loc.lat.deg,
+            ipp.lon.deg,
+            ipp.lat.deg,
             ipp.times,
             get_rms=True,
             apply_earth_rotation=ionex_options.apply_earth_rotation,
@@ -203,28 +203,29 @@ def get_density_ionex(
             electron_density=tec, electron_density_error=electron_density_error
         )
     group_indices = get_indexlist_unique_days(unique_days, ipp.times)
-    tec = np.zeros(ipp.loc.shape, dtype=float)
-    electron_density_error = np.full(ipp.loc.shape, np.nan)
+    tec = np.zeros(ipp.lon.shape, dtype=float)
+    electron_density_error = np.full(ipp.lon.shape, np.nan)
     for indices, ionex_file, next_day_file in zip(
         group_indices, sorted_ionex_paths, sorted_next_day_paths, strict=True
     ):
         if not ionex_file.exists():
             msg = f"Ionex file {ionex_file} not found!"
             raise FileNotFoundError(msg)
-        u_loc = ipp.loc[indices]
+        u_lon = ipp.lon[indices]
+        u_lat = ipp.lat[indices]
         u_times = ipp.times[indices]
         ionex = read_ionex(ionex_file, next_day_file, options=ionex_options)
         tec[indices] = interpolate_ionex(
             ionex,
-            u_loc.lon.deg,
-            u_loc.lat.deg,
+            u_lon.deg,
+            u_lat.deg,
             u_times,
             apply_earth_rotation=ionex_options.apply_earth_rotation,
         )
         electron_density_error[indices] = interpolate_ionex(
             ionex,
-            u_loc.lon.deg,
-            u_loc.lat.deg,
+            u_lon.deg,
+            u_lat.deg,
             u_times,
             get_rms=True,
             apply_earth_rotation=ionex_options.apply_earth_rotation,

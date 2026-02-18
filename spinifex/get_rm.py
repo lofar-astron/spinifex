@@ -10,7 +10,12 @@ from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from astropy.time import Time
 from numpy.typing import NDArray
 
-from spinifex.geometry import IPP, get_ipp_from_altaz, get_ipp_from_skycoord
+from spinifex.geometry import (
+    IPP,
+    R_EARTH_MEAN,
+    get_ipp_from_altaz,
+    get_ipp_from_skycoord,
+)
 from spinifex.ionospheric import ModelDensityFunction
 from spinifex.ionospheric.iri_density import IRI_HEIGHTS
 from spinifex.ionospheric.models import (
@@ -44,7 +49,7 @@ class RM(NamedTuple):
     electron_density_error: NDArray[np.floating[Any]]
     """electron density uncertainty (TECU)"""
     height: NDArray[np.floating[Any]]
-    """array of altitudes (km)"""
+    """Height above mean Earth surface (km)"""
     azimuth: NDArray[np.floating[Any]]
     """array of azimuths (degrees)"""
     elevation: NDArray[np.floating[Any]]
@@ -106,7 +111,7 @@ def _get_rm(
         b_parallel_error=magnetic_profile.magnetic_field_error.to(u.nT).value,
         electron_density=density_profile.electron_density,
         electron_density_error=density_profile.electron_density_error,
-        height=ipp.loc.height.to(u.km).value,
+        height=(ipp.height - R_EARTH_MEAN).to(u.km).value,
         azimuth=ipp.altaz.az.deg,
         elevation=ipp.altaz.alt.deg,
         loc=ipp.station_loc,

@@ -7,11 +7,10 @@ from typing import Any, Generic, Protocol, TypeVar, cast
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import EarthLocation
 from pydantic import ValidationError
 
 import spinifex.ionospheric.iri_density as iri
-from spinifex.geometry.get_ipp import IPP
+from spinifex.geometry.get_ipp import IPP, R_EARTH_MEAN
 from spinifex.ionospheric.ionex_manipulation import get_density_ionex
 from spinifex.ionospheric.tec_data import ElectronDensity, IonexOptions, TomionOptions
 from spinifex.ionospheric.tomion_parser import (
@@ -69,12 +68,15 @@ def get_density_ionex_single_layer(
         options = IonexOptions()
 
     n_times = ipp.times.shape[0]  # we assume time is first axis
+    ipp_height_above_surface = (ipp.height - R_EARTH_MEAN).to(u.km).value
     index = np.argmin(
-        np.abs(ipp.loc.height.to(u.km).value - options.height.to(u.km).value), axis=1
+        np.abs(ipp_height_above_surface - options.height.to(u.km).value), axis=1
     )
-    single_layer_loc = EarthLocation(ipp.loc[np.arange(n_times), index])
     ipp_single_layer = IPP(
-        loc=single_layer_loc,
+        loc=None,
+        lon=ipp.lon[:, index],
+        lat=ipp.lat[:, index],
+        height=ipp.height[:, index],
         times=ipp.times,
         los=ipp.los,
         airmass=ipp.airmass[:, index],
@@ -85,7 +87,7 @@ def get_density_ionex_single_layer(
         ipp_single_layer,
         ionex_options=options,
     )
-    electron_density = np.zeros(ipp.loc.shape, dtype=float)
+    electron_density = np.zeros(ipp.lon.shape, dtype=float)
     electron_density[np.arange(n_times), index] = tec.electron_density
     return ElectronDensity(
         electron_density=electron_density,

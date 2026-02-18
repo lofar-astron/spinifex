@@ -56,8 +56,8 @@ def test_ionosphere_tomion(ipp):
             output_directory=datapath,
         )
         tec = ionospheric_models.tomion(ipp, options=options)
-        assert tec.electron_density.shape == ipp.loc.shape
-        assert tec.electron_density_error.shape == ipp.loc.shape
+        assert tec.electron_density.shape == ipp.lon.shape
+        assert tec.electron_density_error.shape == ipp.lon.shape
 
         # Test bad arguments
         with pytest.raises(TypeError):
@@ -71,8 +71,8 @@ def test_ionosphere_tomion_dual(ipp):
             output_directory=datapath,
         )
         tec = ionospheric_models.tomion_dual(ipp, options=options)
-        assert tec.electron_density.shape == ipp.loc.shape
-        assert tec.electron_density_error.shape == ipp.loc.shape
+        assert tec.electron_density.shape == ipp.lon.shape
+        assert tec.electron_density_error.shape == ipp.lon.shape
 
         # Test bad arguments
         with pytest.raises(TypeError):
@@ -86,8 +86,8 @@ def test_ionosphere_tomionmultiple_days(ipp2):
             output_directory=datapath,
         )
         tec = ionospheric_models.tomion(ipp2, options=options)
-        assert tec.electron_density.shape == ipp2.loc.shape
-        assert tec.electron_density_error.shape == ipp2.loc.shape
+        assert tec.electron_density.shape == ipp2.lon.shape
+        assert tec.electron_density_error.shape == ipp2.lon.shape
 
 
 def test_interpolate_tomion_profile():

@@ -6,12 +6,13 @@ from typing import NamedTuple
 
 import astropy.units as u
 import numpy as np
-from astropy.constants import R_earth
 from astropy.coordinates import ITRS, AltAz, EarthLocation, SkyCoord
 from astropy.time import Time
 from numpy.typing import NDArray
 
 from spinifex.logger import logger
+
+R_EARTH_MEAN = 6371.0 * u.km
 
 
 class IPP(NamedTuple):
@@ -19,6 +20,12 @@ class IPP(NamedTuple):
 
     loc: EarthLocation
     """location of the piercepoints, dimension: times x altitudes. All altitudes are assumed to be equal"""
+    lon: u.Quantity
+    """longitude on a spherical Earth approximation"""
+    lat: u.Quantity
+    """latitude on a spherical Earth approximation"""
+    height: u.Quantity
+    """geocentric height above Earth center"""
     times: Time
     """array of times"""
     los: NDArray[np.float64]
@@ -29,6 +36,32 @@ class IPP(NamedTuple):
     """azimuth elevation"""
     station_loc: EarthLocation
     """Observer Location"""
+
+
+def get_ipp_from_itrs(
+    loc: EarthLocation, times: Time, los_dir: ITRS, height_array: u.Quantity
+) -> IPP:
+    if not times.shape:
+        times = Time(np.array([times.mjd]), format="mjd")
+    los_vector = los_dir.cartesian.xyz.value
+    los_vector /= np.linalg.norm(los_vector, axis=0)
+    ipp, airmass = _get_ipp_simple(
+        height_array=height_array, loc=loc, los_dir=los_vector
+    )
+    lon, lat, radius = _xyz_to_lonlat_spherical(*[i.to(u.m).value for i in ipp])
+    # ipploc = EarthLocation.from_geodetic(lon, lat, height_array)  # TOO slow
+    altaz = los_dir.transform_to(AltAz(obstime=times, location=loc))
+    return IPP(
+        loc=None,
+        lon=lon,
+        lat=lat,
+        height=radius,
+        times=times,
+        los=los_vector.T,
+        airmass=airmass,
+        altaz=altaz,
+        station_loc=loc,
+    )
 
 
 def get_ipp_from_skycoord(
@@ -56,9 +89,9 @@ def get_ipp_from_skycoord(
     # but maybe we need to include a many stations option
     if not times.shape:
         times = Time(np.array([times.mjd]), format="mjd")
-    aa = AltAz(location=loc, obstime=times)
-    altaz = source.transform_to(aa)
-    return get_ipp_from_altaz(loc, altaz, height_array)
+
+    source_itrs = source.transform_to(ITRS(obstime=times, location=loc))
+    return get_ipp_from_itrs(loc, times, source_itrs, height_array)
 
 
 def get_ipp_from_altaz(
@@ -83,33 +116,13 @@ def get_ipp_from_altaz(
     if not altaz.obstime.shape or altaz.obstime.shape != altaz.az.shape:
         altaz = _make_dimensions_match(altaz)
     los_dir = altaz.transform_to(ITRS(obstime=altaz.obstime, location=altaz.location))
-    # force los_dir to be unit dimensionless vector
-    los_vector = los_dir.cartesian.xyz.value
-    los_vector /= np.linalg.norm(los_vector, axis=0)
-    ipp, airmass = _get_ipp_simple(
-        height_array=height_array, loc=loc, los_dir=los_vector
-    )
-    lon, lat = _xyz_to_lonlat_spherical(*[i.to(u.m).value for i in ipp])
-    # heights_broadcast = (
-    #    np.broadcast_to(np.atleast_1d(height_array), lon.shape) * height_array.unit
-    # )
-    ipploc = EarthLocation.from_geodetic(lon, lat, height_array)  # TOO slow
-    return IPP(
-        loc=ipploc,
-        times=altaz.obstime,
-        los=los_vector.T,
-        airmass=airmass,
-        altaz=altaz,
-        station_loc=loc,
-    )
+    return get_ipp_from_itrs(loc, altaz.obstime, los_dir, height_array)
 
 
 def _xyz_to_lonlat_spherical(
     x_m: float, y_m: float, z_m: float
 ) -> tuple[u.Quantity, u.Quantity]:
-    """Convert geocentric XYZ to geodetic lon/lat using spherical model."""
-
-    # Spherical conversion
+    """Convert geocentric XYZ to geodetic lon/lat/radius using spherical model."""
     lon_rad = np.arctan2(y_m, x_m)
     r_m = np.sqrt(x_m**2 + y_m**2 + z_m**2)
     lat_rad = np.arcsin(np.clip(z_m / r_m, -1, 1))
@@ -117,7 +130,8 @@ def _xyz_to_lonlat_spherical(
     return (
         np.rad2deg(lon_rad) * u.deg,
         np.rad2deg(lat_rad) * u.deg,
-    )
+        r_m * u.m,
+    )  # ← Geocentric radius!
 
 
 def _make_dimensions_match(altaz: AltAz) -> AltAz:
@@ -179,7 +193,7 @@ def _get_ipp_simple(
         ipp.x, ipp.y, ipp.z positions, airmass
     """
     logger.info("Calculating ionospheric piercepoints")
-    c_value = R_earth**2 - (R_earth + height_array) ** 2
+    c_value = R_EARTH_MEAN**2 - (R_EARTH_MEAN + height_array) ** 2
     if len(los_dir.shape) == 1:
         los_dir = los_dir[:, np.newaxis]  # make sure b_values is an array
     b_value = u.Quantity(loc.geocentric) @ los_dir
@@ -190,7 +204,7 @@ def _get_ipp_simple(
         + alphas * los_dir[:, :, np.newaxis]
     )
     inv_airmass = np.einsum("ijk,ij->jk", ipp, los_dir)
-    inv_airmass /= R_earth + height_array  # normalized
+    inv_airmass /= R_EARTH_MEAN + height_array  # normalized
     airmass = (
         1.0 / inv_airmass.decompose().value
     )  # if you forget the .decompose it can have airmass in (m/km)
