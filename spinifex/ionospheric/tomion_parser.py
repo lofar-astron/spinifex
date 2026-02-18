@@ -569,15 +569,15 @@ def get_density_dual_layer(
         for idxi, ippi in enumerate(np.arange(tec.shape[0])[indices]):
             tec[ippi, h_index] = interpolate_tomion_dual(
                 tomion,
-                u_lon[idxi].deg,
-                u_lat[idxi].deg,
+                u_lon[idxi].to(u.deg).value,
+                u_lat[idxi].to(u.deg).value,
                 u_times[idxi],
                 apply_earth_rotation=tomion_options.apply_earth_rotation,
             )
             tec_error[ippi, h_index] = interpolate_tomion_dual(
                 tomion,
-                u_lon[idxi].deg,
-                u_lat[idxi].deg,
+                u_lon[idxi].to(u.deg).value,
+                u_lat[idxi].to(u.deg).value,
                 u_times[idxi],
                 get_rms=True,
                 apply_earth_rotation=tomion_options.apply_earth_rotation,
@@ -633,16 +633,16 @@ def get_density_profile(
         for idxi, ippi in enumerate(np.arange(tec.shape[0])[indices]):
             tec[ippi, :] = interpolate_tomion_profile(
                 tomion,
-                u_lon[idxi].deg,
-                u_lat[idxi].deg,
+                u_lon[idxi].to(u.deg).value,
+                u_lat[idxi].to(u.deg).value,
                 u_h[idxi],
                 u_times[idxi],
                 apply_earth_rotation=tomion_options.apply_earth_rotation,
             )
             tec_error[ippi, :] = interpolate_tomion_profile(
                 tomion,
-                u_lon[idxi].deg,
-                u_lat[idxi].deg,
+                u_lon[idxi].to(u.deg).value,
+                u_lat[idxi].to(u.deg).value,
                 u_h[idxi],
                 u_times[idxi],
                 get_rms=True,

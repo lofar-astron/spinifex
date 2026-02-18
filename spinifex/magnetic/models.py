@@ -91,8 +91,8 @@ def get_ppigrf_magnetic_field(ipp: IPP) -> MagneticProfile:
         indices = np.floor(ipp.times.mjd) == np.floor(u_day.mjd)
         # loc = ipp.loc[indices]
         b_r, b_theta, b_phi = igrf_gc(
-            theta=ipp.lat.deg,
-            phi=ipp.lon.deg,
+            theta=ipp.lat.to(u.deg).value,
+            phi=ipp.lon.to(u.deg).value,
             h=ipp.height.to(u.km).value,  # geocentric radius in km
             date=u_day.to_datetime(),
         )

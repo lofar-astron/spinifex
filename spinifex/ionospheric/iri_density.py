@@ -30,8 +30,8 @@ def get_profile(ipp: IPP) -> NDArray[np.float32]:
     unique_days = get_unique_days(times=ipp.times)
     edp = np.zeros(ipp.lon.shape, dtype=float)  # electron density profile
     altitudes = (ipp.height - R_EARTH_MEAN).to(u.km).value
-    longitudes = ipp.lon.deg
-    latitudes = ipp.lat.deg
+    longitudes = ipp.lon.to(u.deg).value
+    latitudes = ipp.lat.to(u.deg).value
     f107 = 100
     ccir_or_ursi = 0
     for u_day in unique_days:
