@@ -13,6 +13,7 @@ from numpy.typing import NDArray
 from spinifex.logger import logger
 
 R_EARTH_MEAN = 6371.0 * u.km
+R_EARTH_MEAN_KM = 6371.0
 
 
 class IPP(NamedTuple):
@@ -164,7 +165,7 @@ def _make_dimensions_match(altaz: AltAz) -> AltAz:
 
 
 # TODO: Create return type for this function
-def _get_ipp_simple(
+def _get_ipp_simple_SLOW(
     height_array: u.Quantity, loc: EarthLocation, los_dir: SkyCoord
 ) -> tuple[list[u.Quantity], NDArray[np.float64]]:
     r"""helper function to calculate ionospheric piercepoints using a simple spherical earth model
@@ -190,10 +191,12 @@ def _get_ipp_simple(
         ipp.x, ipp.y, ipp.z positions, airmass
     """
     logger.info("Calculating ionospheric piercepoints")
-    c_value = R_EARTH_MEAN**2 - (R_EARTH_MEAN + height_array) ** 2
+    r_station = u.Quantity(loc.geocentric)
+
+    c_value = np.sum(r_station**2) - (R_EARTH_MEAN + height_array) ** 2
     if len(los_dir.shape) == 1:
         los_dir = los_dir[:, np.newaxis]  # make sure b_values is an array
-    b_value = u.Quantity(loc.geocentric) @ los_dir
+    b_value = r_station @ los_dir
     b_value = b_value[:, np.newaxis]
     alphas = -b_value + np.sqrt(b_value**2 - c_value)
     ipp = (
@@ -206,3 +209,77 @@ def _get_ipp_simple(
         1.0 / inv_airmass.decompose().value
     )  # if you forget the .decompose it can have airmass in (m/km)
     return ipp, airmass
+
+
+def _get_ipp_simple_FAST(
+    height_array: u.Quantity, loc: EarthLocation, los_dir: NDArray[np.float64]
+) -> tuple[list[u.Quantity], NDArray[np.float64]]:
+    """
+    Optimized version: Convert to numpy arrays immediately, compute in km.
+
+    Parameters
+    ----------
+    height_array : u.Quantity
+        Array of altitudes (will be converted to km)
+    loc : EarthLocation
+        Observer location
+    los_dir : NDArray
+        Line of sight unit vectors (3, n_times) or (3,)
+
+    Returns
+    -------
+    tuple
+        ipp positions (as list of Quantities in meters), airmass (dimensionless)
+    """
+    logger.info("Calculating ionospheric piercepoints")
+
+    # Convert everything to numpy arrays in km (do this ONCE)
+    height_km = height_array.to(u.km).value  # Shape: (n_heights,)
+
+    # Get station position in km
+    loc_xyz_m = np.array([loc.x.value, loc.y.value, loc.z.value])  # meters
+    loc_xyz_km = loc_xyz_m * 0.001  # km, shape: (3,)
+
+    # Get LOS direction (already unitless)
+    if los_dir.ndim == 1:
+        los_dir = los_dir[:, np.newaxis]  # Shape: (3, n_times)
+
+    # All calculations in km (pure numpy - FAST!)
+    loc_radius_squared = np.sum(loc_xyz_km**2)  # scalar
+    target_radius = R_EARTH_MEAN_KM + height_km  # Shape: (n_heights,)
+    c_value = loc_radius_squared - target_radius**2  # Shape: (n_heights,)
+
+    # Dot product: loc · los (pure numpy)
+    b_value = loc_xyz_km @ los_dir  # Shape: (n_times,)
+    b_value = b_value[:, np.newaxis]  # Shape: (n_times, 1)
+
+    # Solve quadratic (pure numpy - FAST!)
+    # alpha = -b + sqrt(b^2 - c)
+    # Broadcasting: (n_times, 1) and (n_heights,) → (n_times, n_heights)
+    alphas = -b_value + np.sqrt(b_value**2 - c_value)  # Shape: (n_times, n_heights)
+
+    # Calculate pierce points (pure numpy - FAST!)
+    # ipp = loc + alpha * los
+    # Broadcasting: (3, 1, 1) + (n_times, n_heights) * (3, n_times, 1)
+    ipp_km = (
+        loc_xyz_km[:, np.newaxis, np.newaxis]  # (3, 1, 1)
+        + alphas[np.newaxis, :, :]
+        * los_dir[:, :, np.newaxis]  # (3, n_times, n_heights)
+    )
+
+    # Calculate airmass (pure numpy - FAST!)
+    # inv_airmass = ipp · los / |ipp|
+    inv_airmass = np.einsum("ijk,ij->jk", ipp_km, los_dir)  # (n_times, n_heights)
+    inv_airmass /= target_radius  # Normalize by target radius
+    airmass = 1.0 / inv_airmass  # (n_times, n_heights)
+
+    # Convert back to meters with units (do this ONCE at the end)
+    ipp_m = ipp_km * 1000.0  # Convert km back to meters
+    ipp_with_units = [
+        u.Quantity(ipp_m[i], unit=u.m) for i in range(3)
+    ]  # [x, y, z] each with shape (n_times, n_heights)
+
+    return ipp_with_units, airmass
+
+
+_get_ipp_simple = _get_ipp_simple_FAST
