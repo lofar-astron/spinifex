@@ -237,8 +237,9 @@ def _get_ipp_simple_FAST(
     height_km = height_array.to(u.km).value  # Shape: (n_heights,)
 
     # Get station position in km
-    loc_xyz_m = np.array([loc.x.value, loc.y.value, loc.z.value])  # meters
-    loc_xyz_km = loc_xyz_m * 0.001  # km, shape: (3,)
+    loc_xyz_km = np.array(
+        [loc.x.to(u.km).value, loc.y.to(u.km).value, loc.z.to(u.km).value]
+    )  # meters
 
     # Get LOS direction (already unitless)
     if los_dir.ndim == 1:
@@ -275,9 +276,8 @@ def _get_ipp_simple_FAST(
 
     # Convert back to meters with units (do this ONCE at the end)
     ipp_m = ipp_km * 1000.0  # Convert km back to meters
-    ipp_with_units = [
-        u.Quantity(ipp_m[i], unit=u.m) for i in range(3)
-    ]  # [x, y, z] each with shape (n_times, n_heights)
+    ipp_with_units = u.Quantity(ipp_m, unit=u.m)
+    # [x, y, z] each with shape (n_times, n_heights)
 
     return ipp_with_units, airmass
 

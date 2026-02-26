@@ -113,7 +113,7 @@ def test_get_rm_from_fits(simple_fits_cube, tmpdir):
         fits_path=simple_fits_cube,
         output_directory=Path(tmpdir),
     )
-    expected_rm = np.array([-0.69755838, -0.66698846])
+    expected_rm = np.array([-0.69873588, -0.66797033])
     assert np.allclose(rm.rm, expected_rm)
 
 
