@@ -41,7 +41,7 @@ def get_ipp_from_itrs(
     loc: EarthLocation, times: Time, los_dir: ITRS, height_array: u.Quantity
 ) -> IPP:
     if not times.shape:
-        times = Time(np.array([times.mjd]), format="mjd")
+        times = Time(np.array([times.mjd]), format="mjd", scale=times.scale)
     los_vector = los_dir.cartesian.xyz.value
     los_vector /= np.linalg.norm(los_vector, axis=0)
     ipp, airmass = _get_ipp_simple(
@@ -49,7 +49,14 @@ def get_ipp_from_itrs(
     )
     lon, lat, radius = _xyz_to_lonlat_spherical(*[i.to(u.m).value for i in ipp])
     # ipploc = EarthLocation.from_geodetic(lon, lat, height_array)  # TOO slow
-    altaz = los_dir.transform_to(AltAz(obstime=times, location=loc))
+    dir_itrs = ITRS(  # make sure last axis is xyz before adding
+        (loc.itrs.cartesian.xyz.value + los_dir.cartesian.xyz.value.T).T * u.m,
+        obstime=times,
+        representation_type="cartesian",
+    )
+    # Transform satellite position (not LOS!) to AltAz
+    altaz = dir_itrs.transform_to(AltAz(obstime=times, location=loc))
+    # altaz = los_dir.transform_to(AltAz(obstime=times, location=loc))
     return IPP(
         lon=lon,
         lat=lat,
@@ -86,7 +93,7 @@ def get_ipp_from_skycoord(
     # Note: at the moment we calculate ipp per station. I think this is ok,
     # but maybe we need to include a many stations option
     if not times.shape:
-        times = Time(np.array([times.mjd]), format="mjd")
+        times = Time(np.array([times.mjd]), format="mjd", scale=times.scale)
 
     source_itrs = source.transform_to(ITRS(obstime=times, location=loc))
     return get_ipp_from_itrs(loc, times, source_itrs, height_array)
