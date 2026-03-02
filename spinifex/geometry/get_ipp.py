@@ -49,14 +49,7 @@ def get_ipp_from_itrs(
     )
     lon, lat, radius = _xyz_to_lonlat_spherical(*[i.to(u.m).value for i in ipp])
     # ipploc = EarthLocation.from_geodetic(lon, lat, height_array)  # TOO slow
-    dir_itrs = ITRS(  # make sure last axis is xyz before adding
-        (loc.itrs.cartesian.xyz.value + los_dir.cartesian.xyz.value.T).T * u.m,
-        obstime=times,
-        representation_type="cartesian",
-    )
-    # Transform satellite position (not LOS!) to AltAz
-    altaz = dir_itrs.transform_to(AltAz(obstime=times, location=loc))
-    # altaz = los_dir.transform_to(AltAz(obstime=times, location=loc))
+    altaz = los_dir.transform_to(AltAz(obstime=times, location=loc))
     return IPP(
         lon=lon,
         lat=lat,
