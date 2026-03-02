@@ -333,7 +333,7 @@ def _get_interpolated_value_for_two_times(
     ):
         rot = ((time.mjd - time_tomion) * 360.0) * apply_earth_rotation
         isorted = get_sorted_indices(
-            lon=lon + rot,
+            lon=lon - rot,
             lat=lat,
             avail_lon=tomion.lons[tms][layer],
             avail_lat=tomion.lats[tms][layer],
