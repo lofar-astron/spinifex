@@ -85,8 +85,8 @@ def interpolate_ionex(
         rot2 = (
             (times.mjd - ionex.times.mjd[timeindex.idx2]) * 360.0
         ) * apply_earth_rotation
-        lonindex1 = get_indices_axis(lons + rot1, ionex.lons, wrap_unit=360)
-        lonindex2 = get_indices_axis(lons + rot2, ionex.lons, wrap_unit=360)
+        lonindex1 = get_indices_axis(lons - rot1, ionex.lons, wrap_unit=360)
+        lonindex2 = get_indices_axis(lons - rot2, ionex.lons, wrap_unit=360)
     else:
         lonindex1 = get_indices_axis(lons, ionex.lons, wrap_unit=360)
         lonindex2 = lonindex1
