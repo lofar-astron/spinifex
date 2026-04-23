@@ -393,7 +393,7 @@ def cli_get_rm_h5parm_from_ms(args: argparse.Namespace) -> None:
         solset_name=solset_name,
         soltab_name=soltab_name,
         add_to_existing_solset=add_to_existing_solset,
-        source_name="phase_center",
+        source_name="phase_center",  # TODO: get better sourcename from MS
         source_dir=ms_metadata.source,
     )
 
@@ -421,6 +421,6 @@ def cli_get_dtec_h5parm_from_ms(args: argparse.Namespace) -> None:
         solset_name=solset_name,
         soltab_name=soltab_name,
         add_to_existing_solset=add_to_existing_solset,
-        source_name="phase_center",
+        source_name="phase_center",  # TODO: get better sourcename from MS
         source_dir=ms_metadata.source,
     )
