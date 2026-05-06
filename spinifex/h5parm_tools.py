@@ -325,7 +325,7 @@ def write_rm_to_h5parm(
         else:
             solset = create_solset(h5parm, solset_name=solset_name)
             add_antenna_info(solset, station_names, station_pos)
-            if store_dir:
+            if store_dir and source_dir is not None:
                 add_source_info(
                     solset,
                     [
@@ -418,7 +418,7 @@ def write_tec_to_h5parm(
         else:
             solset = create_solset(h5parm, solset_name=solset_name)
             add_antenna_info(solset, station_names, station_pos)
-            if store_dir:
+            if store_dir and source_dir is not None:
                 add_source_info(
                     solset,
                     [
