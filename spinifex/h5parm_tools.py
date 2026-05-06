@@ -320,6 +320,7 @@ def write_rm_to_h5parm(
     if store_dir and source_dir is None:
         source_dir = SkyCoord(350.0 * u.deg, 50.0 * u.deg)
     with h5py.File(h5parm_name, "a") as h5parm:
+        soltab_axes = ["ant", "time"]
         if solset_name is not None and solset_name in h5parm and add_to_existing_solset:
             solset = h5parm[solset_name]
         else:
@@ -334,8 +335,6 @@ def write_rm_to_h5parm(
                     [np.array((source_dir.ra.rad, source_dir.dec.rad))],
                 )
                 soltab_axes = ["ant", "time", "dir"]
-            else:
-                soltab_axes = ["ant", "time"]
         axes_values = {}
         ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
         axes_values["ant"] = np.array(station_names, dtype=ant_dtype)
@@ -413,6 +412,7 @@ def write_tec_to_h5parm(
     if source_dir is None:
         source_dir = SkyCoord(350.0 * u.deg, 50.0 * u.deg)
     with h5py.File(h5parm_name, "a") as h5parm:
+        soltab_axes = ["ant", "time"]
         if solset_name is not None and solset_name in h5parm and add_to_existing_solset:
             solset = h5parm[solset_name]
         else:
@@ -428,8 +428,6 @@ def write_tec_to_h5parm(
                 )
 
                 soltab_axes = ["ant", "time", "dir"]
-            else:
-                soltab_axes = ["ant", "time"]
         axes_values = {}
         ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
         axes_values["ant"] = np.array(station_names, dtype=ant_dtype)
