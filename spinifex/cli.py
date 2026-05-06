@@ -60,6 +60,12 @@ def get_parser():
         action="store_true",
         help="Add to existing solset if it exists",
     )
+    parser_rm.add_argument(
+        "-d",
+        "--do-not-store-direction",
+        action="store_true",
+        help="Do not add an axis for the source direction",
+    )
     parser_rm.set_defaults(func=cli_get_rm_h5parm_from_ms)
 
     # Subparser for get_tec_h5parm_from_ms
@@ -105,6 +111,12 @@ def get_parser():
         "--add-to-existing-solset",
         action="store_true",
         help="Add to existing solset if it exists",
+    )
+    parser_tec.add_argument(
+        "-d",
+        "--do-not-store-direction",
+        action="store_true",
+        help="Do not add an axis for the source direction",
     )
     parser_tec.set_defaults(func=cli_get_dtec_h5parm_from_ms)
 

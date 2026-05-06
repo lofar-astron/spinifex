@@ -377,7 +377,7 @@ def cli_get_rm_h5parm_from_ms(args: argparse.Namespace) -> None:
     add_to_existing_solset: bool = args.add_to_existing_solset
     iono_model_name: str | None = args.iono_model_name
     timestep: int | None = args.timestep
-
+    do_not_store_dir: bool = args.do_not_store_direction
     if timestep:
         timestep = timestep * u.s
     ms_metadata = get_metadata_from_ms(ms_path)
@@ -395,6 +395,7 @@ def cli_get_rm_h5parm_from_ms(args: argparse.Namespace) -> None:
         add_to_existing_solset=add_to_existing_solset,
         source_name="phase_center",  # TODO: get better sourcename from MS
         source_dir=ms_metadata.source,
+        store_dir=not do_not_store_dir,
     )
 
 
@@ -406,6 +407,7 @@ def cli_get_dtec_h5parm_from_ms(args: argparse.Namespace) -> None:
     add_to_existing_solset: bool = args.add_to_existing_solset
     iono_model_name: str | None = args.iono_model_name
     timestep: int | None = args.timestep
+    do_not_store_dir: bool = args.do_not_store_direction
     if timestep:
         timestep = timestep * u.s
     ms_metadata = get_metadata_from_ms(ms_path)
@@ -423,4 +425,5 @@ def cli_get_dtec_h5parm_from_ms(args: argparse.Namespace) -> None:
         add_to_existing_solset=add_to_existing_solset,
         source_name="phase_center",  # TODO: get better sourcename from MS
         source_dir=ms_metadata.source,
+        store_dir=not do_not_store_dir,
     )

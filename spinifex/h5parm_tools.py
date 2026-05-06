@@ -291,6 +291,7 @@ def write_rm_to_h5parm(
     add_to_existing_solset: bool = False,
     source_name: str = "phase_center",
     source_dir: SkyCoord | None = None,
+    store_dir: bool = True,
 ) -> None:
     """writes a dictionary of RM values per station to a new or existing h5parm file
 
@@ -307,7 +308,8 @@ def write_rm_to_h5parm(
     add_to_existing_solset : bool = False
         whether to append to an existing solset, if it exists. If True, the user
         is responsible for having consistent antennas and sources.
-
+    store_dir: bool = True
+        store information about the direction in h5parm, add length one axis for direction
     Raises
     ------
     TypeError
@@ -315,7 +317,7 @@ def write_rm_to_h5parm(
     """
     create_empty_h5parm(h5parm_name=h5parm_name)
     station_names, station_pos = _get_station_metadata(rms)
-    if source_dir is None:
+    if store_dir and source_dir is None:
         source_dir = SkyCoord(350.0 * u.deg, 50.0 * u.deg)
     with h5py.File(h5parm_name, "a") as h5parm:
         if solset_name is not None and solset_name in h5parm and add_to_existing_solset:
@@ -323,40 +325,44 @@ def write_rm_to_h5parm(
         else:
             solset = create_solset(h5parm, solset_name=solset_name)
             add_antenna_info(solset, station_names, station_pos)
-            add_source_info(
-                solset,
-                [
-                    source_name,
-                ],
-                [np.array((source_dir.ra.rad, source_dir.dec.rad))],
-            )
-        soltab_axes = ["ant", "time", "dir"]
-        axes_values = {}
-        ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
-        source_dtype = _zero_terminated_string(
-            max(
-                map(
-                    len,
+            if store_dir:
+                add_source_info(
+                    solset,
                     [
                         source_name,
                     ],
+                    [np.array((source_dir.ra.rad, source_dir.dec.rad))],
                 )
-            )
-            + 1
-        )
+                soltab_axes = ["ant", "time", "dir"]
+            else:
+                soltab_axes = ["ant", "time"]
+        axes_values = {}
+        ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
         axes_values["ant"] = np.array(station_names, dtype=ant_dtype)
         axes_values["time"] = (
             rms[station_names[0]].times.mjd * 24 * 3600.0
         )  # mjd in seconds?
-        axes_values["dir"] = np.array(
-            [
-                source_name,
-            ],
-            dtype=source_dtype,
-        )
-        rm_values = np.array([rms[stname].rm for stname in station_names])[
-            ..., np.newaxis
-        ]  # extra axis for dir
+        rm_values = np.array([rms[stname].rm for stname in station_names])
+        if store_dir:
+            source_dtype = _zero_terminated_string(
+                max(
+                    map(
+                        len,
+                        [
+                            source_name,
+                        ],
+                    )
+                )
+                + 1
+            )
+
+            axes_values["dir"] = np.array(
+                [
+                    source_name,
+                ],
+                dtype=source_dtype,
+            )
+            rm_values = rm_values[..., np.newaxis]  # extra axis for dir
         weights = np.ones(rm_values.shape, dtype=bool)
         weights[np.isnan(rm_values)] = 0
         add_soltab(
@@ -378,6 +384,7 @@ def write_tec_to_h5parm(
     add_to_existing_solset: bool = False,
     source_name: str = "phase_center",
     source_dir: SkyCoord | None = None,
+    store_dir: bool = True,
 ) -> None:
     """writes a dictionary of RM values per station to a new or existing h5parm file
 
@@ -394,7 +401,8 @@ def write_tec_to_h5parm(
     add_to_existing_solset : bool = False
         whether to append to an existing solset, if it exists. If True, the user
         is responsible for having consistent antennas and sources.
-
+    store_dir: bool = True
+        store information about the direction in h5parm, add length one axis for direction
     Raises
     ------
     TypeError
@@ -410,44 +418,50 @@ def write_tec_to_h5parm(
         else:
             solset = create_solset(h5parm, solset_name=solset_name)
             add_antenna_info(solset, station_names, station_pos)
-            add_source_info(
-                solset,
-                [
-                    source_name,
-                ],
-                [np.array((source_dir.ra.rad, source_dir.dec.rad))],
-            )
-
-        soltab_axes = ["ant", "time", "dir"]
-        axes_values = {}
-        ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
-        source_dtype = _zero_terminated_string(
-            max(
-                map(
-                    len,
+            if store_dir:
+                add_source_info(
+                    solset,
                     [
                         source_name,
                     ],
+                    [np.array((source_dir.ra.rad, source_dir.dec.rad))],
                 )
-            )
-            + 1
-        )
+
+                soltab_axes = ["ant", "time", "dir"]
+            else:
+                soltab_axes = ["ant", "time"]
+        axes_values = {}
+        ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
         axes_values["ant"] = np.array(station_names, dtype=ant_dtype)
         axes_values["time"] = (
             dtec[station_names[0]].times.mjd * 24 * 3600.0
         )  # mjd in seconds?
-        axes_values["dir"] = np.array(
-            [
-                source_name,
-            ],
-            dtype=source_dtype,
-        )
         dtec_values = np.array(
             [
                 np.sum(dtec[stname].electron_density * dtec[stname].airmass, axis=-1)
                 for stname in station_names
             ]
-        )[..., np.newaxis]  # extra axis for dir
+        )
+        if store_dir:
+            source_dtype = _zero_terminated_string(
+                max(
+                    map(
+                        len,
+                        [
+                            source_name,
+                        ],
+                    )
+                )
+                + 1
+            )
+
+            axes_values["dir"] = np.array(
+                [
+                    source_name,
+                ],
+                dtype=source_dtype,
+            )
+            dtec_values = dtec_values[..., np.newaxis]  # extra axis for dir
         weights = np.ones(dtec_values.shape, dtype=bool)
         weights[np.isnan(dtec_values)] = 0
         add_soltab(
