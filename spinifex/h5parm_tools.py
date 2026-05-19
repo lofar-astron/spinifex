@@ -330,9 +330,20 @@ def write_rm_to_h5parm(
                 ],
                 [np.array((source_dir.ra.rad, source_dir.dec.rad))],
             )
-        soltab_axes = ["ant", "time"]
+        soltab_axes = ["ant", "time", "dir"]
         axes_values = {}
         ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
+        source_dtype = _zero_terminated_string(
+            max(
+                map(
+                    len,
+                    [
+                        source_name,
+                    ],
+                )
+            )
+            + 1
+        )
         axes_values["ant"] = np.array(station_names, dtype=ant_dtype)
         axes_values["time"] = (
             rms[station_names[0]].times.mjd * 24 * 3600.0
@@ -341,7 +352,7 @@ def write_rm_to_h5parm(
             [
                 source_name,
             ],
-            dtype=ant_dtype,
+            dtype=source_dtype,
         )
         rm_values = np.array([rms[stname].rm for stname in station_names])[
             ..., np.newaxis
@@ -410,6 +421,17 @@ def write_tec_to_h5parm(
         soltab_axes = ["ant", "time", "dir"]
         axes_values = {}
         ant_dtype = _zero_terminated_string(max(map(len, station_names)) + 1)
+        source_dtype = _zero_terminated_string(
+            max(
+                map(
+                    len,
+                    [
+                        source_name,
+                    ],
+                )
+            )
+            + 1
+        )
         axes_values["ant"] = np.array(station_names, dtype=ant_dtype)
         axes_values["time"] = (
             dtec[station_names[0]].times.mjd * 24 * 3600.0
@@ -418,7 +440,7 @@ def write_tec_to_h5parm(
             [
                 source_name,
             ],
-            dtype=ant_dtype,
+            dtype=source_dtype,
         )
         dtec_values = np.array(
             [
